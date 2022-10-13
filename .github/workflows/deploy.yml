@@ -14,6 +14,8 @@ jobs:
       uses: actions/checkout@master
     - name: Create Service Account key
       run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/gcloud.json
+    - name: Create .firebaserc 
+      run: echo '${{ secrets.FIREBASERC }}' > .firebaserc
     - name: Export Service Account  
       run: export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud.json
     - name: Deploy Cloud Functions
