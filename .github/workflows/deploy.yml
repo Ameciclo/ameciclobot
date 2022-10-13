@@ -18,6 +18,8 @@ jobs:
       run: export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud.json
     - name: Create .firebaserc 
       run: echo '${{ secrets.FIREBASERC }}' > .firebaserc
+    - name: npm install
+      run: npm install
     - id: 'auth'
       uses: 'google-github-actions/auth@v0'
       with:
