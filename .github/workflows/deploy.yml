@@ -18,10 +18,9 @@ jobs:
       run: export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud.json
     - name: Create .firebaserc 
       run: echo '${{ secrets.FIREBASERC }}' > .firebaserc
-    - name: Login to Google Cloud
-      uses: google-github-actions/setup-gcloud@main
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v0'
       with:
-        version: '270.0.0'
-        service_account_key: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        credentials_json: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
     - name: Deploy Cloud Functions
       run: npx firebase-tools deploy --project dev --only functions --json --force
