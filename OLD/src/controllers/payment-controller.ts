@@ -1,0 +1,394 @@
+import { Flow } from "../flow-manager/flow";
+import { Variable, VariableValue } from "../flow-manager/variable";
+import { Step } from "../flow-manager/step";
+import { CallbackButton, Markup, UrlButton, ContextMessageUpdate } from "telegraf";
+import database = require('../aux/database');
+import constants = require('../aux/constants');
+import * as functions from 'firebase-functions';
+import utils = require('../aux/utils');
+// import menu = require('../');
+// import * as admin from 'firebase-admin';
+const ids = require('../credentials/admin-ids')
+const groupChatId = ids.getTestGroupId(); // Grupo do financeiro
+const bot = require('../aux/bot-init').getBot();
+const Extra = require('telegraf/extra');
+
+export class Controller {
+
+    getFlow(): Flow {
+        let projectQuery: string | undefined = undefined
+
+        const projectVariable = new Variable("project", "🗂 Projeto: ");
+        const projectStep = new Step("🗂 Escolha um projeto.", projectVariable);
+        projectStep.answerRegex = /^[selectProject]+(#[a-z+0-9+A-Z+_+-]+)?$/
+        projectStep.forceCallbackAnswer = false;
+
+        projectStep.answer = async function (input: string) {
+            projectQuery = input;
+            return { isSuccess: false };
+        }
+
+        projectStep.loadButtons = async function () {
+            const projectsMenu: (CallbackButton | UrlButton)[] = [];
+            const newData: VariableValue[] = []
+
+            await database.getProjectsOnce(projectQuery).then(projects => {
+                projects.forEach((project: any, index: number) => {
+                    newData.push({ text: project.name, data: project })
+                    projectsMenu.push(Markup.callbackButton(project.name, `selectProject#${index}`))
+                });
+
+                return projects;
+            }).catch(err => {
+                console.log(err);
+            })
+
+            this.data = newData;
+            return Promise.resolve(projectsMenu);
+        }
+
+        const recipientSearchVariable = new Variable("recipientName", "")
+        const recipientSearchStep = new Step("📉 Para quem é o pagamento?", recipientSearchVariable)
+        recipientSearchStep.hide = true;
+        recipientSearchStep.stepHint = "Pesquise pelo nome do destinatário e buscarei no banco de dados."
+        recipientSearchStep.stepAtention = constants.defaultMessages.attention
+
+        const recipientVariable = new Variable("recipientInformation", "📉 Fornecedor: ")
+        const recipientStep = new Step("📉 Qual é o destinatário? selecione uma das opções a seguir.", recipientVariable);
+        recipientStep.answerRegex = /^[selectRecipient]+(#[a-z+0-9+A-Z+_+-]+)?$/
+
+        recipientStep.loadButtons = async function () {
+            const recipientsMenu: (CallbackButton | UrlButton)[] = [];
+            const newData: VariableValue[] = []
+
+            await database.getRecipients().then((recipients: any) => {
+                let recipientIndex = -1;
+
+                recipients.forEach((recipient: any, index: number) => {
+                    const nameQuery = recipientSearchVariable.value?.text.toUpperCase();
+                    if (!recipient.name?.toUpperCase().includes(nameQuery)) return;
+
+                    recipientIndex += 1;
+                    newData.push({ text: recipient.name, data: recipient })
+                    recipientsMenu.push(Markup.callbackButton(recipient.name, `selectRecipient#${recipientIndex}`))
+                })
+
+                return newData;
+            }).catch(err => {
+                console.log(`Err ${err}`)
+            })
+
+            this.data = newData;
+            return Promise.resolve(recipientsMenu);
+        }
+
+        const valueVariable = new Variable("value", "💵 Valor: ");
+        const valueStep = new Step("💵 Qual é o valor?", valueVariable);
+        valueStep.argIndex = 0;
+        valueStep.stepHint = "Ex: 1234,56 (sem ponto, use virgula para os centavos)"
+        valueStep.stepAtention = constants.defaultMessages.attention
+
+
+        const budgetItem = new Variable("budgetItem", "📂 Item Orçamentário:")
+        const budgetStep = new Step("📂 Selecione um item orçamentário.", budgetItem);
+        budgetStep.answerRegex = /^[selectBudget]+(#[a-z+0-9+A-Z+_+-]+)?$/
+        budgetStep.loadButtons = async function () {
+            const budgetsMenu: (CallbackButton | UrlButton)[] = [];
+            const newData: VariableValue[] = []
+
+            const selectedProject = projectVariable.value?.data
+            selectedProject.budget_items.forEach((item: any, index: number) => {
+                newData.push({ text: item, data: item });
+                budgetsMenu.push(Markup.callbackButton(item, `selectBudget#${index}`));
+            })
+
+            this.data = newData;
+            return Promise.resolve(budgetsMenu)
+        }
+
+        const descriptionVariable = new Variable("description", "🗒 Descrição:");
+        const descriptionStep = new Step("🗒 Descreva bem o gasto:", descriptionVariable);
+        valueStep.stepHint = "Ex: Peças para oficina de manutenção de bicicletas OU Pagamento pela coordenação do mês de agosto."
+        descriptionStep.stepAtention = constants.defaultMessages.attention
+
+        const steps = [projectStep, recipientSearchStep, recipientStep, valueStep, budgetStep, descriptionStep];
+        const paymentFlow = new Flow("Solicitação de pagamento iniciada", steps, "💳 Solicitar pagamento", "/pagamento");
+        paymentFlow.onlyForAdmin = true;
+        paymentFlow.setDefaultConfirmationStep("❗️ Verifique se está tudo correto antes de confirmar.");
+        paymentFlow.setDefaultSuccessStep("Para adicionar a nota fiscal e editar este pagamento na planilha, clique em Abrir planilha", "Abrir planilha");
+
+
+        paymentFlow.forceBackButton = true
+        paymentFlow.forceCancelButton = true
+
+        paymentFlow.finish = async function (ctx: ContextMessageUpdate): Promise<boolean> {
+            const paymentRequest = this.getObject();
+            delete paymentRequest[""]
+            paymentRequest.from = ctx.from;
+            paymentRequest.from_chat_id = (<any>ctx).session?.chatId
+            this.setSuccessUrlValue(`https://docs.google.com/spreadsheets/d/${paymentRequest.project.spreadsheet_id}/edit#gid=137441560`);
+
+            return database.savePaymentRequest(paymentRequest).then(res => {
+                console.log("PAYMENT-REQUEST: success");
+                console.log(res);
+                return true;
+            }).catch(err => {
+                console.log("PAYMENT-REQUEST: error");
+                console.log(err);
+                return false;
+            });
+        };
+
+        return paymentFlow;
+    }
+
+}
+
+export const requestConfirmedHandler = functions.database.ref('/requests/{requestId}').onUpdate(async (change, context) => {
+    console.log("PAYMENTS-CONTROLLER: requestConfirmedHandler()");
+
+    const request = change.after.val();
+    let spreadsheetId = request.project.id
+
+    if (request === undefined || request.confirmed_by === undefined) {
+        console.log("REQUEST-CONFIRMED-HANDLER: Request undefined ou confirmed_by undefined")
+        return;
+    }
+
+    let confirmedBy = utils.uniqueConfirmed(database.snapshotToArray(request.confirmed_by));
+
+    // FORMATANDO O TEXTO DO BOTÃO
+    let confirmedUsernames = ""
+
+    if (request.confirmed === true || confirmedBy.length > 2) {
+        console.log(`REQUEST-CONFIRMED-HANDLER: já foi confirmado ou mais de 2 pessoas confirmaram pagamento (id: ${request.id})`)
+        return;
+    }
+
+    confirmedBy.forEach((item: any, index: Number) => {
+        if (index === 0) {
+            confirmedUsernames += `@${item.username}`
+        } else {
+            confirmedUsernames += " e " + `@${item.username}`
+        }
+    });
+
+    let buttonText = `Assinaturas ${confirmedBy.length}/2 - ${confirmedUsernames}`
+
+    if (confirmedBy.length === 2) {
+        const rowLink = await updateSpreadsheet(spreadsheetId, request);
+
+        let messageToGroup = `💸 ${confirmedUsernames} confirmaram o pagamento da "${(request.description === "") ? "Sem descrição" : request.description}" (${request.project.name}).`;
+
+        let urlButton = Markup.urlButton('📊Ver planilha', rowLink)
+
+        console.log(`REQUEST-CONFIRMED: Editar mensagem ${request.group_message_id} no grupo ${groupChatId}`)
+
+        await bot.telegram.editMessageText(
+            groupChatId,
+            request.group_message_id,
+            request.group_message_id,
+            utils.excerptFromRequest(request),
+            Extra.markup(Markup.inlineKeyboard([urlButton]))
+        )
+
+        await bot.telegram.sendMessage(groupChatId,
+            messageToGroup,
+            Extra.inReplyTo(request.group_message_id));
+
+        bot.telegram.sendMessage(request.from_chat_id, messageToGroup, Extra.markup(Markup.inlineKeyboard([urlButton])));
+        return bot.telegram.sendMessage(439637366, messageToGroup, Extra.markup(Markup.inlineKeyboard([urlButton])));
+    }
+
+    // ATUALIZAR O BOTÃO DO GT DO FINANCEIRO
+    bot.telegram.editMessageText(
+        groupChatId,
+        request.group_message_id,
+        request.group_message_id,
+        utils.excerptFromRequest(request),
+        getConfirmationExtra(context.params.requestId, buttonText, spreadsheetId)
+    )
+
+    return Promise.resolve(true);
+})
+
+export const confirmPaymentRequest = function (ctx: any) {
+    let requestId = ctx.match[1].split('#')[1];
+    console.log(`PAYMENT: ${ctx.from.id} confirmou a solicitação ${requestId}`);
+
+    return database.confirmPaymentRequest(ctx.from, requestId);
+}
+
+export let cancelPaymentRequest = function (ctx: { match: string[]; from: { id: any; first_name: any; }; deleteMessage: (arg0: any) => Promise<any>; reply: (arg0: string) => any; }) {
+    let requestId = ctx.match[1].split('#')[1]
+    console.log(`PAYMENT: ${ctx.from.id} cancelou a solicitação ${requestId}`);
+
+    return database.cancelPaymentRequestById(requestId).then(snapshot => {
+        const request = snapshot.val();
+        return ctx.deleteMessage(request["group_message_id"]).then(() => {
+            return ctx.reply(`❌${ctx.from.first_name} cancelou a solicitação de pagamento de "${request.description}". Havia sido solicitado por ${request.from.first_name}`);
+        });
+    });
+
+    // return admin.database().ref(`/requests/${requestId}/`).once("value", (snapshot) => {
+    //   ctx.deleteMessage(snapshot.val()["group_message_id"]);
+    //   admin.database().ref(`/requests/${requestId}/`).remove();
+    // });
+
+};
+
+
+async function updateSpreadsheet(spreadsheetId: any, request: { budgetItem: any; recipientInformation: { name: string; }; description: any; value: any; id: any; }) {
+    let range = 'DETALHAMENTO DAS DESPESAS!A1:M';
+    let date = utils.toDays();
+
+    let row = [date, request.budgetItem, '', request.recipientInformation.name.toUpperCase(), request.description, '1', 'unidade', request.value, request.value, '⚠️PREENCHER', '⚠️PREENCHER', date]
+    const rowRange = await database.appendSheetRowAsPromise(spreadsheetId, range, row)
+    const rowLink = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=137441560&range=${rowRange.split("!")[1]}`
+
+    await database.updatePaymentRequest(request.id, { spreadsheetRange: rowRange, confirmed: true, rowLink: rowLink })
+    return rowLink;
+}
+
+
+// const Extra = require('telegraf/extra');
+// const Markup = require('telegraf/markup');
+// const menu = require('../menu');
+// // const utils = require('./utils');
+
+// const session = require('telegraf/session');
+// const googleApi = require('../aux/google-api');
+// const firebase = require('../aux/firebase');
+// const constants = require('../aux/constants');
+// const admin = require('firebase-admin');
+
+// const Telegraf = require('telegraf')
+// const botToken = "938558702:AAEwcq1mt2VYglbBy_7yRfHS3PnkNyLROcQ";
+// const bot = new Telegraf(botToken);
+
+
+// const sendMessagesController = require('../controllers/sendmessages-controller');
+// // const groupChatId = sendMessagesController.groupChatId;
+
+// ///////////////////////////////
+// // SOLICITAÇÃO DE PAGAMENTOS //
+// ///////////////////////////////
+
+// // Funções próprias:
+
+// // - getUpdatedMessage
+// // - questionTextFor
+// // - updateQuestionMessage
+// // - updateRequestMessage
+// // - updateSession
+// // - excerptFromRequest
+
+// // CONFIRMAR A SOLICITAÇÃO
+// export var confirmPaymentRequest = function (ctx) {
+//   let requestId = ctx.match[1].split('#')[1];
+//   console.log(`PAYMENT: ${ctx.from.id} confirmou a solicitação ${requestId}`);
+
+//   return firebase.confirmPaymentRequest(ctx.from, requestId);
+// };
+
+// // CANCELAR A SOLICITAÇÃO
+// // bot.action(/^[cancel]+(#-[a-z+0-9+A-Z+_+-]+)?$/, 
+
+// function makeMenu(requestId, buttonText) {
+//   let clientButton = [
+//     Markup.callbackButton(buttonText, `request#${requestId}`),
+//     Markup.callbackButton("Cancelar", `cancel#${requestId}`)
+//   ]
+
+//   return Markup.inlineKeyboard(clientButton)
+// }
+
+// // todo: jogar para util
+
+
+// exports.requestConfirmedHandler = async (change, context) => {
+//   console.log("PAYMENTS-CONTROLLER: requestConfirmedHandler()");
+
+//   const request = change.after.val();
+//   var spreadsheetId = request.project.id
+
+//   if (request === undefined || request.confirmed_by === undefined) {
+//     console.log("REQUEST-CONFIRMED-HANDLER: Request undefined ou confirmed_by undefined")
+//     return; 
+//   }
+
+//   let confirmedBy = uniqueConfirmed(firebase.snapshotToArray(request.confirmed_by));
+
+//   // FORMATANDO O TEXTO DO BOTÃO
+//   let confirmedUsernames = ""
+
+//   if (request.confirmed === true || confirmedBy.length > 2) { 
+//     console.log(`REQUEST-CONFIRMED-HANDLER: já foi confirmado ou mais de 2 pessoas confirmaram pagamento (id: ${request.id})`)
+//     return; 
+//   }
+
+//   confirmedBy.forEach((item, index) => {
+//     if (index === 0) {
+//       confirmedUsernames += `@${item.username}`
+//     } else {
+//       confirmedUsernames += " e " + `@${item.username}`
+//     }
+//   });
+
+//   const buttonText = `Assinaturas ${confirmedBy.length}/2 - ${confirmedUsernames}`
+
+//   if (confirmedBy.length === 2) {
+//     const rowLink = await updateSpreadsheet(spreadsheetId, request);
+
+//     let messageToGroup = `💸 ${confirmedUsernames} confirmaram o pagamento da "${(request.description === "") ? "Sem descrição" : request.description}" (${request.project.name}).`;
+
+//     var urlButton = Markup.urlButton('📊Ver planilha', rowLink)
+
+//     console.log(`REQUEST-CONFIRMED: Editar mensagem ${request.group_message_id} no grupo ${sendMessagesController.groupChatId}`)
+
+//     await bot.telegram.editMessageText(
+//       sendMessagesController.groupChatId,
+//       request.group_message_id,
+//       request.group_message_id,
+//       sendMessagesController.excerptFromRequest(request),
+//       Extra.markup(Markup.inlineKeyboard([urlButton]))
+//     )
+
+//     await bot.telegram.sendMessage(sendMessagesController.groupChatId,
+//       messageToGroup,
+//       Extra.inReplyTo(request.group_message_id));
+
+//     bot.telegram.sendMessage(request.from_chat_id, messageToGroup, Extra.markup(Markup.inlineKeyboard([urlButton])));
+//     return bot.telegram.sendMessage(439637366, messageToGroup, Extra.markup(Markup.inlineKeyboard([urlButton])));
+//   }
+
+//   // ATUALIZAR O BOTÃO DO GT DO FINANCEIRO
+//   bot.telegram.editMessageText(
+//     sendMessagesController.groupChatId,
+//     request.group_message_id,
+//     request.group_message_id,
+//     sendMessagesController.excerptFromRequest(request),
+//     menu.getConfirmationExtra(context.params.requestId, buttonText, spreadsheetId)
+//   )
+
+//   return Promise.resolve(true);
+// };
+
+// Vê a planilha de pagamentos
+let openSpreadsheetButton = function (spreadsheetId: any) {
+    return Markup.urlButton('📊 Ver planilha', `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=137441560`);
+}
+
+let confirmationMenu = function (requestId: any, buttonText: any, spreadsheetId: any) {
+    let clientButton = [
+        Markup.callbackButton(buttonText, `request#${requestId}`),
+        Markup.callbackButton("Cancelar", `cancel#${requestId}`),
+        openSpreadsheetButton(spreadsheetId)
+    ]
+
+    return Markup.inlineKeyboard(clientButton, { columns: 1 });
+}
+
+let getConfirmationExtra = function (requestId: any, buttonText: any, spreadsheetId: any) {
+    return Extra.markup(confirmationMenu(requestId, buttonText, spreadsheetId));
+};

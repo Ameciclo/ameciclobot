@@ -47,6 +47,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+functions/src/credentials
 
 # Optional npm cache directory
 .npm
@@ -65,3 +66,6 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# Compiled JavaScript files
+functions/lib/**

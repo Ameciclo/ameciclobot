@@ -7,7 +7,3 @@ typings/
 
 # Node.js dependency directory
 node_modules/
-
-# dotenv environment variables file
-.env
-.env.dev

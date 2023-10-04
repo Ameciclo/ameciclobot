@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "firebase-functions": "^4.4.1",
+    "telegraf": "^4.14.0",
+    "typegram": "^5.2.0"
+  }
+}

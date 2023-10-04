@@ -1,0 +1,73 @@
+{
+    "config": {
+        "url": "https://people.googleapis.com/v1/people/me/connections?personFields=names&personFields=emailAddresses&pageSize=10",
+        "method": "GET",
+        "headers": {
+            "Accept-Encoding": "gzip",
+            "User-Agent": "google-api-nodejs-client/0.7.2 (gzip)",
+            "Authorization": "Bearer ya29.c.KpIBwwcHqk1hLYOTbo10EBXpBireL_RrEdmbD8x59Ip0pF5nVFB0Oq6RA47Md4m05A8RwXajlcYa1UhlkT3zKCE1bT80OcvpD1UcMeJs8q39-z0BOgOupjsB_LE5uKs8VQ37KvDUoEyoKN5S8Evir5-jN-J_-VXaLy1jKTZRkGGrdd0QUvxXYl8ufTn7vAp6NqrqyBg",
+            "Accept": "application/json"
+        },
+        "params": {
+            "personFields": [
+                "names",
+                "emailAddresses"
+            ],
+            "pageSize": 10
+        },
+        "responseType": "json"
+    },
+    "data": {
+        "connections": [
+            {
+                "resourceName": "people/c2070497366567980897",
+                "etag": "%EgcBAj0JPjcuGgQBAgUHIgwzNnU0UCs3czlXbz0=",
+                "names": [
+                    {
+                        "metadata": {
+                            "primary": true,
+                            "source": {
+                                "type": "CONTACT",
+                                "id": "1cbbe2628aaa8f61"
+                            }
+                        },
+                        "displayName": "John Doe",
+                        "familyName": "Doe",
+                        "givenName": "John",
+                        "displayNameLastFirst": "Doe, John"
+                    }
+                ],
+                "emailAddresses": [
+                    {
+                        "metadata": {
+                            "primary": true,
+                            "source": {
+                                "type": "CONTACT",
+                                "id": "1cbbe2628aaa8f61"
+                            }
+                        },
+                        "value": "john@doe.com"
+                    }
+                ]
+            }
+        ],
+        "totalPeople": 1,
+        "totalItems": 1
+    },
+    "headers": {
+        "alt-svc": "quic=\":443\"; ma=2592000; v=\"46,43\",h3-Q050=\":443\"; ma=2592000,h3-Q049=\":443\"; ma=2592000,h3-Q048=\":443\"; ma=2592000,h3-Q046=\":443\"; ma=2592000,h3-Q043=\":443\"; ma=2592000,h3-T050=\":443\"; ma=2592000",
+        "cache-control": "private",
+        "connection": "close",
+        "content-encoding": "gzip",
+        "content-type": "application/json; charset=UTF-8",
+        "date": "Tue, 24 Mar 2020 19:44:39 GMT",
+        "server": "ESF",
+        "transfer-encoding": "chunked",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+    },
+    "status": 200,
+    "statusText": "OK"
+}
