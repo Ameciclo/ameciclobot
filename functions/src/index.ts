@@ -15,3 +15,36 @@ exports.bot = functions.https.onRequest((req, res) => {
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+/**
+ * console.log("Iniciando ameciclobot");
+
+require("dotenv").config({ path: "../.env" });
+
+import { Telegraf } from "telegraf";
+//import * as evento from "./commands/evento/index";
+import { MyContext } from "./types";
+import paymentComposer from "./commands/pagamento";
+
+const bot = new Telegraf<MyContext>(process.env.BOT_TOKEN!);
+
+bot.use(paymentComposer);
+
+bot.use(async (ctx, next) => {
+  const start = new Date().getMilliseconds();
+  await next();
+  const end = new Date().getMilliseconds();
+  const ms = start - end;
+  console.log("Response time: %sms", ms);
+});
+
+//bot.command("evento", (ctx) => ctx.scene.enter("evento"));
+bot.catch((err) => console.log(err));
+
+bot.launch();
+console.log("ameciclobot INICIADO");
+
+// Enable graceful stop
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
+ */
