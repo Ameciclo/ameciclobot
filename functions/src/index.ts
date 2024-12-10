@@ -1,17 +1,24 @@
+// src/index.ts
+
 import * as functions from "firebase-functions";
-import {Context, Telegraf} from "telegraf";
+import * as admin from "firebase-admin";
+import { bot } from "./bot";
+import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 
-const bot = new Telegraf(process.env.BOT_TOKEN ? process.env.BOT_TOKEN : "");
+admin.initializeApp();
 
-bot.start((ctx:Context) => ctx.reply("Welcome"));
-bot.help((ctx:Context) => ctx.reply("Send me a sticker"));
-bot.on("sticker", (ctx:Context) => ctx.reply("👍"));
-bot.hears("hi", (ctx:Context) => ctx.reply("Hey there"));
-
+// Função HTTP para o bot (webhook)
 exports.bot = functions.https.onRequest((req, res) => {
   bot.handleUpdate(req.body, res);
 });
 
-// Enable graceful stop
+// Função disparada ao criar um novo request no Firebase Realtime Database
+exports.sendPaymentRequest = functions.database
+  .ref("/requests/{requestId}")
+  .onCreate((snapshot, context) =>
+    sendPaymentRequestHandler(snapshot, context, bot)
+  );
+
+// Parada graciosa do bot (opcional, principalmente em ambientes serverless)
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
