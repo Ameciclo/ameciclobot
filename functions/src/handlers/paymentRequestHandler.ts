@@ -2,8 +2,13 @@
 
 import * as admin from "firebase-admin";
 import { Telegraf } from "telegraf";
-import { PaymentRequest } from "../types";
-import { RecipientInformation } from "../types";
+import { PaymentRequest, RecipientInformation } from "../types";
+
+const groupChatId = process.env.GROUP_CHAT_ID as string;
+const coordinationIds = (process.env.COORDINATION_IDS || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter((id) => id.length > 0); // IDs da coordenação
 
 export function recipientToReadableLine(
   recipient: RecipientInformation
@@ -32,30 +37,46 @@ export function excerptFromRequest(request: PaymentRequest): string {
   );
 }
 
-const groupChatId = process.env.GROUP_CHAT_ID as string; // Defina no seu .env
+interface SendPaymentRequestParams {
+  requestId: string;
+}
 
 export async function sendPaymentRequestHandler(
-  snapshot: any,
-  context: any,
+  snapshot: admin.database.DataSnapshot,
+  params: SendPaymentRequestParams,
   bot: Telegraf
 ) {
   const request = snapshot.val() as PaymentRequest;
-  const requestId = context.params.requestId as string;
+  const { requestId } = params;
 
   const messageToGroup = excerptFromRequest(request);
 
   try {
-    const result = await bot.telegram.sendMessage(
-      groupChatId,
-      messageToGroup,
-    );
-    // Caso não tenha menu, usar: await bot.telegram.sendMessage(groupChatId, messageToGroup);
+    // Envia mensagem no grupo
+    const result = await bot.telegram.sendMessage(groupChatId, messageToGroup);
 
+    // Armazena o ID da mensagem no firebase
     await admin.database().ref(`requests/${requestId}`).update({
       group_message_id: result.message_id,
     });
 
     console.log(`Payment-request sent successfully: ${JSON.stringify(result)}`);
+
+    // Envia mensagem para cada membro da coordenação
+    for (const coordId of coordinationIds) {
+      try {
+        await bot.telegram.sendMessage(
+          coordId,
+          `Uma nova solicitação de pagamento foi criada:\n${messageToGroup}`
+        );
+      } catch (err) {
+        console.error(
+          `Erro ao enviar mensagem para coordenação (ID: ${coordId}):`,
+          err
+        );
+      }
+    }
+
     return result;
   } catch (err) {
     console.error("Erro ao enviar mensagem para o grupo:", err);
