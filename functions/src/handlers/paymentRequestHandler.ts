@@ -1,14 +1,6 @@
-// src/paymentRequestHandler.ts
-
 import * as admin from "firebase-admin";
 import { Telegraf } from "telegraf";
 import { PaymentRequest, RecipientInformation } from "../types";
-
-const groupChatId = process.env.GROUP_CHAT_ID as string;
-const coordinationIds = (process.env.COORDINATION_IDS || "")
-  .split(",")
-  .map((id) => id.trim())
-  .filter((id) => id.length > 0); // IDs da coordenação
 
 export function recipientToReadableLine(
   recipient: RecipientInformation
@@ -44,7 +36,9 @@ interface SendPaymentRequestParams {
 export async function sendPaymentRequestHandler(
   snapshot: admin.database.DataSnapshot,
   params: SendPaymentRequestParams,
-  bot: Telegraf
+  bot: Telegraf,
+  groupChatId: string,
+  coordinationIds: string[]
 ) {
   const request = snapshot.val() as PaymentRequest;
   const { requestId } = params;
@@ -55,7 +49,7 @@ export async function sendPaymentRequestHandler(
     // Envia mensagem no grupo
     const result = await bot.telegram.sendMessage(groupChatId, messageToGroup);
 
-    // Armazena o ID da mensagem no firebase
+    // Armazena o ID da mensagem no Firebase
     await admin.database().ref(`requests/${requestId}`).update({
       group_message_id: result.message_id,
     });
