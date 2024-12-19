@@ -1,7 +1,8 @@
 #!/bin/bash
 clear
 
-
+#firebase deploy --only functions
+#clear && (cd functions/ && npm run build) && firebase emulators:start
 ## depois adicionar: firebase login e firebase init functions
 ## https://console.cloud.google.com/apis/credentials?hl=pt-br&pli=1&project=tangential-span-210120
 

@@ -1,17 +1,37 @@
 import * as admin from "firebase-admin";
-import { Telegraf } from "telegraf";
-import { PaymentRequest, RecipientInformation } from "../types";
+import { Markup, Telegraf } from "telegraf";
+import { PaymentRequest, Supplier } from "../config/types";
 
-export function recipientToReadableLine(
-  recipient: RecipientInformation
-): string {
+async function createConfirmationButtons() {
+  // Busca todos os usuários no endpoint "subscribers"
+  const snapshot = await admin.database().ref("subscribers").once("value");
+  const data = snapshot.val() || {};
+
+  // Filtra apenas os que possuem role: "AMECICLO_COORDINATORS"
+  const coordinatorEntries = Object.values(data).filter(
+    (entry: any) => entry.role === "AMECICLO_COORDINATORS"
+  ) as any[];
+
+  // Mapeia os coordenadores para obter {id, name}
+  const coordinatorIds = coordinatorEntries.map((coord) => ({
+    id: coord.telegram_user.id,
+    name: coord.telegram_user.username || coord.telegram_user.first_name,
+  }));
+
+  // Cria os botões a partir da lista de coordenadores
+  const coordinatorButtons = coordinatorIds.map((coord) =>
+    Markup.button.callback(coord.name, `confirm_${coord.id}`)
+  );
+
+  const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
+
+  return Markup.inlineKeyboard([coordinatorButtons, [cancelButton]]);
+}
+
+export function recipientToReadableLine(supplier: Supplier): string {
   return (
-    `Empresa: ${recipient.company}\n` +
-    `Nome: ${recipient.name}\n` +
-    `Banco: ${recipient.bank_code}\n` +
-    `Agência: ${recipient.agency}\n` +
-    `Conta: ${recipient.account}\n` +
-    `CPF: ${recipient.id}`
+    `Empresa: ${supplier.nickname} (${supplier.name})\n` +
+    `Pagar com ${supplier.payment_methods[0].type} ➡️ ${supplier.payment_methods[0].value}`
   );
 }
 
@@ -24,7 +44,7 @@ export function excerptFromRequest(request: PaymentRequest): string {
     `🗒 Descrição: ${request.description}\n\n` +
     `📈 Conta saída: ${request.project.account}\n\n` +
     `📉 DADOS BANCÁRIOS\n` +
-    `${recipientToReadableLine(request.recipientInformation)}\n\n` +
+    `${recipientToReadableLine(request.supplier)}\n\n` +
     `💵 Valor: ${request.value}`
   );
 }
@@ -56,12 +76,16 @@ export async function sendPaymentRequestHandler(
 
     console.log(`Payment-request sent successfully: ${JSON.stringify(result)}`);
 
-    // Envia mensagem para cada membro da coordenação
+    // Cria os botões de confirmação/cancelamento a partir do Firebase
+    const confirmationMarkup = await createConfirmationButtons();
+
+    // Envia mensagem para cada membro da coordenação passada por parâmetro, com os botões
     for (const coordId of coordinationIds) {
       try {
         await bot.telegram.sendMessage(
           coordId,
-          `Uma nova solicitação de pagamento foi criada:\n${messageToGroup}`
+          `Uma nova solicitação de pagamento foi criada:\n${messageToGroup}`,
+          confirmationMarkup
         );
       } catch (err) {
         console.error(
