@@ -14,7 +14,6 @@ import {
   getQuemSouEuCommandName,
   getQuemSouEuCommandDescription,
 } from "./quemsoueu";
-import { escapeMarkdownV2 } from "../utils/utils";
 
 export function getStartCommandName() {
   return "/start";
@@ -41,27 +40,22 @@ export function registerIniciarCommand(bot: Telegraf) {
 }
 
 async function startCommand(ctx: Context) {
-  const startMessage = escapeMarkdownV2(`
-🎉 Olá, sou *@ameciclobot*! 🚴‍♀️🚴‍♂️
+  const startMessage = `
+  🎉 Olá, sou <b>@ameciclobot</b>! 🚴‍♀️🚴‍♂️
 
-Auxiliar para demandas e registros da *Ameciclo* – Associação Metropolitana de Ciclistas do Recife. Aqui estão os comandos disponíveis para facilitar a sua vida:
+Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropolitana de Ciclistas do Recife. Aqui estão os comandos disponíveis para facilitar a sua vida:
 
-📝 *${getPautaCommandName()}* - ${getPautaCommandDescription()}
+📝 <b>${getPautaCommandName()}</b> - ${getPautaCommandDescription()}
+📢 <b>${getInformeCommandName()}</b> - ${getInformeCommandDescription()}
+🔗 <b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
+📌 <b>${getDemandCommandName()}</b> - ${getDemandCommandDescription()}
+🔄 <b>${getReferralsCommandName()}</b> - ${getReferralsCommandDescription()}
+🤔 <b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
 
-📢 *${getInformeCommandName()}* - ${getInformeCommandDescription()}
-
-🔗 *${getClippingCommandName()}* - ${getClippingCommandDescription()}
-
-📌 *${getDemandCommandName()}* - ${getDemandCommandDescription()}
-
-🔄 *${getReferralsCommandName()}* - ${getReferralsCommandDescription()}
-
-🤔 *${getQuemSouEuCommandName()}* - ${getQuemSouEuCommandDescription()}
-
-📩 Se tiver dúvidas ou sugestões, registre-a *Ameciclo* em https://github.com/Ameciclo/ameciclobot ou fale com @ameciclo_info aqui no Telegram.
+📩 Se tiver dúvidas ou sugestões, registre-a na Ameciclo em <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com @ameciclo_info aqui no Telegram.
 
 🚀 Bora começar? Digite um dos comandos acima para começar a usar!
-    `);
+`;
 
-  await ctx.reply(startMessage, { parse_mode: "Markdown" });
+  await ctx.reply(startMessage, { parse_mode: "HTML" });
 }

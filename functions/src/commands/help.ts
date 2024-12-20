@@ -8,7 +8,6 @@ import {
 } from "./encaminhamentos";
 import { getInformeCommandName, getInformeCommandHelp } from "./informe";
 import { getQuemSouEuCommandName, getQuemSouEuCommandHelp } from "./quemsoueu";
-import { escapeMarkdownV2 } from "../utils/utils";
 
 export function getHelpCommandName() {
   return "/ajuda";
@@ -35,34 +34,34 @@ export function registerHelpCommand(bot: Telegraf) {
 }
 
 async function helpCommand(ctx: Context) {
-  const helpMessage = escapeMarkdownV2(`
-  🤖 *@ameciclobot - Auxiliar Ameciclista* 🤝
-  
-  Aqui está a lista de comandos disponíveis:
-  
-  *${getPautaCommandName()}*:  
-  ${getPautaCommandHelp()}
-  
-  *${getInformeCommandName()}*:  
-  ${getInformeCommandHelp()}
-  
-  *${getClippingCommandName()}*:  
-  ${getClippingCommandHelp()}
-  
-  *${getDemandCommandName()}*:  
-  ${getDemandCommandHelp()}
-  
-  *${getReferralsCommandName()}*:  
-  ${getReferralsCommandHelp()}
-  
-  *${getQuemSouEuCommandName()}*:  
-  ${getQuemSouEuCommandHelp()}
-  
-  ❓ */help ou /ajuda*:  
-  Exibe esta lista de comandos e suas explicações.
-  
-  Se tiver dúvidas, fale com a Ameciclo ou envie mensagem para @ameciclo_info.
-      `);
+  const helpMessage = `
+🤖 <b>@ameciclobot - Auxiliar Ameciclista</b> 🤝
 
-  await ctx.reply(helpMessage, { parse_mode: "Markdown" });
+Aqui está a lista de comandos disponíveis:
+
+📝 <b>${getPautaCommandName()}</b>:  
+${getPautaCommandHelp()}
+
+📢 <b>${getInformeCommandName()}</b>:  
+${getInformeCommandHelp()}
+
+🔗 <b>${getClippingCommandName()}</b>:  
+${getClippingCommandHelp()}
+
+📌 <b>${getDemandCommandName()}</b>:  
+${getDemandCommandHelp()}
+
+🔄 <b>${getReferralsCommandName()}</b>:  
+${getReferralsCommandHelp()}
+
+🤔 <b>${getQuemSouEuCommandName()}</b>:  
+${getQuemSouEuCommandHelp()}
+
+❓ <b>/help ou /ajuda</b>:  
+Exibe esta lista de comandos e suas explicações.
+
+📩 Se tiver dúvidas, fale com a Ameciclo ou envie mensagem para <a href="https://t.me/ameciclo_info">@ameciclo_info</a>.
+  `;
+
+  await ctx.reply(helpMessage, { parse_mode: "HTML" });
 }
