@@ -1,5 +1,6 @@
 // Inicializa o Firebase Admin SDK
 import { admin } from "./config/firebaseInit";
+console.log(admin);
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 
