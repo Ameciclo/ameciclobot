@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import { admin } from "../index";
 import { createEvent } from "../services/google";
 import calendars from "../config/calendars.json";
 

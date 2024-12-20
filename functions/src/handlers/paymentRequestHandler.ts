@@ -1,26 +1,15 @@
-import * as admin from "firebase-admin";
 import { Markup, Telegraf } from "telegraf";
 import { PaymentRequest, Supplier } from "../config/types";
+import {
+  getAllCoordinatorsIds,
+  updatePaymentRequestGroupMessage,
+} from "../services/firebase";
 
-async function createConfirmationButtons(requestId: string) {
-  // Busca todos os usuários no endpoint "subscribers"
-  const snapshot = await admin.database().ref("subscribers").once("value");
-  const data = snapshot.val() || {};
-
-  // Filtra apenas os que possuem role: "AMECICLO_COORDINATORS"
-  const coordinatorEntries = Object.values(data).filter(
-    (entry: any) => entry.role === "AMECICLO_COORDINATORS"
-  ) as any[];
-
-  // Mapeia os coordenadores para obter {id, name}
-  const coordinatorIds = coordinatorEntries.map((coord) => ({
-    id: coord.telegram_user.id,
-    name: coord.telegram_user.username || coord.telegram_user.first_name,
-  }));
-
+async function createConfirmationButtons() {
+  const coordinatorIds = await getAllCoordinatorsIds();
   // Cria os botões a partir da lista de coordenadores
   const coordinatorButtons = coordinatorIds.map((coord) =>
-    Markup.button.callback(coord.name, `confirm_${coord.id}_${requestId}`)
+    Markup.button.callback(coord.name, `confirm_${coord.id}`)
   );
 
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
@@ -37,8 +26,9 @@ export function recipientToReadableLine(supplier: Supplier): string {
 
 export function excerptFromRequest(request: PaymentRequest): string {
   return (
-    `💰💰💰 PAGAMENTO 💰💰💰\n` +
-    `👉 ${request.from.first_name} solicitou um pagamento.\n\n` +
+    `💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰\n\n` +
+    `👉 Solicitado por:  ${request.from.first_name}\n` +
+    `📂 ID da Solicitação: ${request.id}\n\n` +
     `🗂 Projeto: ${request.project.name}\n` +
     `📂 Item Orçamentário: ${request.budgetItem}\n` +
     `🗒 Descrição: ${request.description}\n\n` +
@@ -54,13 +44,13 @@ interface SendPaymentRequestParams {
 }
 
 export async function sendPaymentRequestHandler(
-  snapshot: admin.database.DataSnapshot,
+  request: PaymentRequest,
   params: SendPaymentRequestParams,
   bot: Telegraf,
   groupChatId: string,
   coordinationIds: string[]
 ) {
-  const request = snapshot.val() as PaymentRequest;
+  console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA");
   const { requestId } = params;
 
   const messageToGroup = excerptFromRequest(request);
@@ -69,22 +59,17 @@ export async function sendPaymentRequestHandler(
     // Envia mensagem no grupo
     const result = await bot.telegram.sendMessage(groupChatId, messageToGroup);
 
-    // Armazena o ID da mensagem no Firebase
-    await admin.database().ref(`requests/${requestId}`).update({
-      group_message_id: result.message_id,
-    });
-
-    console.log(`Payment-request sent successfully: ${JSON.stringify(result)}`);
+    updatePaymentRequestGroupMessage(requestId, result.message_id);
 
     // Cria os botões de confirmação/cancelamento a partir do Firebase
-    const confirmationMarkup = await createConfirmationButtons(requestId);
+    const confirmationMarkup = await createConfirmationButtons();
 
     // Envia mensagem para cada membro da coordenação passada por parâmetro, com os botões
     for (const coordId of coordinationIds) {
       try {
         await bot.telegram.sendMessage(
           coordId,
-          `Uma nova solicitação de pagamento foi criada:\n${messageToGroup}`,
+          `${messageToGroup}`,
           confirmationMarkup
         );
       } catch (err) {

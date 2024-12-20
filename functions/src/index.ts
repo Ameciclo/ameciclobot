@@ -15,9 +15,12 @@ import { registerDemandaCommand } from "./commands/demanda";
 import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
+import { PaymentRequest } from "./config/types";
 
 // Inicializa o Firebase Admin SDK
 admin.initializeApp();
+
+export { admin };
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -45,9 +48,10 @@ export const sendPaymentRequest = onValueCreated(
     const groupChatId = await getFinancesGroupId();
     const snapshot = event.data;
     const params = { requestId: event.params.requestId };
+    const request = snapshot.val() as PaymentRequest;
 
     return sendPaymentRequestHandler(
-      snapshot,
+      request,
       params,
       bot,
       groupChatId,
