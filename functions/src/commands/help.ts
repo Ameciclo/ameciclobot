@@ -8,6 +8,7 @@ import {
 } from "./encaminhamentos";
 import { getInformeCommandName, getInformeCommandHelp } from "./informe";
 import { getQuemSouEuCommandName, getQuemSouEuCommandHelp } from "./quemsoueu";
+import { escapeMarkdownV2 } from "../utils/utils";
 
 export function getHelpCommandName() {
   return "/ajuda";
@@ -34,7 +35,7 @@ export function registerHelpCommand(bot: Telegraf) {
 }
 
 async function helpCommand(ctx: Context) {
-  const helpMessage = `
+  const helpMessage = escapeMarkdownV2(`
   🤖 *@ameciclobot - Auxiliar Ameciclista* 🤝
   
   Aqui está a lista de comandos disponíveis:
@@ -61,7 +62,7 @@ async function helpCommand(ctx: Context) {
   Exibe esta lista de comandos e suas explicações.
   
   Se tiver dúvidas, fale com a Ameciclo ou envie mensagem para @ameciclo_info.
-      `;
+      `);
 
   await ctx.reply(helpMessage, { parse_mode: "Markdown" });
 }

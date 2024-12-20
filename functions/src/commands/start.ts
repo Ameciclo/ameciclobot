@@ -14,6 +14,7 @@ import {
   getQuemSouEuCommandName,
   getQuemSouEuCommandDescription,
 } from "./quemsoueu";
+import { escapeMarkdownV2 } from "../utils/utils";
 
 export function getStartCommandName() {
   return "/start";
@@ -28,8 +29,19 @@ export function getStartCommandDescription() {
 }
 
 export function registerStartCommand(bot: Telegraf) {
-  bot.command("start", async (ctx: Context) => {
-    const startMessage = `
+  bot.start(async (ctx: Context) => {
+    await startCommand(ctx);
+  });
+}
+
+export function registerIniciarCommand(bot: Telegraf) {
+  bot.command("iniciar", async (ctx: Context) => {
+    await startCommand(ctx);
+  });
+}
+
+async function startCommand(ctx: Context) {
+  const startMessage = escapeMarkdownV2(`
 🎉 Olá, sou *@ameciclobot*! 🚴‍♀️🚴‍♂️
 
 Auxiliar para demandas e registros da *Ameciclo* – Associação Metropolitana de Ciclistas do Recife. Aqui estão os comandos disponíveis para facilitar a sua vida:
@@ -49,8 +61,7 @@ Auxiliar para demandas e registros da *Ameciclo* – Associação Metropolitana 
 📩 Se tiver dúvidas ou sugestões, registre-a *Ameciclo* em https://github.com/Ameciclo/ameciclobot ou fale com @ameciclo_info aqui no Telegram.
 
 🚀 Bora começar? Digite um dos comandos acima para começar a usar!
-    `;
+    `);
 
-    await ctx.reply(startMessage, { parse_mode: "Markdown" });
-  });
+  await ctx.reply(startMessage, { parse_mode: "Markdown" });
 }

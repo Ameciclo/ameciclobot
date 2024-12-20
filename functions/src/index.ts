@@ -3,7 +3,7 @@ import { bot, setupCommands } from "./config/bot";
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
-import { registerStartCommand } from "./commands/start";
+import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinatorsId, getFinancesGroupId } from "./services/firebase";
 import { registerCancelPaymentHandler } from "./handlers/cancelPaymentHandler";
@@ -22,6 +22,7 @@ setupCommands();
 
 // Registro dos comandos
 registerStartCommand(bot);
+registerIniciarCommand(bot);
 registerHelpCommand(bot);
 registerAjudaCommand(bot);
 registerQuemSouEuCommand(bot);
