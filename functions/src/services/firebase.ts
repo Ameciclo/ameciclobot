@@ -27,7 +27,7 @@ export async function getFinancesGroupId(): Promise<string> {
       .ref("/configuration/financesgroup")
       .once("value");
     console.log(snapshot.val() || "");
-    return "-1002375721041";
+    return "-1002230503739";
   } catch (err) {
     console.error("Erro ao buscar ID do grupo financeiro:", err);
     return "";
