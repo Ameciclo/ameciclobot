@@ -1,5 +1,7 @@
 import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
+import { toDays } from "../utils/utils";
+import { updatePaymentRequest } from "./firebase";
 
 const credentials = google_keys.credentials;
 const api_key = google_keys.api_key;
@@ -58,7 +60,7 @@ export async function createEvent(
   endDate: string,
   location = "",
   description = "",
-  tag = ""
+  //tag = ""
 ): Promise<any> {
   const calendar = google.calendar({ version: "v3", auth: getJwt() });
 
@@ -68,7 +70,7 @@ export async function createEvent(
       summary: name,
       location,
       description,
-      id: tag,
+      //id: tag,
       start: {
         dateTime: startDate,
         timeZone: "America/Recife",
@@ -108,4 +110,48 @@ export async function createDocument(title: string): Promise<any> {
     console.error("Erro ao criar documento:", error);
     throw error;
   }
+}
+
+export async function updateSpreadsheet(
+  spreadsheetId: any,
+  request: {
+    budgetItem: any;
+    recipientInformation: { name: string };
+    description: any;
+    value: any;
+    id: any;
+  }
+) {
+  var range = "DETALHAMENTO DAS DESPESAS!A1:M";
+  const date = toDays();
+
+  var row = [
+    date,
+    request.budgetItem,
+    "",
+    request.recipientInformation.name.toUpperCase(),
+    request.description,
+    "1",
+    "unidade",
+    request.value,
+    request.value,
+    "⚠️PREENCHER",
+    "⚠️PREENCHER",
+    date,
+  ];
+  const rowRange = await appendSheetRowAsPromise(
+    spreadsheetId,
+    range,
+    row
+  );
+  const rowLink = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=137441560&range=${
+    rowRange.split("!")[1]
+  }`;
+
+  await updatePaymentRequest(request.id, {
+    spreadsheetRange: rowRange,
+    confirmed: true,
+    rowLink: rowLink,
+  });
+  return rowLink;
 }

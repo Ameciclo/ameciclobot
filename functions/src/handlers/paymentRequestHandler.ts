@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import { Markup, Telegraf } from "telegraf";
 import { PaymentRequest, Supplier } from "../config/types";
 
-async function createConfirmationButtons() {
+async function createConfirmationButtons(requestId: string) {
   // Busca todos os usuários no endpoint "subscribers"
   const snapshot = await admin.database().ref("subscribers").once("value");
   const data = snapshot.val() || {};
@@ -20,7 +20,7 @@ async function createConfirmationButtons() {
 
   // Cria os botões a partir da lista de coordenadores
   const coordinatorButtons = coordinatorIds.map((coord) =>
-    Markup.button.callback(coord.name, `confirm_${coord.id}`)
+    Markup.button.callback(coord.name, `confirm_${coord.id}_${requestId}`)
   );
 
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
@@ -77,7 +77,7 @@ export async function sendPaymentRequestHandler(
     console.log(`Payment-request sent successfully: ${JSON.stringify(result)}`);
 
     // Cria os botões de confirmação/cancelamento a partir do Firebase
-    const confirmationMarkup = await createConfirmationButtons();
+    const confirmationMarkup = await createConfirmationButtons(requestId);
 
     // Envia mensagem para cada membro da coordenação passada por parâmetro, com os botões
     for (const coordId of coordinationIds) {

@@ -13,6 +13,8 @@ import { registerInformeCommand } from "./commands/informe";
 import { registerClippingCommand } from "./commands/clipping";
 import { registerDemandCommand } from "./commands/demanda";
 import { registerReferralsCommand } from "./commands/encaminhamentos";
+import { handleCreateEvent } from "./handlers/createEventHandler";
+import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
 
 // Inicializa o Firebase Admin SDK
 admin.initializeApp();
@@ -21,18 +23,19 @@ admin.initializeApp();
 setupCommands();
 
 // Registro dos comandos
-registerStartCommand(bot);
-registerIniciarCommand(bot);
-registerHelpCommand(bot);
 registerAjudaCommand(bot);
-registerQuemSouEuCommand(bot);
-registerPautaCommand(bot);
-registerInformeCommand(bot);
 registerClippingCommand(bot);
 registerDemandCommand(bot);
+registerHelpCommand(bot);
+registerInformeCommand(bot);
+registerIniciarCommand(bot);
+registerPautaCommand(bot);
+registerQuemSouEuCommand(bot);
 registerReferralsCommand(bot);
+registerStartCommand(bot);
 
 registerCancelPaymentHandler(bot);
+registerConfirmPaymentHandler(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -50,6 +53,13 @@ export const sendPaymentRequest = onValueCreated(
       groupChatId,
       coordinators
     );
+  }
+);
+
+export const createCalendarEvent = onValueCreated(
+  "/calendar/{eventId}",
+  async (event) => {
+    await handleCreateEvent(event);
   }
 );
 

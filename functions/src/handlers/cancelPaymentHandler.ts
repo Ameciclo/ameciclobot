@@ -3,6 +3,7 @@ import { Context, Telegraf } from "telegraf";
 
 export function registerCancelPaymentHandler(bot: Telegraf) {
   bot.action("cancel_payment", async (ctx: Context) => {
+    console.log("CANCELAR PAGAMENTO!");
     try {
       const requestId = ctx.callbackQuery?.message?.message_id
 

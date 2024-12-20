@@ -25,3 +25,21 @@ export async function getFinancesGroupId(): Promise<string> {
     return "";
   }
 }
+
+export var updatePaymentRequest = async function (
+  requestId: string,
+  update: Object
+) {
+  return new Promise((resolve, reject) => {
+    admin
+      .database()
+      .ref(`requests/${requestId}`)
+      .update(update)
+      .then((snapshot) => {
+        return resolve(snapshot);
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
+};
