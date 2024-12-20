@@ -69,20 +69,16 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
         return;
       }
 
-      if (requestData.confirmed) {
-        await ctx.answerCbQuery("Esta solicitação já foi confirmada.", {
-          show_alert: true,
-        });
-        return;
-      }
-
       const signatures = requestData.signatures || {};
       const userAlreadySignedSlot = Object.keys(signatures).find(
         (slot) => signatures[slot]?.id === userId
       );
 
       if (userAlreadySignedSlot) {
+        // Remove a assinatura e atualiza apenas as signatures
         delete signatures[userAlreadySignedSlot];
+        await updatePaymentRequest(requestId, { signatures });
+        await ctx.answerCbQuery("Sua assinatura foi removida.");
       } else {
         const signatureCount = Object.keys(signatures).length;
         if (signatureCount >= 2) {
@@ -115,7 +111,22 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
               requestToSheet.spreadsheetId,
               requestToSheet
             );
-            await updatePaymentRequest(requestId, { status: "confirmed" });
+            await updatePaymentRequest(requestId, {
+              status: "confirmed",
+              signatures,
+            });
+            await ctx.answerCbQuery("Pagamento confirmado com sucesso.");
+
+            // Atualizar os botões após confirmação
+            const viewSpreadsheetButton = Markup.button.url(
+              "📊 Ver planilha",
+              `https://docs.google.com/spreadsheets/d/${requestToSheet.spreadsheetId}`
+            );
+
+            const newMarkup = Markup.inlineKeyboard([[viewSpreadsheetButton]]);
+
+            await ctx.editMessageReplyMarkup(newMarkup.reply_markup);
+            return;
           } catch (err) {
             console.error("Erro ao atualizar planilha:", err);
             await ctx.answerCbQuery(
@@ -126,10 +137,11 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
             );
             return;
           }
+        } else {
+          await updatePaymentRequest(requestId, { signatures });
+          await ctx.answerCbQuery("Sua assinatura foi adicionada.");
         }
       }
-
-      await updatePaymentRequest(requestId, { signatures });
 
       const subscribers = await getSubscribers();
       const coordinatorEntries = Object.values(subscribers).filter(
@@ -143,23 +155,25 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
         const displayName = signed
           ? `✅ ${coord.telegram_user.first_name}`
           : coord.telegram_user.first_name;
-        return Markup.button.callback(
-          displayName,
-          `confirm_${coord.telegram_user.id}`
-        );
+        return signed
+          ? Markup.button.callback(displayName, "noop") // Botão sem ação após assinatura
+          : Markup.button.callback(
+              displayName,
+              `confirm_${coord.telegram_user.id}`
+            );
       });
 
       const cancelButton = Markup.button.callback(
         "❌ CANCELAR",
         "cancel_payment"
       );
+
       const newMarkup = Markup.inlineKeyboard([
-        coordinatorButtons,
+        [...coordinatorButtons],
         [cancelButton],
       ]);
 
       await ctx.editMessageReplyMarkup(newMarkup.reply_markup);
-      await ctx.answerCbQuery();
     } catch (err) {
       console.error("Erro ao confirmar pagamento:", err);
       await ctx.reply(
