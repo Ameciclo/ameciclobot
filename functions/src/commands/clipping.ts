@@ -4,39 +4,40 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getPautaCommandName() {
-  return "/pauta";
+// Exemplo para o comando /clipping
+export function getClippingCommandName() {
+  return "/clipping";
 }
 
-export function getPautaCommandHelp() {
-  return "Use o comando `/pauta` para adicionar uma pauta. O formato esperado é:\n\n`/pauta [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa.";
+export function getClippingCommandHelp() {
+  return "Use o comando `/clipping` para adicionar um link de clipping. O formato esperado é:\n\n`/clipping [URL válida]`\n\nVocê também pode dar /clipping em resposta a alguma mensagem sua ou de outra pessoa.";
 }
 
-export function getPautaCommandDescription() {
-  return "📝 Adicionar uma pauta para a reunião ordinária.";
+export function getClippingCommandDescription() {
+  return "🔗 Adicionar um link de clipping.";
 }
 
-export function registerPautaCommand(bot: Telegraf) {
-  bot.command("pauta", async (ctx: Context) => {
+export function registerClippingCommand(bot: Telegraf) {
+  bot.command("clipping", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
       // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
-      let topic: string | undefined;
+      let clip: string | undefined;
       if (ctx.message && "text" in ctx.message) {
-        topic =
+        clip =
           ctx.message.reply_to_message && "text" in ctx.message.reply_to_message
             ? ctx.message.reply_to_message.text
-            : ctx.message.text.replace("/pauta", "").trim();
+            : ctx.message.text.replace("/clipping", "").trim();
       }
 
-      if (!from || !chat || !topic) {
+      if (!from || !chat || !clip) {
         return ctx.reply("Por favor, envie uma mensagem válida.");
       }
 
-      // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras
-      if (topic.split(" ").length < MIN_TOPIC_SIZE) {
+      // Validação: verifica se a clipping tem pelo menos MIN_TOPIC_SIZE palavras
+      if (clip.split(" ").length < MIN_TOPIC_SIZE) {
         return ctx.reply(
           `${from.first_name}, menos de ${MIN_TOPIC_SIZE} palavras? Descreve um pouco mais o que você quer e tente novamente.`
         );
@@ -52,9 +53,9 @@ export function registerPautaCommand(bot: Telegraf) {
 
       // Salva na planilha usando o serviço do Google Sheets
       const success = await appendSheetRowAsPromise(
-        urls.topics.id,
-        urls.topics.range + urls.topics.offset,
-        [date, group, author, topic]
+        urls.clipping.id,
+        urls.clipping.range + urls.clipping.offset,
+        [date, group, author, clip]
       );
 
       if (success) {
@@ -65,8 +66,8 @@ export function registerPautaCommand(bot: Telegraf) {
               inline_keyboard: [
                 [
                   {
-                    text: "📝 Ver pautas",
-                    url: `https://docs.google.com/spreadsheets/d/${urls.topics.id}`,
+                    text: "📝 Ver clippings",
+                    url: `https://docs.google.com/spreadsheets/d/${urls.clipping.id}`,
                   },
                 ],
               ],
@@ -75,13 +76,13 @@ export function registerPautaCommand(bot: Telegraf) {
         );
       } else {
         return ctx.reply(
-          "Houve um erro ao salvar a pauta. Tente novamente mais tarde."
+          "Houve um erro ao salvar a clipping. Tente novamente mais tarde."
         );
       }
     } catch (error) {
-      console.error("Erro ao processar comando /pauta:", error);
+      console.error("Erro ao processar comando /clipping:", error);
       return ctx.reply(
-        "Ocorreu um erro ao registrar sua pauta. Tente novamente mais tarde."
+        "Ocorreu um erro ao registrar sua clipping. Tente novamente mais tarde."
       );
     }
   });

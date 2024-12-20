@@ -12,10 +12,10 @@
         "offset": "!A1:D"
 
     },
-    "comunicationReferrals": { 
-        "url": "http://encaminhamentoscomunicacaco.ameciclo.org/",
+    "demands": { 
+        "url": "http://demandas.ameciclo.org/",
         "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
-        "range": "COMUNICACAO",
+        "range": "DEMANDA",
         "offset": "!A1:D"
 
     },

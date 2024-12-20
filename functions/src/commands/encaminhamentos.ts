@@ -4,39 +4,39 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getPautaCommandName() {
-  return "/pauta";
+export function getReferralsCommandName() {
+  return "/encaminhamento";
 }
 
-export function getPautaCommandHelp() {
-  return "Use o comando `/pauta` para adicionar uma pauta. O formato esperado é:\n\n`/pauta [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa.";
+export function getReferralsCommandHelp() {
+  return "Use o comando `/encaminhamento` para registrar encaminhamentos. O formato esperado é:\n\n`/encaminhamento [texto do encaminhamento com pelo menos 5 palavras]`";
 }
 
-export function getPautaCommandDescription() {
-  return "📝 Adicionar uma pauta para a reunião ordinária.";
+export function getReferralsCommandDescription() {
+  return "🔄 Registrar encaminhamentos importantes.";
 }
 
-export function registerPautaCommand(bot: Telegraf) {
-  bot.command("pauta", async (ctx: Context) => {
+export function registerReferralsCommand(bot: Telegraf) {
+  bot.command("encaminhamento", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
       // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
-      let topic: string | undefined;
+      let referrals: string | undefined;
       if (ctx.message && "text" in ctx.message) {
-        topic =
+        referrals =
           ctx.message.reply_to_message && "text" in ctx.message.reply_to_message
             ? ctx.message.reply_to_message.text
-            : ctx.message.text.replace("/pauta", "").trim();
+            : ctx.message.text.replace("/referrals", "").trim();
       }
 
-      if (!from || !chat || !topic) {
+      if (!from || !chat || !referrals) {
         return ctx.reply("Por favor, envie uma mensagem válida.");
       }
 
       // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras
-      if (topic.split(" ").length < MIN_TOPIC_SIZE) {
+      if (referrals.split(" ").length < MIN_TOPIC_SIZE) {
         return ctx.reply(
           `${from.first_name}, menos de ${MIN_TOPIC_SIZE} palavras? Descreve um pouco mais o que você quer e tente novamente.`
         );
@@ -52,9 +52,9 @@ export function registerPautaCommand(bot: Telegraf) {
 
       // Salva na planilha usando o serviço do Google Sheets
       const success = await appendSheetRowAsPromise(
-        urls.topics.id,
-        urls.topics.range + urls.topics.offset,
-        [date, group, author, topic]
+        urls.referrals.id,
+        urls.referrals.range + urls.referrals.offset,
+        [date, group, author, referrals]
       );
 
       if (success) {
@@ -65,8 +65,8 @@ export function registerPautaCommand(bot: Telegraf) {
               inline_keyboard: [
                 [
                   {
-                    text: "📝 Ver pautas",
-                    url: `https://docs.google.com/spreadsheets/d/${urls.topics.id}`,
+                    text: "📝 Ver encaminhamentos",
+                    url: `https://docs.google.com/spreadsheets/d/${urls.referrals.id}`,
                   },
                 ],
               ],
@@ -75,13 +75,13 @@ export function registerPautaCommand(bot: Telegraf) {
         );
       } else {
         return ctx.reply(
-          "Houve um erro ao salvar a pauta. Tente novamente mais tarde."
+          "Houve um erro ao salvar o encaminhamento. Tente novamente mais tarde."
         );
       }
     } catch (error) {
-      console.error("Erro ao processar comando /pauta:", error);
+      console.error("Erro ao processar comando /encaminhamento:", error);
       return ctx.reply(
-        "Ocorreu um erro ao registrar sua pauta. Tente novamente mais tarde."
+        "Ocorreu um erro ao registrar sua encaminhamento. Tente novamente mais tarde."
       );
     }
   });

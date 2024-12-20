@@ -1,21 +1,34 @@
 import * as admin from "firebase-admin";
-import { bot } from "./config/bot";
+import { bot, setupCommands } from "./config/bot";
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
-import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerStartCommand } from "./commands/start";
 import { registerHelpCommand } from "./commands/help";
 import { getCoordinatorsId, getFinancesGroupId } from "./services/firebase";
 import { registerCancelPaymentHandler } from "./handlers/cancelPaymentHandler";
+import { registerQuemSouEuCommand } from "./commands/quemsoueu";
+import { registerPautaCommand } from "./commands/pauta";
+import { registerInformeCommand } from "./commands/informe";
+import { registerClippingCommand } from "./commands/clipping";
+import { registerDemandCommand } from "./commands/demanda";
+import { registerReferralsCommand } from "./commands/encaminhamentos";
 
 // Inicializa o Firebase Admin SDK
 admin.initializeApp();
+
+// ATIVAR QUANDO ALTERAR COMANDOS
+setupCommands();
 
 // Registro dos comandos
 registerStartCommand(bot);
 registerHelpCommand(bot);
 registerQuemSouEuCommand(bot);
+registerPautaCommand(bot);
+registerInformeCommand(bot);
+registerClippingCommand(bot);
+registerDemandCommand(bot);
+registerReferralsCommand(bot);
 
 registerCancelPaymentHandler(bot);
 
@@ -37,7 +50,6 @@ export const sendPaymentRequest = onValueCreated(
     );
   }
 );
-
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {

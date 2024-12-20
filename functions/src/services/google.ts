@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
 
 const credentials = google_keys.credentials;
-const api_key = google_keys.api;
+const api_key = google_keys.api_key;
 // Autenticação com o Google
 function getJwt() {
   return new google.auth.JWT(
@@ -32,9 +32,9 @@ export async function appendSheetRowAsPromise(
 
   try {
     const result = await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range,
-      key: api_key.key,
+      spreadsheetId: spreadsheetId,
+      range: range,
+      key: api_key,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });
