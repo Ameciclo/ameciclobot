@@ -1,19 +1,6 @@
-import { admin } from "../index";
+import { admin } from "../config/firebaseInit";
 
-export async function getCoordinatorsId(): Promise<string[]> {
-  try {
-    const snapshot = await admin
-      .database()
-      .ref("/configuration/coordinators")
-      .once("value");
-    return snapshot.val() || [];
-  } catch (err) {
-    console.error("Erro ao buscar coordenadores:", err);
-    return [];
-  }
-}
-
-export async function getAllCoordinatorsIds() {
+export async function getCoordinatorsIds() {
   // Busca todos os usuários no endpoint "subscribers"
   const snapshot = await admin.database().ref("subscribers").once("value");
   const data = snapshot.val() || {};
@@ -39,7 +26,8 @@ export async function getFinancesGroupId(): Promise<string> {
       .database()
       .ref("/configuration/financesgroup")
       .once("value");
-    return snapshot.val() || "";
+    console.log(snapshot.val() || "");
+    return "-1002375721041";
   } catch (err) {
     console.error("Erro ao buscar ID do grupo financeiro:", err);
     return "";
@@ -78,12 +66,23 @@ export async function updatePaymentRequestGroupMessage(
   );
 }
 
+export async function updatCalendarEvent(event: any, createdEvent: any) {
+  await admin.database().ref(`calendar/${event.params.eventId}`).update({
+    googleEventId: createdEvent.id,
+    googleHtmlLink: createdEvent.htmlLink,
+  });
+
+  console.log(
+    `Payment-request sent successfully: ${JSON.stringify(createdEvent)}`
+  );
+}
+
 // Buscar dados de uma solicitação pelo `requestId`
 export async function getRequestData(requestId: string): Promise<any> {
   try {
     const snapshot = await admin
       .database()
-      .ref(`requests/${requestId}`)
+      .ref(`/requests/${requestId}`)
       .once("value");
     console.log("snapshot.exists():", snapshot.exists());
     console.log("snapshot.val():", snapshot.val());
@@ -96,6 +95,7 @@ export async function getRequestData(requestId: string): Promise<any> {
 
 // Buscar dados dos assinantes (subscribers)
 export async function getSubscribers(): Promise<any[]> {
+  console.log(`GETREQUESTDATA: subscribers`);
   try {
     const snapshot = await admin.database().ref("subscribers").once("value");
     return snapshot.val() || [];

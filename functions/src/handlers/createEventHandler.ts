@@ -1,4 +1,3 @@
-import { admin } from "../index";
 import { createEvent } from "../services/google";
 import calendars from "../config/calendars.json";
 
@@ -59,11 +58,6 @@ export async function handleCreateEvent(event: any): Promise<void> {
       // eventData.id
     );
     console.log("Evento criado com sucesso no Google Calendar:", createdEvent);
-
-    await admin.database().ref(`calendar/${event.params.eventId}`).update({
-      googleEventId: createdEvent.id,
-      googleHtmlLink: createdEvent.htmlLink,
-    });
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar:", error);
   }

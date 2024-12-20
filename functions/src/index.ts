@@ -1,11 +1,13 @@
-import * as admin from "firebase-admin";
-import { bot, setupCommands } from "./config/bot";
+// Inicializa o Firebase Admin SDK
+import { admin } from "./config/firebaseInit";
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
+
+import { bot, setupCommands } from "./config/bot";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
-import { getCoordinatorsId, getFinancesGroupId } from "./services/firebase";
+import { getCoordinatorsIds, getFinancesGroupId } from "./services/firebase";
 import { registerCancelPaymentHandler } from "./handlers/cancelPaymentHandler";
 import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerPautaCommand } from "./commands/pauta";
@@ -16,11 +18,6 @@ import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
 import { PaymentRequest } from "./config/types";
-
-// Inicializa o Firebase Admin SDK
-admin.initializeApp();
-
-export { admin };
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -44,7 +41,7 @@ registerConfirmPaymentHandler(bot);
 export const sendPaymentRequest = onValueCreated(
   "/requests/{requestId}",
   async (event) => {
-    const coordinators = await getCoordinatorsId();
+    const coordinators = await getCoordinatorsIds();
     const groupChatId = await getFinancesGroupId();
     const snapshot = event.data;
     const params = { requestId: event.params.requestId };

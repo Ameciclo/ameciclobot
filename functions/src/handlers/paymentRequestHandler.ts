@@ -1,12 +1,17 @@
 import { Markup, Telegraf } from "telegraf";
 import { PaymentRequest, Supplier } from "../config/types";
 import {
-  getAllCoordinatorsIds,
+  getCoordinatorsIds,
   updatePaymentRequestGroupMessage,
 } from "../services/firebase";
 
-async function createConfirmationButtons() {
-  const coordinatorIds = await getAllCoordinatorsIds();
+async function createConfirmationButtons(forGroup: boolean = false) {
+  if (!forGroup) {
+    // Retorna um teclado vazio se os botões forem destinados apenas para o grupo
+    return Markup.inlineKeyboard([]);
+  }
+
+  const coordinatorIds = await getCoordinatorsIds();
   // Cria os botões a partir da lista de coordenadores
   const coordinatorButtons = coordinatorIds.map((coord) =>
     Markup.button.callback(coord.name, `confirm_${coord.id}`)
@@ -48,33 +53,40 @@ export async function sendPaymentRequestHandler(
   params: SendPaymentRequestParams,
   bot: Telegraf,
   groupChatId: string,
-  coordinationIds: string[]
+  coordinatiors: {
+    id: any;
+    name: any;
+  }[]
 ) {
   console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA");
   const { requestId } = params;
 
   const messageToGroup = excerptFromRequest(request);
-
+  console.log(groupChatId);
+  console.log(coordinatiors);
   try {
-    // Envia mensagem no grupo
-    const result = await bot.telegram.sendMessage(groupChatId, messageToGroup);
+    // Envia mensagem no grupo com botões de confirmação e cancelamento
+    const confirmationMarkup = await createConfirmationButtons(true);
+    const result = await bot.telegram.sendMessage(
+      groupChatId,
+      messageToGroup,
+      confirmationMarkup
+    );
 
     updatePaymentRequestGroupMessage(requestId, result.message_id);
 
-    // Cria os botões de confirmação/cancelamento a partir do Firebase
-    const confirmationMarkup = await createConfirmationButtons();
-
-    // Envia mensagem para cada membro da coordenação passada por parâmetro, com os botões
-    for (const coordId of coordinationIds) {
+    // Envia mensagem informativa para cada coordenador sem os botões
+    const informationalMarkup = await createConfirmationButtons(false);
+    for (const coordinator of coordinatiors) {
       try {
         await bot.telegram.sendMessage(
-          coordId,
+          coordinator.id,
           `${messageToGroup}`,
-          confirmationMarkup
+          informationalMarkup
         );
       } catch (err) {
         console.error(
-          `Erro ao enviar mensagem para coordenação (ID: ${coordId}):`,
+          `Erro ao enviar mensagem para coordenação (ID: ${coordinator}):`,
           err
         );
       }
