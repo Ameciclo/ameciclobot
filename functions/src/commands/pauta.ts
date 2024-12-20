@@ -32,7 +32,7 @@ export function registerPautaCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !topic) {
-        return ctx.reply("Por favor, envie uma mensagem válida.");
+        return ctx.reply(getPautaCommandHelp());
       }
 
       // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras

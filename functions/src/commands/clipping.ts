@@ -2,7 +2,7 @@ import { Context, Telegraf } from "telegraf";
 import { appendSheetRowAsPromise } from "../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
 import urls from "../config/urls.json";
 
-const MIN_TOPIC_SIZE = 5;
+const URL_REGEX = /(https?:\/\/[^\s]+)/; // Regex para capturar URLs
 
 // Exemplo para o comando /clipping
 export function getClippingCommandName() {
@@ -32,16 +32,22 @@ export function registerClippingCommand(bot: Telegraf) {
             : ctx.message.text.replace("/clipping", "").trim();
       }
 
-      if (!from || !chat || !clip) {
+      if (!clip) {
+        return ctx.reply(getClippingCommandHelp(), { parse_mode: "Markdown" });
+      }
+
+      const urlMatch = clip.match(URL_REGEX);
+      if (!urlMatch) {
+        return ctx.reply(
+          `${from?.first_name}, não encontrei uma URL válida no texto. Certifique-se de enviar um link para registrar como clipping.`
+        );
+      }
+
+      if (!from || !chat) {
         return ctx.reply("Por favor, envie uma mensagem válida.");
       }
 
-      // Validação: verifica se a clipping tem pelo menos MIN_TOPIC_SIZE palavras
-      if (clip.split(" ").length < MIN_TOPIC_SIZE) {
-        return ctx.reply(
-          `${from.first_name}, menos de ${MIN_TOPIC_SIZE} palavras? Descreve um pouco mais o que você quer e tente novamente.`
-        );
-      }
+      const url = urlMatch[0]; // Extrai a URL válida do texto
 
       // Prepara os dados para registro
       const date = new Date().toLocaleString();
@@ -49,13 +55,13 @@ export function registerClippingCommand(bot: Telegraf) {
         chat.type === "group" || chat.type === "supergroup"
           ? chat.title
           : "Privado";
-      const author = `${from.first_name} ${from.last_name || ""}`;
+      const author = `${from?.first_name} ${from?.last_name || ""}`;
 
       // Salva na planilha usando o serviço do Google Sheets
       const success = await appendSheetRowAsPromise(
         urls.clipping.id,
         urls.clipping.range + urls.clipping.offset,
-        [date, group, author, clip]
+        [date, group, author, url]
       );
 
       if (success) {

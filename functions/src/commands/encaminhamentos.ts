@@ -32,7 +32,7 @@ export function registerReferralsCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !referrals) {
-        return ctx.reply("Por favor, envie uma mensagem válida.");
+        return ctx.reply(getReferralsCommandHelp());
       }
 
       // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras

@@ -46,7 +46,7 @@ Auxiliar para demandas e registros da *Ameciclo* – Associação Metropolitana 
 
 🤔 *${getQuemSouEuCommandName()}* - ${getQuemSouEuCommandDescription()}
 
-📩 Se tiver dúvidas ou sugestões, registre-a *Ameciclo* em https://github.com/Ameciclo/ameciclobot.
+📩 Se tiver dúvidas ou sugestões, registre-a *Ameciclo* em https://github.com/Ameciclo/ameciclobot ou fale com @ameciclo_info aqui no Telegram.
 
 🚀 Bora começar? Digite um dos comandos acima para começar a usar!
     `;

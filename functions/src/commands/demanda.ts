@@ -36,9 +36,7 @@ export function registerDemandCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !demand) {
-        return ctx.reply(
-          "Por favor, envie uma mensagem válida no formato correto."
-        );
+        return ctx.reply(getDemandCommandHelp());
       }
 
       // Regex para validar o formato: [data] [arrobas] [texto]

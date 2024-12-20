@@ -32,7 +32,7 @@ export function registerInformeCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !inform) {
-        return ctx.reply("Por favor, envie uma mensagem válida.");
+        return ctx.reply(getInformeCommandHelp());
       }
 
       // Validação: verifica se a informe tem pelo menos MIN_TOPIC_SIZE palavras
