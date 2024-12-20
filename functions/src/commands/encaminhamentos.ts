@@ -28,7 +28,7 @@ export function registerReferralsCommand(bot: Telegraf) {
         referrals =
           ctx.message.reply_to_message && "text" in ctx.message.reply_to_message
             ? ctx.message.reply_to_message.text
-            : ctx.message.text.replace("/referrals", "").trim();
+            : ctx.message.text.replace("/encaminhamento", "").trim();
       }
 
       if (!from || !chat || !referrals) {

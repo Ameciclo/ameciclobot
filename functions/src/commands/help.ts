@@ -21,37 +21,47 @@ export function getHelpCommandDescription() {
   return "❓ Exibir lista de comandos e instruções.";
 }
 
-export function registerHelpCommand(bot: Telegraf) {
-  bot.command(["help", "ajuda"], async (ctx: Context) => {
-    const helpMessage = `
-🤖 *@ameciclobot - Auxiliar Ameciclista* 🤝
-
-Aqui está a lista de comandos disponíveis:
-
-*${getPautaCommandName()}*:  
-${getPautaCommandHelp()}
-
-*${getInformeCommandName()}*:  
-${getInformeCommandHelp()}
-
-*${getClippingCommandName()}*:  
-${getClippingCommandHelp()}
-
-*${getDemandCommandName()}*:  
-${getDemandCommandHelp()}
-
-*${getReferralsCommandName()}*:  
-${getReferralsCommandHelp()}
-
-*${getQuemSouEuCommandName()}*:  
-${getQuemSouEuCommandHelp()}
-
-❓ */help ou /ajuda*:  
-Exibe esta lista de comandos e suas explicações.
-
-Se tiver dúvidas, fale com a Ameciclo ou envie mensagem para @ameciclo_info.
-    `;
-
-    await ctx.reply(helpMessage, { parse_mode: "Markdown" });
+export function registerAjudaCommand(bot: Telegraf) {
+  bot.command("ajuda", async (ctx: Context) => {
+    await helpCommand(ctx);
   });
+}
+
+export function registerHelpCommand(bot: Telegraf) {
+  bot.help(async (ctx: Context) => {
+    await helpCommand(ctx);
+  });
+}
+
+async function helpCommand(ctx: Context) {
+  const helpMessage = `
+  🤖 *@ameciclobot - Auxiliar Ameciclista* 🤝
+  
+  Aqui está a lista de comandos disponíveis:
+  
+  *${getPautaCommandName()}*:  
+  ${getPautaCommandHelp()}
+  
+  *${getInformeCommandName()}*:  
+  ${getInformeCommandHelp()}
+  
+  *${getClippingCommandName()}*:  
+  ${getClippingCommandHelp()}
+  
+  *${getDemandCommandName()}*:  
+  ${getDemandCommandHelp()}
+  
+  *${getReferralsCommandName()}*:  
+  ${getReferralsCommandHelp()}
+  
+  *${getQuemSouEuCommandName()}*:  
+  ${getQuemSouEuCommandHelp()}
+  
+  ❓ */help ou /ajuda*:  
+  Exibe esta lista de comandos e suas explicações.
+  
+  Se tiver dúvidas, fale com a Ameciclo ou envie mensagem para @ameciclo_info.
+      `;
+
+  await ctx.reply(helpMessage, { parse_mode: "Markdown" });
 }
