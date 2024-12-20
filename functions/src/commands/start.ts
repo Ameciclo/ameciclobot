@@ -3,10 +3,10 @@ import {
   getClippingCommandName,
   getClippingCommandDescription,
 } from "./clipping";
-import { getDemandCommandName, getDemandCommandDescription } from "./demanda";
+import { getDemandaCommandName, getDemandaCommandDescription } from "./demanda";
 import {
-  getReferralsCommandName,
-  getReferralsCommandDescription,
+  getEncaminhamentoCommandName,
+  getEncaminhamentoCommandDescription,
 } from "./encaminhamentos";
 import { getInformeCommandName, getInformeCommandDescription } from "./informe";
 import { getPautaCommandName, getPautaCommandDescription } from "./pauta";
@@ -48,8 +48,8 @@ Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropoli
 📝 <b>${getPautaCommandName()}</b> - ${getPautaCommandDescription()}
 📢 <b>${getInformeCommandName()}</b> - ${getInformeCommandDescription()}
 🔗 <b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
-📌 <b>${getDemandCommandName()}</b> - ${getDemandCommandDescription()}
-🔄 <b>${getReferralsCommandName()}</b> - ${getReferralsCommandDescription()}
+📌 <b>${getDemandaCommandName()}</b> - ${getDemandaCommandDescription()}
+🔄 <b>${getEncaminhamentoCommandName()}</b> - ${getEncaminhamentoCommandDescription()}
 🤔 <b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
 
 📩 Se tiver dúvidas ou sugestões, registre-a na Ameciclo em <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com @ameciclo_info aqui no Telegram.

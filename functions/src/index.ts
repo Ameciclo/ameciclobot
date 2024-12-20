@@ -11,8 +11,8 @@ import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerPautaCommand } from "./commands/pauta";
 import { registerInformeCommand } from "./commands/informe";
 import { registerClippingCommand } from "./commands/clipping";
-import { registerDemandCommand } from "./commands/demanda";
-import { registerReferralsCommand } from "./commands/encaminhamentos";
+import { registerDemandaCommand } from "./commands/demanda";
+import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
 
@@ -25,13 +25,13 @@ setupCommands();
 // Registro dos comandos
 registerAjudaCommand(bot);
 registerClippingCommand(bot);
-registerDemandCommand(bot);
+registerDemandaCommand(bot);
+registerEncaminhamentoCommand(bot);
 registerHelpCommand(bot);
 registerInformeCommand(bot);
 registerIniciarCommand(bot);
 registerPautaCommand(bot);
 registerQuemSouEuCommand(bot);
-registerReferralsCommand(bot);
 registerStartCommand(bot);
 
 registerCancelPaymentHandler(bot);

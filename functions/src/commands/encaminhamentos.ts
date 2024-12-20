@@ -4,19 +4,19 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getReferralsCommandName() {
+export function getEncaminhamentoCommandName() {
   return "/encaminhamento";
 }
 
-export function getReferralsCommandHelp() {
+export function getEncaminhamentoCommandHelp() {
   return "Use o comando `/encaminhamento` para registrar encaminhamentos. O formato esperado é:\n\n`/encaminhamento [texto do encaminhamento com pelo menos 5 palavras]`";
 }
 
-export function getReferralsCommandDescription() {
+export function getEncaminhamentoCommandDescription() {
   return "🔄 Registrar encaminhamentos importantes.";
 }
 
-export function registerReferralsCommand(bot: Telegraf) {
+export function registerEncaminhamentoCommand(bot: Telegraf) {
   bot.command("encaminhamento", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -32,7 +32,7 @@ export function registerReferralsCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !referrals) {
-        return ctx.reply(getReferralsCommandHelp());
+        return ctx.reply(getEncaminhamentoCommandHelp());
       }
 
       // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras

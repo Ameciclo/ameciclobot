@@ -1,10 +1,10 @@
 import { Context, Telegraf } from "telegraf";
 import { getPautaCommandHelp, getPautaCommandName } from "./pauta";
 import { getClippingCommandName, getClippingCommandHelp } from "./clipping";
-import { getDemandCommandName, getDemandCommandHelp } from "./demanda";
+import { getDemandaCommandName, getDemandaCommandHelp } from "./demanda";
 import {
-  getReferralsCommandName,
-  getReferralsCommandHelp,
+  getEncaminhamentoCommandName,
+  getEncaminhamentoCommandHelp,
 } from "./encaminhamentos";
 import { getInformeCommandName, getInformeCommandHelp } from "./informe";
 import { getQuemSouEuCommandName, getQuemSouEuCommandHelp } from "./quemsoueu";
@@ -36,11 +36,11 @@ ${getInformeCommandHelp()}
 🔗 <b>${getClippingCommandName()}</b>:  
 ${getClippingCommandHelp()}
 
-📌 <b>${getDemandCommandName()}</b>:  
-${getDemandCommandHelp()}
+📌 <b>${getDemandaCommandName()}</b>:  
+${getDemandaCommandHelp()}
 
-🔄 <b>${getReferralsCommandName()}</b>:  
-${getReferralsCommandHelp()}
+🔄 <b>${getEncaminhamentoCommandName()}</b>:  
+${getEncaminhamentoCommandHelp()}
 
 🤔 <b>${getQuemSouEuCommandName()}</b>:  
 ${getQuemSouEuCommandHelp()}
@@ -59,8 +59,8 @@ async function helpCommandSpecific(ctx: Context, command: string) {
     pauta: getPautaCommandHelp,
     informe: getInformeCommandHelp,
     clipping: getClippingCommandHelp,
-    demanda: getDemandCommandHelp,
-    encaminhamento: getReferralsCommandHelp,
+    demanda: getDemandaCommandHelp,
+    encaminhamento: getEncaminhamentoCommandHelp,
     quem_sou_eu: getQuemSouEuCommandHelp,
   };
 

@@ -17,12 +17,12 @@ import {
   getClippingCommandName,
 } from "../commands/clipping";
 import {
-  getDemandCommandDescription,
-  getDemandCommandName,
+  getDemandaCommandDescription,
+  getDemandaCommandName,
 } from "../commands/demanda";
 import {
-  getReferralsCommandDescription,
-  getReferralsCommandName,
+  getEncaminhamentoCommandDescription,
+  getEncaminhamentoCommandName,
 } from "../commands/encaminhamentos";
 import { getHelpCommandDescription, getHelpCommandName } from "../commands/help";
 import { getStartCommandDescription, getStartCommandName } from "../commands/start";
@@ -49,12 +49,12 @@ export function setupCommands() {
       description: getClippingCommandDescription(),
     },
     {
-      command: getDemandCommandName(),
-      description: getDemandCommandDescription(),
+      command: getDemandaCommandName(),
+      description: getDemandaCommandDescription(),
     },
     {
-      command: getReferralsCommandName(),
-      description: getReferralsCommandDescription(),
+      command: getEncaminhamentoCommandName(),
+      description: getEncaminhamentoCommandDescription(),
     },
     {
       command: getQuemSouEuCommandName(),
