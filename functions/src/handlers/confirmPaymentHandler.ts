@@ -123,9 +123,18 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
               `https://docs.google.com/spreadsheets/d/${requestToSheet.spreadsheetId}`
             );
 
+            const signedByText = Object.values(signatures)
+              .map((sig: any) => `✅ ${sig.first_name}`)
+              .join("\n");
+
+            const newText = `${messageText}\n\nAssinado por:\n${signedByText}`;
+
             const newMarkup = Markup.inlineKeyboard([[viewSpreadsheetButton]]);
 
-            await ctx.editMessageReplyMarkup(newMarkup.reply_markup);
+            await ctx.editMessageText(newText, {
+              reply_markup: newMarkup.reply_markup,
+            });
+
             return;
           } catch (err) {
             console.error("Erro ao atualizar planilha:", err);
@@ -173,7 +182,15 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
         [cancelButton],
       ]);
 
-      await ctx.editMessageReplyMarkup(newMarkup.reply_markup);
+      const signedByText = Object.values(signatures)
+        .map((sig: any) => `✅ ${sig.first_name}`)
+        .join("\n");
+
+      const newText = `${messageText}\n\nAssinado por:\n${signedByText}`;
+
+      await ctx.editMessageText(newText, {
+        reply_markup: newMarkup.reply_markup,
+      });
     } catch (err) {
       console.error("Erro ao confirmar pagamento:", err);
       await ctx.reply(
