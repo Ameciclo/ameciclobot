@@ -1,0 +1,88 @@
+import { Context, Telegraf } from "telegraf";
+import { appendSheetRowAsPromise } from "../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
+import urls from "../config/urls.json";
+
+const MIN_TOPIC_SIZE = 5;
+
+export function getInformeCommandName() {
+  return "/informe";
+}
+
+export function getInformeCommandHelp() {
+  return "Use o comando `/informe` para registrar um informe. O formato esperado é:\n\n`/informe [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /informe em resposta a alguma mensagem sua ou de outra pessoa.";
+}
+
+export function getInformeCommandDescription() {
+  return "📢 Registrar um informe.";
+}
+
+export function registerInformeCommand(bot: Telegraf) {
+  bot.command("informe", async (ctx: Context) => {
+    try {
+      const from = ctx.message?.from;
+      const chat = ctx.message?.chat;
+
+      // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
+      let inform: string | undefined;
+      if (ctx.message && "text" in ctx.message) {
+        inform =
+          ctx.message.reply_to_message && "text" in ctx.message.reply_to_message
+            ? ctx.message.reply_to_message.text
+            : ctx.message.text.replace("/informe", "").trim();
+      }
+
+      if (!from || !chat || !inform) {
+        return ctx.reply(getInformeCommandHelp());
+      }
+
+      // Validação: verifica se a informe tem pelo menos MIN_TOPIC_SIZE palavras
+      if (inform.split(" ").length < MIN_TOPIC_SIZE) {
+        return ctx.reply(
+          `${from.first_name}, menos de ${MIN_TOPIC_SIZE} palavras? Descreve um pouco mais o que você quer e tente novamente.`
+        );
+      }
+
+      // Prepara os dados para registro
+      const date = new Date().toLocaleString();
+      const group =
+        chat.type === "group" || chat.type === "supergroup"
+          ? chat.title
+          : "Privado";
+      const author = `${from.first_name} ${from.last_name || ""}`;
+
+      // Salva na planilha usando o serviço do Google Sheets
+      const success = await appendSheetRowAsPromise(
+        urls.information.id,
+        urls.information.range + urls.information.offset,
+        [date, group, author, inform]
+      );
+
+      if (success) {
+        return ctx.reply(
+          `Valeu, ${from.first_name}! Registrado com sucesso! Veja na planilha:`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "📝 Ver informes",
+                    url: `https://docs.google.com/spreadsheets/d/${urls.information.id}`,
+                  },
+                ],
+              ],
+            },
+          }
+        );
+      } else {
+        return ctx.reply(
+          "Houve um erro ao salvar a informe. Tente novamente mais tarde."
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao processar comando /informe:", error);
+      return ctx.reply(
+        "Ocorreu um erro ao registrar sua informe. Tente novamente mais tarde."
+      );
+    }
+  });
+}

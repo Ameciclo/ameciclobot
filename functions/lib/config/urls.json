@@ -1,0 +1,32 @@
+{
+    "topics": {
+        "url": "http://pautas.ameciclo.org/",
+        "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
+        "range": "PAUTA",
+        "offset": "!A1:D"
+    },
+    "clipping": {
+        "url": "http://clipping.ameciclo.org/",
+        "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
+        "range": "CLIPPING",
+        "offset": "!A1:D"
+    },
+    "demands": {
+        "url": "http://demandas.ameciclo.org/",
+        "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
+        "range": "DEMANDA",
+        "offset": "!A1:D"
+    },
+    "referrals": {
+        "url": "http://encaminhamentos.ameciclo.org/",
+        "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
+        "range": "ENCAMINHAMENTO",
+        "offset": "!A1:D"
+    },
+    "information": {
+        "url": "http://informes.ameciclo.org/",
+        "id": "15LGWKkfLicuKiJC_aX0pjXOGuwnp0gSkJijwH6moJaI",
+        "range": "INFORME",
+        "offset": "!A1:D"
+    }
+}
