@@ -21,8 +21,9 @@ async function createConfirmationButtons(spreadsheetId: string) {
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
 
   return Markup.inlineKeyboard([
-    coordinatorButtons,
-    [viewSpreadsheetButton, cancelButton],
+    ...coordinatorButtons,
+    viewSpreadsheetButton,
+    cancelButton,
   ]);
 }
 

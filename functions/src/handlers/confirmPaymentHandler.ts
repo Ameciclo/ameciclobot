@@ -184,8 +184,9 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
       );
 
       const newMarkup = Markup.inlineKeyboard([
-        [...coordinatorButtons],
-        [viewSpreadsheetButton, cancelButton],
+        ...coordinatorButtons,
+        viewSpreadsheetButton,
+        cancelButton,
       ]);
 
       const signedByText = Object.values(signatures)
