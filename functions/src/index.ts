@@ -61,7 +61,7 @@ export const sendPaymentRequest = onValueCreated(
 export const createCalendarEvent = onValueCreated(
   "/calendar/{eventId}",
   async (event) => {
-    await handleCreateEvent(event);
+    await handleCreateEvent(event, bot);
   }
 );
 

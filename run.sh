@@ -80,6 +80,14 @@ change_node(){
     nvm use v22.11.0
 }
 
+sendo_to_production(){
+    echo "Rodando em modo produção"
+    cd functions
+    npm run build
+    firebase deploy --only functions
+#   firebase deploy --project $FB_PROJECT_ID
+}
+
 # Menu de opções
 while true; do
     echo "Escolha uma opção:"
@@ -89,6 +97,7 @@ while true; do
     echo "4. Iniciar o bot Node.js"
     echo "5. Instalar e iniciar o bot Node.js"
     echo "6. Trocar para Node 22.11.0"
+    echo "7. Rodar em modo produção"
     echo "x. Sair"
 
     read choice
@@ -100,6 +109,7 @@ while true; do
         4) start_bot;;
         5) install_and_start_bot;;
         6) change_node;;
+        7) sendo_to_production;;
         x) exit 0;;
         *) echo "Opção inválida";;
     esac

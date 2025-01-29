@@ -21,7 +21,8 @@ export interface CalendarEventData {
   location: string;
   description: string;
   from: TelegramUserInfo;
-  workgroup: Number;
+  workgroup: number;
+  htmlLink: string;
 }
 
 export interface ProjectInfo {
