@@ -1,5 +1,6 @@
 // src/types.ts
 
+
 export interface TelegramUserInfo {
   first_name: string;
   id: number;
@@ -9,6 +10,19 @@ export interface TelegramUserInfo {
   username?: string;
   allows_write_to_pm?:boolean;
   photo_url?: string;
+}
+
+export interface CalendarEventData {
+  id: string;
+  calendarId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+  description: string;
+  from: TelegramUserInfo;
+  workgroup: number;
+  htmlLink: string;
 }
 
 export interface ProjectInfo {

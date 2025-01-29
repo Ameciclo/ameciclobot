@@ -1,9 +1,9 @@
 import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
+import credentials from "../credentials/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 
-const credentials = google_keys.credentials;
 const api_key = google_keys.api_key;
 // Autenticação com o Google
 function getJwt() {
@@ -81,7 +81,7 @@ export async function createEvent(
       },
     },
   };
-
+  
   try {
     const response = await calendar.events.insert(event);
     console.log("Evento criado:", response.data);

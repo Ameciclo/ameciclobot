@@ -19,6 +19,7 @@ import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
 import { PaymentRequest } from "./config/types";
+import { registerCalendarHandler } from "./handlers/calendarHandler";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -37,6 +38,7 @@ registerStartCommand(bot);
 
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
+registerCalendarHandler(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -61,7 +63,7 @@ export const sendPaymentRequest = onValueCreated(
 export const createCalendarEvent = onValueCreated(
   "/calendar/{eventId}",
   async (event) => {
-    await handleCreateEvent(event);
+    await handleCreateEvent(event, bot);
   }
 );
 

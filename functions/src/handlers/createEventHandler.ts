@@ -1,63 +1,123 @@
 import { createEvent } from "../services/google";
-import calendars from "../config/calendars.json";
+import { Telegraf } from "telegraf";
+import { CalendarEventData } from "../config/types";
+import { updateCalendarEventGroupMessage } from "../services/firebase";
 
-interface CalendarEventData {
-  agenda: string;
-  data: string;
-  descricao: string;
-  duracao: string;
-  from: any;
-  hora: string;
-  id: string;
-  titulo: string;
-}
+function getDuration(start: string, end: string): string {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffMs = endDate.getTime() - startDate.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs / (1000 * 60)) % 60);
 
-// Função para encontrar o calendarId a partir do nome da agenda
-function getCalendarIdByName(name: string): string | undefined {
-  const calendar = calendars.find((c) => c.name === name);
-  return calendar?.id;
-}
-
-export async function handleCreateEvent(event: any): Promise<void> {
-  const eventData = event.data.val() as CalendarEventData;
-
-  const calendarId = getCalendarIdByName(eventData.agenda);
-  if (!calendarId) {
-    console.error(
-      `Calendário não encontrado para a agenda: ${eventData.agenda}`
-    );
-    return;
+  let durationStr = "";
+  if (diffHours > 0) {
+    durationStr += `${diffHours}h`;
   }
+  if (diffMinutes > 0) {
+    durationStr += `${diffMinutes.toString().padStart(2, "0")}min`;
+  }
+  return durationStr;
+}
 
-  const [yearStr, monthStr, dayStr] = eventData.data.split("-");
-  const year = parseInt(yearStr, 10);
-  const month = parseInt(monthStr, 10);
-  const day = parseInt(dayStr, 10);
+export async function sendEventMessage(
+  bot: Telegraf,
+  eventData: CalendarEventData
+): Promise<void> {
+  const {
+    from,
+    name,
+    startDate,
+    endDate,
+    location,
+    description,
+    workgroup,
+    calendarId,
+    id,
+    htmlLink,
+  } = eventData;
 
-  const [hourStr, minuteStr] = eventData.hora.split(":");
-  const hour = parseInt(hourStr, 10);
-  const minute = parseInt(minuteStr, 10);
+  const start = new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "full",
+    timeStyle: "long",
+  }).format(new Date(startDate));
+  const duration = getDuration(startDate, endDate);
 
-  const startDateTime = new Date(year, month - 1, day, hour, minute);
-  const endDateTime = new Date(startDateTime.getTime());
-  endDateTime.setHours(
-    endDateTime.getHours() + parseInt(eventData.duracao, 10)
-  );
+  // Monte a mensagem
+  const message = `\
+Evento adicionado na agenda por ${from.first_name}!
 
-  const startTimeISOString = startDateTime.toISOString();
-  const endTimeISOString = endDateTime.toISOString();
+${name}
+🗓 Data: ${start} (${duration})
+📍 Local: ${location}
+📫 Tipo: ${calendarId}
+
+🖌 Descrição: ${description}`;
+
+  // Botões (Inline Keyboard):
+  // 1) "Abrir evento" -> link para o evento no Google Calendar
+  // 2) "Eu vou"       -> callback data com ID único do evento, para registrar a participação
+
+  const inlineKeyboard = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "Abrir evento",
+            url: htmlLink,
+          },
+          {
+            text: "Eu vou",
+            callback_data: `eu_vou_${id}`,
+          },
+        ],
+      ],
+    },
+  };
+
+  try {
+    // Enviar para a conversa privada do usuário
+    // O ID do usuário está em `from.id` (caso você tenha permissão para enviar PM)
+    await bot.telegram.sendMessage(from.id, message, inlineKeyboard);
+
+    const groupMessage = await bot.telegram.sendMessage(
+      workgroup,
+      message,
+      inlineKeyboard
+    );
+    console.log(
+      "Mensagem enviada para o grupo. ID da mensagem: ",
+      groupMessage.message_id
+    );
+
+    // Salva no Firebase o ID da mensagem do grupo
+    await updateCalendarEventGroupMessage(id, groupMessage.message_id);
+  } catch (error) {
+    console.error("Erro ao enviar mensagem no Telegram:", error);
+  }
+}
+
+export async function handleCreateEvent(
+  event: any,
+  bot: Telegraf
+): Promise<void> {
+  const eventData = event.data.val() as CalendarEventData;
 
   try {
     const createdEvent = await createEvent(
-      calendarId,
-      eventData.titulo,
-      startTimeISOString,
-      endTimeISOString,
-      "",
-      eventData.descricao
-      // eventData.id
+      eventData.calendarId,
+      eventData.name,
+      eventData.startDate,
+      eventData.endDate,
+      eventData.location,
+      eventData.description
     );
     console.log("Evento criado com sucesso no Google Calendar:", createdEvent);
+
+    eventData.id = createdEvent.id;
+    eventData.htmlLink = createdEvent.htmlLink;
+    // Envia a mensagem no Telegram
+    await sendEventMessage(bot, eventData);
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar:", error);
   }
