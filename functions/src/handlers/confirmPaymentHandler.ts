@@ -172,6 +172,12 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
             );
       });
 
+      // Atualizar os botões após confirmação
+      const viewSpreadsheetButton = Markup.button.url(
+        "📊 Ver planilha",
+        `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+      );
+
       const cancelButton = Markup.button.callback(
         "❌ CANCELAR",
         "cancel_payment"
@@ -179,7 +185,7 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
 
       const newMarkup = Markup.inlineKeyboard([
         [...coordinatorButtons],
-        [cancelButton],
+        [viewSpreadsheetButton, cancelButton],
       ]);
 
       const signedByText = Object.values(signatures)

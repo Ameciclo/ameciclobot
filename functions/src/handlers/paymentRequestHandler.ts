@@ -5,17 +5,25 @@ import {
   updatePaymentRequestGroupMessage,
 } from "../services/firebase";
 
-async function createConfirmationButtons() {
-
+async function createConfirmationButtons(spreadsheetId: string) {
   const coordinatorIds = await getCoordinatorsIds();
   // Cria os botões a partir da lista de coordenadores
   const coordinatorButtons = coordinatorIds.map((coord) =>
     Markup.button.callback(coord.name, `confirm_${coord.id}`)
   );
 
+  // Atualizar os botões após confirmação
+  const viewSpreadsheetButton = Markup.button.url(
+    "📊 Ver planilha",
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+  );
+
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
 
-  return Markup.inlineKeyboard([coordinatorButtons, [cancelButton]]);
+  return Markup.inlineKeyboard([
+    coordinatorButtons,
+    [viewSpreadsheetButton, cancelButton],
+  ]);
 }
 
 export function recipientToReadableLine(supplier: Supplier): string {
@@ -62,7 +70,9 @@ export async function sendPaymentRequestHandler(
   console.log(coordinatiors);
   try {
     // Envia mensagem no grupo com botões de confirmação e cancelamento
-    const confirmationMarkup = await createConfirmationButtons();
+    const confirmationMarkup = await createConfirmationButtons(
+      request.project.spreadsheet_id || ""
+    );
     const result = await bot.telegram.sendMessage(
       groupChatId,
       messageToGroup,
@@ -73,10 +83,7 @@ export async function sendPaymentRequestHandler(
 
     for (const coordinator of coordinatiors) {
       try {
-        await bot.telegram.sendMessage(
-          coordinator.id,
-          messageToGroup,
-        );
+        await bot.telegram.sendMessage(coordinator.id, messageToGroup);
       } catch (err) {
         console.error(
           `Erro ao enviar mensagem para coordenação (ID: ${coordinator}):`,
