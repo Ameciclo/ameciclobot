@@ -77,6 +77,34 @@ export async function updatCalendarEvent(event: any, createdEvent: any) {
   );
 }
 
+export async function updateCalendarEventGroupMessage(
+  eventId: string,
+  groupMessageId: number
+) {
+  // Armazena o ID da mensagem no nó do calendar/eventId
+  await admin.database().ref(`calendar/${eventId}`).update({
+    group_message_id: groupMessageId,
+  });
+
+  console.log(
+    `Calendar event group message ID updated for event ${eventId}: ${groupMessageId}`
+  );
+}
+
+// Exemplo de função para buscar dados de um evento específico
+export async function getCalendarEventData(eventId: string) {
+  const snapshot = await admin
+    .database()
+    .ref(`calendar/${eventId}`)
+    .once("value");
+  return snapshot.val();
+}
+
+// Exemplo de função para atualizar dados de um evento
+export async function updateCalendarEventData(eventId: string, update: any) {
+  await admin.database().ref(`calendar/${eventId}`).update(update);
+}
+
 // Buscar dados de uma solicitação pelo `requestId`
 export async function getRequestData(requestId: string): Promise<any> {
   try {

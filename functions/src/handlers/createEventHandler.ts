@@ -1,6 +1,7 @@
 import { createEvent } from "../services/google";
 import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
+import { updateCalendarEventGroupMessage } from "../services/firebase";
 
 function getDuration(start: string, end: string): string {
   const startDate = new Date(start);
@@ -33,7 +34,7 @@ export async function sendEventMessage(
     workgroup,
     calendarId,
     id,
-    htmlLink
+    htmlLink,
   } = eventData;
 
   const start = new Intl.DateTimeFormat("pt-BR", {
@@ -79,10 +80,18 @@ ${name}
     // O ID do usuário está em `from.id` (caso você tenha permissão para enviar PM)
     await bot.telegram.sendMessage(from.id, message, inlineKeyboard);
 
-    // Enviar para o grupo do workgroup (caso seja um grupo privado, você precisa ser admin ou ter sido adicionado)
-    // Supondo que "workgroup" seja o ID numérico do grupo do Telegram
-    // e que o bot já esteja nesse grupo
-    await bot.telegram.sendMessage(workgroup, message, inlineKeyboard);
+    const groupMessage = await bot.telegram.sendMessage(
+      workgroup,
+      message,
+      inlineKeyboard
+    );
+    console.log(
+      "Mensagem enviada para o grupo. ID da mensagem: ",
+      groupMessage.message_id
+    );
+
+    // Salva no Firebase o ID da mensagem do grupo
+    await updateCalendarEventGroupMessage(id, groupMessage.message_id);
   } catch (error) {
     console.error("Erro ao enviar mensagem no Telegram:", error);
   }
