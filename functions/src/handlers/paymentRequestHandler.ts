@@ -5,11 +5,7 @@ import {
   updatePaymentRequestGroupMessage,
 } from "../services/firebase";
 
-async function createConfirmationButtons(forGroup: boolean = false) {
-  if (!forGroup) {
-    // Retorna um teclado vazio se os botões forem destinados apenas para o grupo
-    return Markup.inlineKeyboard([]);
-  }
+async function createConfirmationButtons() {
 
   const coordinatorIds = await getCoordinatorsIds();
   // Cria os botões a partir da lista de coordenadores
@@ -66,7 +62,7 @@ export async function sendPaymentRequestHandler(
   console.log(coordinatiors);
   try {
     // Envia mensagem no grupo com botões de confirmação e cancelamento
-    const confirmationMarkup = await createConfirmationButtons(true);
+    const confirmationMarkup = await createConfirmationButtons();
     const result = await bot.telegram.sendMessage(
       groupChatId,
       messageToGroup,
@@ -75,14 +71,11 @@ export async function sendPaymentRequestHandler(
 
     updatePaymentRequestGroupMessage(requestId, result.message_id);
 
-    // Envia mensagem informativa para cada coordenador sem os botões
-    const informationalMarkup = await createConfirmationButtons(false);
     for (const coordinator of coordinatiors) {
       try {
         await bot.telegram.sendMessage(
           coordinator.id,
-          `${messageToGroup}`,
-          informationalMarkup
+          messageToGroup,
         );
       } catch (err) {
         console.error(
