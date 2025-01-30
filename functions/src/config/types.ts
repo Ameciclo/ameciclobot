@@ -68,5 +68,7 @@ export interface PaymentRequest {
   project: ProjectInfo;
   supplier: Supplier;
   value: string;
+  status?: string;
+  signatures?: { [key: number]: TelegramUserInfo };
   confirmed_by: TelegramUserInfo[] | undefined | [];
 }
