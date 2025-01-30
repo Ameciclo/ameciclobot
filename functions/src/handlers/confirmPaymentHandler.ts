@@ -7,24 +7,40 @@ import {
 import { updateSpreadsheet } from "../services/google";
 
 export function registerConfirmPaymentHandler(bot: Telegraf) {
-  // Handler para confirmar pagamento
-  bot.action(/^confirm_(\d+)$/, async (ctx: Context) => {
+  // Capturamos 2 grupos: 1) user/coord ID e 2) requestId
+  bot.action(/^confirm_(\d+)_(.+)$/, async (ctx: Context) => {
     console.log("CONFIRMAR PAGAMENTO!");
     try {
       const callbackQuery = ctx.callbackQuery;
-      if (
-        !callbackQuery ||
-        !("data" in callbackQuery) ||
-        typeof callbackQuery.data !== "string"
-      ) {
+      if (!callbackQuery || !("data" in callbackQuery)) {
         await ctx.answerCbQuery("Ação inválida.", { show_alert: true });
         return;
       }
 
-      const callbackData = callbackQuery.data;
-      const coordIdFromButton = callbackData.split("_")[1];
-      const userId = ctx.from?.id?.toString();
+      const callbackData = callbackQuery.data as string; // ex: "confirm_12345_abcXYZ"
+      console.log("callbackData:", callbackData);
 
+      // Extraímos user/coord ID e requestId
+      const match = callbackData.match(/^confirm_(\d+)_(.+)$/);
+      if (!match) {
+        await ctx.answerCbQuery("Callback data inválida.", { show_alert: true });
+        return;
+      }
+
+      const coordIdFromButton = match[1]; // "12345" (exemplo)
+      const requestId = match[2];        // "abcXYZ" (pode ser string grande)
+
+      const userId = ctx.from?.id?.toString();
+      if (!userId) {
+        await ctx.answerCbQuery("Usuário não identificado.", { show_alert: true });
+        return;
+      }
+
+      console.log("coordIdFromButton:", coordIdFromButton);
+      console.log("userId:", userId);
+      console.log("requestId extraído:", requestId);
+
+      // Verifica se o user que clicou é o mesmo userId do coord
       if (userId !== coordIdFromButton) {
         await ctx.answerCbQuery(
           "Você não está autorizado a confirmar este pagamento.",
@@ -33,32 +49,14 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
         return;
       }
 
-      const message = callbackQuery.message;
-      if (!message || !("text" in message)) {
-        console.error("Mensagem inválida ou sem texto.");
-        return;
-      }
+      // Agora não precisamos mais pegar ID do texto da mensagem
+      const requestData = await getRequestData(requestId);
+      console.log("requestData:", requestData);
 
-      const messageText = message.text;
-      const idMatch = messageText.match(/ID\s+da\s+Solicitação:\s+([^\s]+)/);
-      if (!idMatch || idMatch.length < 2) {
-        await ctx.answerCbQuery("ID do pagamento não encontrado.", {
+      if (!requestData) {
+        await ctx.answerCbQuery("Solicitação não encontrada no banco de dados.", {
           show_alert: true,
         });
-        return;
-      }
-
-      const requestId = idMatch[1].trim();
-      console.log(`Request ID: ${requestId}`);
-
-      const requestData = await getRequestData(requestId);
-      if (!requestData) {
-        await ctx.answerCbQuery(
-          "Solicitação não encontrada no banco de dados.",
-          {
-            show_alert: true,
-          }
-        );
         return;
       }
 
@@ -75,26 +73,25 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
       );
 
       if (userAlreadySignedSlot) {
-        // Remove a assinatura e atualiza apenas as signatures
+        // Togle: remove se já estava
         delete signatures[userAlreadySignedSlot];
         await updatePaymentRequest(requestId, { signatures });
         await ctx.answerCbQuery("Sua assinatura foi removida.");
       } else {
         const signatureCount = Object.keys(signatures).length;
         if (signatureCount >= 2) {
-          await ctx.answerCbQuery(
-            "Este pagamento já possui duas assinaturas.",
-            {
-              show_alert: true,
-            }
-          );
+          await ctx.answerCbQuery("Este pagamento já possui duas assinaturas.", {
+            show_alert: true,
+          });
           return;
         }
 
+        // Preenche a próxima assinatura
         const newSlot = signatureCount === 0 ? 1 : 2;
         signatures[newSlot] = ctx.from;
 
         if (newSlot === 2) {
+          // Se for a 2ª, atualizar planilha
           const requestToSheet = {
             budgetItem: requestData.budgetItem,
             recipientInformation: {
@@ -107,17 +104,13 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
           };
 
           try {
-            await updateSpreadsheet(
-              requestToSheet.spreadsheetId,
-              requestToSheet
-            );
+            await updateSpreadsheet(requestToSheet.spreadsheetId, requestToSheet);
             await updatePaymentRequest(requestId, {
               status: "confirmed",
               signatures,
             });
             await ctx.answerCbQuery("Pagamento confirmado com sucesso.");
 
-            // Atualizar os botões após confirmação
             const viewSpreadsheetButton = Markup.button.url(
               "📊 Ver planilha",
               `https://docs.google.com/spreadsheets/d/${requestToSheet.spreadsheetId}`
@@ -127,31 +120,31 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
               .map((sig: any) => `✅ ${sig.first_name}`)
               .join("\n");
 
-            const newText = `${messageText}\n\nAssinado por:\n${signedByText}`;
+            // Edite a mensagem: note que agora não precisamos do "messageText"
+            // Podemos exibir qualquer texto. Exemplo:
+            const newText = `ID da Solicitação: ${requestId}\n\nAssinado por:\n${signedByText}`;
 
             const newMarkup = Markup.inlineKeyboard([[viewSpreadsheetButton]]);
-
             await ctx.editMessageText(newText, {
               reply_markup: newMarkup.reply_markup,
             });
 
             return;
-          } catch (err) {
-            console.error("Erro ao atualizar planilha:", err);
-            await ctx.answerCbQuery(
-              "Falha ao registrar pagamento na planilha.",
-              {
-                show_alert: true,
-              }
-            );
+          } catch (error) {
+            console.error("Erro ao atualizar planilha:", error);
+            await ctx.answerCbQuery("Falha ao registrar pagamento na planilha.", {
+              show_alert: true,
+            });
             return;
           }
         } else {
+          // Se for a 1ª assinatura
           await updatePaymentRequest(requestId, { signatures });
           await ctx.answerCbQuery("Sua assinatura foi adicionada.");
         }
       }
 
+      // Reconstrói a lista de botões
       const subscribers = await getSubscribers();
       const coordinatorEntries = Object.values(subscribers).filter(
         (entry: any) => entry.role === "AMECICLO_COORDINATORS"
@@ -164,45 +157,42 @@ export function registerConfirmPaymentHandler(bot: Telegraf) {
         const displayName = signed
           ? `✅ ${coord.telegram_user.first_name}`
           : coord.telegram_user.first_name;
+
         return signed
-          ? Markup.button.callback(displayName, "noop") // Botão sem ação após assinatura
+          ? Markup.button.callback(displayName, "noop")
           : Markup.button.callback(
               displayName,
-              `confirm_${coord.telegram_user.id}`
+              // Repare que passamos de novo o requestId no callback:
+              `confirm_${coord.telegram_user.id}_${requestId}`
             );
       });
 
-      // Atualizar os botões após confirmação
       const viewSpreadsheetButton = Markup.button.url(
         "📊 Ver planilha",
-        `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+        `https://docs.google.com/spreadsheets/d/${requestData.project?.spreadsheet_id || ""}`
       );
 
-      const cancelButton = Markup.button.callback(
-        "❌ CANCELAR",
-        "cancel_payment"
-      );
+      const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
 
       const newMarkup = Markup.inlineKeyboard([
-        ...coordinatorButtons,
-        viewSpreadsheetButton,
-        cancelButton,
+        coordinatorButtons,
+        [viewSpreadsheetButton],
+        [cancelButton],
       ]);
 
       const signedByText = Object.values(signatures)
         .map((sig: any) => `✅ ${sig.first_name}`)
         .join("\n");
 
-      const newText = `${messageText}\n\nAssinado por:\n${signedByText}`;
+      // Mensagem final. Você pode ser livre para colocar o que quiser agora.
+      const newText = `ID da Solicitação: ${requestId}\n\nAssinado por:\n${signedByText}`;
 
       await ctx.editMessageText(newText, {
         reply_markup: newMarkup.reply_markup,
       });
-    } catch (err) {
-      console.error("Erro ao confirmar pagamento:", err);
-      await ctx.reply(
-        "Ocorreu um erro ao confirmar a solicitação de pagamento."
-      );
+    } catch (error) {
+      console.error("Erro ao confirmar pagamento:", error);
+      await ctx.reply("Ocorreu um erro ao confirmar a solicitação de pagamento.");
     }
   });
 }

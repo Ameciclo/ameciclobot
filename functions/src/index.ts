@@ -8,7 +8,7 @@ import { bot, setupCommands } from "./config/bot";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
-import { getCoordinatorsIds, getFinancesGroupId } from "./services/firebase";
+import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 import { registerCancelPaymentHandler } from "./handlers/cancelPaymentHandler";
 import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerPautaCommand } from "./commands/pauta";
@@ -44,16 +44,14 @@ registerCalendarHandler(bot);
 export const sendPaymentRequest = onValueCreated(
   "/requests/{requestId}",
   async (event) => {
-    const coordinators = await getCoordinatorsIds();
+    const coordinators = await getCoordinators();
     const groupChatId = await getFinancesGroupId();
     const snapshot = event.data;
-    const params = { requestId: event.params.requestId };
     const request = snapshot.val() as PaymentRequest;
 
     return sendPaymentRequestHandler(
-      request,
-      params,
       bot,
+      request,
       groupChatId,
       coordinators
     );

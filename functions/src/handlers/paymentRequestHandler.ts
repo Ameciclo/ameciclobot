@@ -1,37 +1,27 @@
 import { Markup, Telegraf } from "telegraf";
-import { PaymentRequest, Supplier } from "../config/types";
-import {
-  getCoordinatorsIds,
-  updatePaymentRequestGroupMessage,
-} from "../services/firebase";
+import { AmecicloUser, PaymentRequest } from "../config/types";
+import { updatePaymentRequestGroupMessage } from "../services/firebase";
 
-async function createConfirmationButtons(spreadsheetId: string) {
-  const coordinatorIds = await getCoordinatorsIds();
-  // Cria os botões a partir da lista de coordenadores
-  const coordinatorButtons = coordinatorIds.map((coord) =>
-    Markup.button.callback(coord.name, `confirm_${coord.id}`)
-  );
+async function createPaymentConfirmationButtons(
+  coordinators: AmecicloUser[],
+  request: PaymentRequest
+) {
+  const coordinatorButtonsRows = coordinators.map((coord) => [
+    Markup.button.callback(coord.name, `confirm_${coord.id}_${request.id}`),
+  ]);
 
-  // Atualizar os botões após confirmação
   const viewSpreadsheetButton = Markup.button.url(
     "📊 Ver planilha",
-    `https://docs.google.com/spreadsheets/d/${spreadsheetId}`
+    `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id}`
   );
 
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
 
   return Markup.inlineKeyboard([
-    ...coordinatorButtons,
-    viewSpreadsheetButton,
-    cancelButton,
+    ...coordinatorButtonsRows,
+    [viewSpreadsheetButton],
+    [cancelButton],
   ]);
-}
-
-export function recipientToReadableLine(supplier: Supplier): string {
-  return (
-    `Empresa: ${supplier.nickname} (${supplier.name})\n` +
-    `Pagar com ${supplier.payment_methods[0].type} ➡️ ${supplier.payment_methods[0].value}`
-  );
 }
 
 export function excerptFromRequest(request: PaymentRequest): string {
@@ -44,50 +34,48 @@ export function excerptFromRequest(request: PaymentRequest): string {
     `🗒 Descrição: ${request.description}\n\n` +
     `📈 Conta saída: ${request.project.account}\n\n` +
     `📉 DADOS BANCÁRIOS\n` +
-    `${recipientToReadableLine(request.supplier)}\n\n` +
+    `Empresa: ${request.supplier.nickname} (${request.supplier.name})\n` +
+    `Pagar com ${request.supplier.payment_methods[0].type} ➡️ ${request.supplier.payment_methods[0].value}\n\n` +
     `💵 Valor: ${request.value}`
   );
 }
 
-interface SendPaymentRequestParams {
-  requestId: string;
-}
-
 export async function sendPaymentRequestHandler(
-  request: PaymentRequest,
-  params: SendPaymentRequestParams,
   bot: Telegraf,
+  request: PaymentRequest,
   groupChatId: string,
-  coordinatiors: {
-    id: any;
-    name: any;
-  }[]
+  coordinators: AmecicloUser[]
 ) {
   console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA");
-  const { requestId } = params;
 
+  // Monta o texto que será enviado
   const messageToGroup = excerptFromRequest(request);
-  console.log(groupChatId);
-  console.log(coordinatiors);
+  console.log("Grupo financeiro:", groupChatId);
+  console.log("Coordenadores:", coordinators);
+
   try {
-    // Envia mensagem no grupo com botões de confirmação e cancelamento
-    const confirmationMarkup = await createConfirmationButtons(
-      request.project.spreadsheet_id || ""
+    const confirmationMarkup = await createPaymentConfirmationButtons(
+      coordinators,
+      request
     );
+
     const result = await bot.telegram.sendMessage(
       groupChatId,
       messageToGroup,
       confirmationMarkup
     );
 
-    updatePaymentRequestGroupMessage(requestId, result.message_id);
+    await updatePaymentRequestGroupMessage(request, result.message_id);
 
-    for (const coordinator of coordinatiors) {
+    for (const coordinator of coordinators) {
       try {
-        await bot.telegram.sendMessage(coordinator.id, messageToGroup);
+        await bot.telegram.sendMessage(
+          coordinator.telegram_user.id,
+          messageToGroup
+        );
       } catch (err) {
         console.error(
-          `Erro ao enviar mensagem para coordenação (ID: ${coordinator}):`,
+          `Erro ao enviar mensagem para coordenação (ID: ${coordinator.telegram_user.id}):`,
           err
         );
       }

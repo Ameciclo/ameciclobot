@@ -12,12 +12,6 @@ export function registerCancelPaymentHandler(bot: Telegraf) {
         return;
       }
 
-      // // Atualiza o status no Firebase para "cancelled"
-      // await admin.database().ref(`requests/${requestId}`).update({
-      //   status: "cancelled",
-      // });
-
-      // Edita a mensagem original para indicar que foi cancelada
       await ctx.editMessageText("❌ Solicitação de pagamento cancelada.");
 
       console.log(`Pagamento ${chatMessageId} cancelado com sucesso.`);

@@ -1,5 +1,11 @@
 // src/types.ts
 
+export interface AmecicloUser {
+  id: number;
+  name: string;
+  role: string;
+  telegram_user: TelegramUserInfo;
+} 
 
 export interface TelegramUserInfo {
   first_name: string;
