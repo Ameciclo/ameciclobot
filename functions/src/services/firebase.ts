@@ -17,7 +17,8 @@ export async function getFinancesGroupId(): Promise<string> {
   try {
     const snapshot = await admin.database().ref("/workgroups/").once("value");
     const data = snapshot.val() || {};
-    return data["Financeiro"];
+    const group = process.env.DEV_MODE ? "DEVTEST" : "Financeiro";
+    return data[group];
   } catch (err) {
     console.error("Erro ao buscar ID do grupo financeiro:", err);
     return "";

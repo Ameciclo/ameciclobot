@@ -1,5 +1,6 @@
 import { Telegraf } from "telegraf";
 import telegramConfig from "../credentials/telegram.json";
+import telegramConfigDEV from "../credentials/dev/telegram.json";
 import {
   getQuemSouEuCommandDescription,
   getQuemSouEuCommandName,
@@ -24,10 +25,18 @@ import {
   getEncaminhamentoCommandDescription,
   getEncaminhamentoCommandName,
 } from "../commands/encaminhamentos";
-import { getHelpCommandDescription, getHelpCommandName } from "../commands/help";
-import { getStartCommandDescription, getStartCommandName } from "../commands/start";
+import {
+  getHelpCommandDescription,
+  getHelpCommandName,
+} from "../commands/help";
+import {
+  getStartCommandDescription,
+  getStartCommandName,
+} from "../commands/start";
 
-const BOT_TOKEN = telegramConfig.BOT_TOKEN;
+const BOT_TOKEN = process.env.DEV_MODE
+  ? telegramConfigDEV.BOT_TOKEN
+  : telegramConfig.BOT_TOKEN;
 
 if (!BOT_TOKEN) {
   console.error("BOT_TOKEN não definido.");

@@ -1,14 +1,26 @@
 import { Markup, Telegraf } from "telegraf";
 import { AmecicloUser, PaymentRequest } from "../config/types";
 import { updatePaymentRequestGroupMessage } from "../services/firebase";
+import { excerptFromRequest } from "../utils/utils";
+
+function buildCoordinatorButtons(
+  coordinators: AmecicloUser[],
+  requestId: string
+) {
+  return coordinators.map((coordinator) => {
+    const buttonText = `${
+      coordinator.telegram_user.first_name
+    }`;
+    const callbackData = `confirm_${coordinator.telegram_user.id}_${requestId}`;
+    return Markup.button.callback(buttonText, callbackData);
+  });
+}
 
 async function createPaymentConfirmationButtons(
   coordinators: AmecicloUser[],
   request: PaymentRequest
 ) {
-  const coordinatorButtonsRows = coordinators.map((coord) => [
-    Markup.button.callback(coord.name, `confirm_${coord.id}_${request.id}`),
-  ]);
+  const coordinatorButtonsRows = buildCoordinatorButtons(coordinators, request.id);
 
   const viewSpreadsheetButton = Markup.button.url(
     "📊 Ver planilha",
@@ -18,28 +30,10 @@ async function createPaymentConfirmationButtons(
   const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
 
   return Markup.inlineKeyboard([
-    ...coordinatorButtonsRows,
-    [viewSpreadsheetButton],
-    [cancelButton],
+    coordinatorButtonsRows,
+    [viewSpreadsheetButton, cancelButton],
   ]);
 }
-
-export function excerptFromRequest(request: PaymentRequest): string {
-  return (
-    `💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰\n\n` +
-    `👉 Solicitado por:  ${request.from.first_name}\n` +
-    `📂 ID da Solicitação: ${request.id}\n\n` +
-    `🗂 Projeto: ${request.project.name}\n` +
-    `📂 Item Orçamentário: ${request.budgetItem}\n` +
-    `🗒 Descrição: ${request.description}\n\n` +
-    `📈 Conta saída: ${request.project.account}\n\n` +
-    `📉 DADOS BANCÁRIOS\n` +
-    `Empresa: ${request.supplier.nickname} (${request.supplier.name})\n` +
-    `Pagar com ${request.supplier.payment_methods[0].type} ➡️ ${request.supplier.payment_methods[0].value}\n\n` +
-    `💵 Valor: ${request.value}`
-  );
-}
-
 export async function sendPaymentRequestHandler(
   bot: Telegraf,
   request: PaymentRequest,
