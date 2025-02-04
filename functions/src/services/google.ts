@@ -34,7 +34,7 @@ function getSheetsClient() {
 export async function appendSheetRowAsPromise(
   spreadsheetId: string,
   range: string,
-  row: string[]
+  row: any[]
 ): Promise<string> {
   const sheets = getSheetsClient();
 
@@ -125,7 +125,7 @@ export async function updateSpreadsheet(
   const date = toDays();
 
   var row = [
-    date.toString(),
+    date,
     request.budgetItem,
     "",
     request.supplier.name,
@@ -136,7 +136,7 @@ export async function updateSpreadsheet(
     request.value,
     "⚠️PREENCHER",
     "⚠️PREENCHER",
-    date.toString(),
+    date,
   ];
   const rowRange = await appendSheetRowAsPromise(request.project.spreadsheet_id!, range, row);
   const rowLink = `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id!}/edit#gid=137441560&range=${

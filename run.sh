@@ -132,7 +132,7 @@ while true; do
     echo "========================================"
     echo "Escolha uma opção:"
     echo "1. Iniciar NGROK e configurar webhook"
-    echo "2. Configurar webhook utilizando FB_BOTFUNCTION_URL (arquivo firebaseUrl.json)"
+    echo "2. Configurar webhook utilizando FB_BOTFUNCTION_URL"
     echo "3. Iniciar Firebase Emulador"
     echo "4. Reiniciar Firebase"
     echo "5. Iniciar o bot Node.js"
