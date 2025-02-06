@@ -87,12 +87,13 @@ async function updateGoogleSheetAndRequest(
 
     const baseText = excerptFromRequest(
       requestData,
-      "Pagamento confirmado com sucesso."
+      "💸💸💸 Pagamento confirmado com sucesso. 💸💸💸"
     );
     const signedByText = buildSignedByText(signatures);
     const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
     await ctx.editMessageText(messageText, keyboard);
 
+    console.log("Pagamento confirmado!");
     return true;
   } catch (error) {
     await ctx.answerCbQuery("Falha ao registrar pagamento na planilha.");
@@ -221,35 +222,37 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       }
     }
 
-    // Monta a interface atualizada mantendo o trecho original da solicitação
-    const coordinators: AmecicloUser[] = await getCoordinators();
-    const coordinatorButtons = buildCoordinatorButtons(
-      coordinators,
-      signatures,
-      requestId
-    );
+    if (Object.keys(signatures).length !== 2) {
+      // Monta a interface atualizada mantendo o trecho original da solicitação
+      const coordinators: AmecicloUser[] = await getCoordinators();
+      const coordinatorButtons = buildCoordinatorButtons(
+        coordinators,
+        signatures,
+        requestId
+      );
 
-    // Botões extras: visualização da planilha e opção de cancelar a solicitação
-    const viewSpreadsheetButton = Markup.button.url(
-      "📊 Ver Planilha",
-      `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-    );
-    const cancelButton = Markup.button.callback(
-      "❌ CANCELAR",
-      // Inclui o request id no callback para que o handler de cancelamento possa usá-lo
-      `cancel_payment_${requestData.id}`
-    );
+      // Botões extras: visualização da planilha e opção de cancelar a solicitação
+      const viewSpreadsheetButton = Markup.button.url(
+        "📊 Ver Planilha",
+        `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+      );
+      const cancelButton = Markup.button.callback(
+        "❌ CANCELAR",
+        // Inclui o request id no callback para que o handler de cancelamento possa usá-lo
+        `cancel_payment_${requestData.id}`
+      );
 
-    const keyboard = Markup.inlineKeyboard([
-      coordinatorButtons,
-      [viewSpreadsheetButton, cancelButton],
-    ]);
+      const keyboard = Markup.inlineKeyboard([
+        coordinatorButtons,
+        [viewSpreadsheetButton, cancelButton],
+      ]);
 
-    const baseText = excerptFromRequest(requestData);
-    const signedByText = buildSignedByText(signatures);
-    const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+      const baseText = excerptFromRequest(requestData);
+      const signedByText = buildSignedByText(signatures);
+      const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
-    await ctx.editMessageText(messageText, keyboard);
+      await ctx.editMessageText(messageText, keyboard);
+    }
   } catch (error) {
     console.error("Erro ao confirmar pagamento:", error);
     await ctx.reply(

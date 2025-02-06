@@ -29,6 +29,7 @@ export var updatePaymentRequest = async function (
   requestId: string,
   update: Object
 ) {
+  console.log("updatePaymentRequest: ", requestId);
   return new Promise(function (resolve, reject) {
     admin
       .database()

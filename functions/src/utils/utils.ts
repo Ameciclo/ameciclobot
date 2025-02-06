@@ -2,7 +2,7 @@ import { PaymentRequest } from "../config/types";
 
 export function excerptFromRequest(
   request: PaymentRequest,
-  title?: string
+  title?: string | undefined
 ): string {
   return (
     `${title ? title.trim() : "💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰"} \n\n` +

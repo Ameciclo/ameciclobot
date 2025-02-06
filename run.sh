@@ -61,7 +61,7 @@ set_webhook_from_file() {
         echo "FB_BOTFUNCTION_URL não está definida no arquivo firebaseUrl.json. Não é possível configurar o webhook automaticamente."
         return 1
     fi
-    echo "Configurando webhook utilizando FB_BOTFUNCTION_URL: $FB_BOTFUNCTION_URL"
+    echo "Configurando webhook utilizando $FB_BOTFUNCTION_URL"
     response=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" \
       -H "Content-Type: application/json" \
       -d "{\"url\": \"$FB_BOTFUNCTION_URL\"}")
@@ -97,16 +97,10 @@ restart_firebase() {
 # 5. Iniciar o bot Node.js (executa build e inicia o emulador com dados importados)
 start_bot() {
     echo "Iniciando o bot Node.js..."
-    (cd functions && npm run build && firebase emulators:start --project "$FB_PROJECT_ID" --import ./emulator_data)
+    (cd functions && npm install && npm run build && firebase emulators:start --project "$FB_PROJECT_ID" --import ./emulator_data)
 }
 
-# 6. Instalar dependências e iniciar o bot Node.js
-install_and_start_bot() {
-    echo "Instalando dependências e iniciando o bot Node.js..."
-    (cd functions && npm install && npm run build && firebase emulators:start --inspect-functions --project "$FB_PROJECT_ID" --import ./emulator_data)
-}
-
-# 7. Trocar para a versão Node v22.11.0 utilizando o nvm
+# 6. Trocar para a versão Node v22.11.0 utilizando o nvm
 change_node() {
     echo "Trocando para Node v22.11.0..."
     export NVM_DIR="$HOME/.nvm"
@@ -118,10 +112,10 @@ change_node() {
     fi
 }
 
-# 8. Realizar deploy para produção
+# 7. Realizar deploy para produção
 deploy_production() {
     echo "Realizando deploy para produção..."
-    (cd functions && npm run build && firebase deploy --only functions)
+    (cd functions && npm install && npm run build && firebase deploy --only functions)
 }
 
 #####################################
@@ -131,14 +125,13 @@ while true; do
     echo ""
     echo "========================================"
     echo "Escolha uma opção:"
-    echo "1. Iniciar NGROK e configurar webhook"
-    echo "2. Configurar webhook utilizando FB_BOTFUNCTION_URL"
+    echo "1. Iniciar NGROK e configurar webhook em DEVELOPMENT"
+    echo "2. Configurar webhook em PRODUCTION"
     echo "3. Iniciar Firebase Emulador"
     echo "4. Reiniciar Firebase"
-    echo "5. Iniciar o bot Node.js"
-    echo "6. Instalar dependências e iniciar o bot Node.js"
-    echo "7. Trocar para Node v22.11.0"
-    echo "8. Deploy para produção"
+    echo "5. Iniciar o bot em DEVELOPMENT"
+    echo "6. Trocar para Node v22.11.0"
+    echo "7. Deploy para produção"
     echo "x. Sair"
     echo "========================================"
     read -r choice
@@ -149,9 +142,8 @@ while true; do
         3) start_firebase ;;
         4) restart_firebase ;;
         5) start_bot ;;
-        6) install_and_start_bot ;;
-        7) change_node ;;
-        8) deploy_production ;;
+        6) change_node ;;
+        7) deploy_production ;;
         x|X) echo "Saindo..."; exit 0 ;;
         *) echo "Opção inválida. Tente novamente." ;;
     esac
