@@ -1,10 +1,16 @@
 import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
-import credentials from "../credentials/firebaseServiceKey.json";
+import firebaseCredentials from "../credentials/firebaseServiceKey.json";
+import google_keysDEV from "../credentials/dev/google.json";
+import firebaseCredentialsDEV from "../credentials/dev/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
+import { PaymentRequest } from "../config/types";
 
-const api_key = google_keys.api_key;
+const api_key = process.env.DEV_MODE ? google_keysDEV.api_key : google_keys.api_key;
+const credentials = process.env.DEV_MODE
+  ? firebaseCredentialsDEV
+  : firebaseCredentials;
 // Autenticação com o Google
 function getJwt() {
   return new google.auth.JWT(
@@ -28,7 +34,7 @@ function getSheetsClient() {
 export async function appendSheetRowAsPromise(
   spreadsheetId: string,
   range: string,
-  row: string[]
+  row: any[]
 ): Promise<string> {
   const sheets = getSheetsClient();
 
@@ -59,7 +65,7 @@ export async function createEvent(
   startDate: string,
   endDate: string,
   location = "",
-  description = "",
+  description = ""
   //tag = ""
 ): Promise<any> {
   const calendar = google.calendar({ version: "v3", auth: getJwt() });
@@ -81,7 +87,7 @@ export async function createEvent(
       },
     },
   };
-  
+
   try {
     const response = await calendar.events.insert(event);
     console.log("Evento criado:", response.data);
@@ -113,14 +119,7 @@ export async function createDocument(title: string): Promise<any> {
 }
 
 export async function updateSpreadsheet(
-  spreadsheetId: any,
-  request: {
-    budgetItem: any;
-    recipientInformation: { name: string };
-    description: any;
-    value: any;
-    id: any;
-  }
+  request: PaymentRequest
 ) {
   var range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
@@ -129,7 +128,7 @@ export async function updateSpreadsheet(
     date,
     request.budgetItem,
     "",
-    request.recipientInformation.name.toUpperCase(),
+    request.supplier.name,
     request.description,
     "1",
     "unidade",
@@ -139,12 +138,8 @@ export async function updateSpreadsheet(
     "⚠️PREENCHER",
     date,
   ];
-  const rowRange = await appendSheetRowAsPromise(
-    spreadsheetId,
-    range,
-    row
-  );
-  const rowLink = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=137441560&range=${
+  const rowRange = await appendSheetRowAsPromise(request.project.spreadsheet_id!, range, row);
+  const rowLink = `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id!}/edit#gid=137441560&range=${
     rowRange.split("!")[1]
   }`;
 

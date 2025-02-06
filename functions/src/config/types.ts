@@ -1,5 +1,11 @@
 // src/types.ts
 
+export interface AmecicloUser {
+  id: number;
+  name: string;
+  role: string;
+  telegram_user: TelegramUserInfo;
+} 
 
 export interface TelegramUserInfo {
   first_name: string;
@@ -62,5 +68,7 @@ export interface PaymentRequest {
   project: ProjectInfo;
   supplier: Supplier;
   value: string;
+  status?: string;
+  signatures?: { [key: number]: TelegramUserInfo };
   confirmed_by: TelegramUserInfo[] | undefined | [];
 }

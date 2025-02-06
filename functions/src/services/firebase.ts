@@ -1,6 +1,7 @@
 import { admin } from "../config/firebaseInit";
+import { AmecicloUser, PaymentRequest } from "../config/types";
 
-export async function getCoordinatorsIds() {
+export async function getCoordinators() {
   // Busca todos os usuários no endpoint "subscribers"
   const snapshot = await admin.database().ref("subscribers").once("value");
   const data = snapshot.val() || {};
@@ -8,26 +9,16 @@ export async function getCoordinatorsIds() {
   // Filtra apenas os que possuem role: "AMECICLO_COORDINATORS"
   const coordinatorEntries = Object.values(data).filter(function (entry: any) {
     return entry.role === "AMECICLO_COORDINATORS";
-  }) as any[];
-
-  // Mapeia os coordenadores para obter {id, name}
-  const coordinatorIds = coordinatorEntries.map(function (coord) {
-    return {
-      id: coord.telegram_user.id,
-      name: coord.telegram_user.username || coord.telegram_user.first_name,
-    };
-  });
-  return coordinatorIds;
+  }) as AmecicloUser[];
+  return coordinatorEntries;
 }
 
 export async function getFinancesGroupId(): Promise<string> {
   try {
-    const snapshot = await admin
-      .database()
-      .ref("/configuration/financesgroup")
-      .once("value");
-    console.log(snapshot.val() || "");
-    return "-1002230503739";
+    const snapshot = await admin.database().ref("/workgroups/").once("value");
+    const data = snapshot.val() || {};
+    const group = process.env.DEV_MODE ? "DEVTEST" : "Financeiro";
+    return data[group];
   } catch (err) {
     console.error("Erro ao buscar ID do grupo financeiro:", err);
     return "";
@@ -38,6 +29,7 @@ export var updatePaymentRequest = async function (
   requestId: string,
   update: Object
 ) {
+  console.log("updatePaymentRequest: ", requestId);
   return new Promise(function (resolve, reject) {
     admin
       .database()
@@ -53,11 +45,11 @@ export var updatePaymentRequest = async function (
 };
 
 export async function updatePaymentRequestGroupMessage(
-  requestId: string,
+  request: PaymentRequest,
   groupMessage: number
 ) {
   // Armazena o ID da mensagem no Firebase
-  await admin.database().ref(`requests/${requestId}`).update({
+  await admin.database().ref(`requests/${request.id}`).update({
     group_message_id: groupMessage,
   });
 

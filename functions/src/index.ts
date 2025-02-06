@@ -5,21 +5,24 @@ import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 
 import { bot, setupCommands } from "./config/bot";
+import { PaymentRequest } from "./config/types";
+
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
+import { handleCreateEvent } from "./handlers/createEventHandler";
+
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
-import { getCoordinatorsIds, getFinancesGroupId } from "./services/firebase";
-import { registerCancelPaymentHandler } from "./handlers/cancelPaymentHandler";
+import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerPautaCommand } from "./commands/pauta";
 import { registerInformeCommand } from "./commands/informe";
 import { registerClippingCommand } from "./commands/clipping";
 import { registerDemandaCommand } from "./commands/demanda";
 import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
-import { handleCreateEvent } from "./handlers/createEventHandler";
-import { registerConfirmPaymentHandler } from "./handlers/confirmPaymentHandler";
-import { PaymentRequest } from "./config/types";
-import { registerCalendarHandler } from "./handlers/calendarHandler";
+
+import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
+import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
+import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -44,16 +47,14 @@ registerCalendarHandler(bot);
 export const sendPaymentRequest = onValueCreated(
   "/requests/{requestId}",
   async (event) => {
-    const coordinators = await getCoordinatorsIds();
+    const coordinators = await getCoordinators();
     const groupChatId = await getFinancesGroupId();
     const snapshot = event.data;
-    const params = { requestId: event.params.requestId };
     const request = snapshot.val() as PaymentRequest;
 
     return sendPaymentRequestHandler(
-      request,
-      params,
       bot,
+      request,
       groupChatId,
       coordinators
     );
@@ -69,6 +70,7 @@ export const createCalendarEvent = onValueCreated(
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {
+  console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
 
