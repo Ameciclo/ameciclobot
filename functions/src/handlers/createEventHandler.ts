@@ -3,6 +3,16 @@ import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
 import { updateCalendarEventGroupMessage } from "../services/firebase";
 
+// Nomes dos calendários para exibição
+
+const calendarNames: { [key: string]: string } = {
+  "ameciclo@gmail.com": "Eventos Internos",
+  "oj4bkgv1g6cmcbtsap4obgi9vc@group.calendar.google.com": "Eventos Externos",
+  "k0gbrljrh0e4l2v8cuc05nsljc@group.calendar.google.com":
+    "Divulgação de eventos externos",
+  "an6nh96auj9n3jtj28qno1limg@group.calendar.google.com": "Organizacional",
+};
+
 function getDuration(start: string, end: string): string {
   const startDate = new Date(start);
   const endDate = new Date(end);
@@ -49,8 +59,8 @@ Evento adicionado na agenda por ${from.first_name}!
 
 ${name}
 🗓 Data: ${start} (${duration})
-📍 Local: ${location}
-📫 Tipo: ${calendarId}
+📍 Local: ${location}calendars
+📫 Tipo: ${calendarNames[calendarId]}
 
 🖌 Descrição: ${description}`;
 
