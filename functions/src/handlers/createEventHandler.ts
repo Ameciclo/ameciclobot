@@ -103,6 +103,15 @@ export async function handleCreateEvent(
 ): Promise<void> {
   const eventData = event.data.val() as CalendarEventData;
 
+  // Log completo dos dados recebidos para verificar se estão corretos
+  console.log("Dados recebidos para criação de evento:", eventData);
+
+  // Verifica se o calendarId está presente
+  if (!eventData.calendarId) {
+    console.error("calendarId ausente no evento:", eventData);
+    return; // ou trate esse caso conforme a sua lógica
+  }
+
   try {
     const createdEvent = await createEvent(
       eventData.calendarId,
