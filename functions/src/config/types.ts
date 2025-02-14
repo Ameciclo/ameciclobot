@@ -10,7 +10,7 @@ export interface AmecicloUser {
 export interface TelegramUserInfo {
   first_name: string;
   id: number;
-  is_bot: boolean;
+  is_bot?: boolean;
   language_code?: string;
   last_name?: string;
   username?: string;
@@ -29,6 +29,8 @@ export interface CalendarEventData {
   from: TelegramUserInfo;
   workgroup: number;
   htmlLink: string;
+  calendarEventId?: string;
+  participants?: { [key: number]: TelegramUserInfo };
 }
 
 export interface ProjectInfo {

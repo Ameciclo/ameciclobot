@@ -23,6 +23,8 @@ export function registerCalendarHandler(bot: Telegraf) {
       const parts = callbackData.split("_");
       const eventId = parts[2];
 
+      console.log("eventId:", eventId);
+
       const message = callbackQuery.message;
       if (!message || !("text" in message)) {
         console.error("Mensagem inválida ou sem texto.");
@@ -75,16 +77,23 @@ export function registerCalendarHandler(bot: Telegraf) {
 
       // Extrai o header da mensagem original sem a seção de participantes (se existir)
       const messageText = message.text || "";
-      const index = messageText.indexOf("**Participantes confirmados:**");
+      const index = messageText.indexOf("Participantes confirmados:");
       const header =
         index !== -1 ? messageText.slice(0, index).trim() : messageText;
 
-      const newText = `${header}\n\n**Participantes confirmados:**\n${participantsList}`;
+      const newText = `${header}\n\nParticipantes confirmados:\n${participantsList}`;
 
       // Recria os botões: preserva "Abrir evento" e "Eu vou"
+
+      const url =
+        eventData.htmlLink && eventData.htmlLink.startsWith("http")
+          ? eventData.htmlLink
+          : "https://example.com";
+
+      console.log("url:", url);
       const newMarkup = Markup.inlineKeyboard([
         [
-          Markup.button.url("Abrir evento", eventData.htmlLink),
+          Markup.button.url("Abrir evento", url),
           Markup.button.callback("Eu vou", `eu_vou_${eventId}`),
         ],
       ]);

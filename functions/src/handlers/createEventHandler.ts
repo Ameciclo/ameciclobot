@@ -1,7 +1,7 @@
 import { createEvent } from "../services/google";
 import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
-import { updateCalendarEventGroupMessage } from "../services/firebase";
+import { updateCalendarEventData } from "../services/firebase";
 
 // Nomes dos calendários para exibição
 
@@ -101,7 +101,9 @@ ${name}
     );
 
     // Salva no Firebase o ID da mensagem do grupo
-    await updateCalendarEventGroupMessage(id, groupMessage.message_id);
+    await updateCalendarEventData(id, {
+      group_message_id: groupMessage.message_id,
+    });
   } catch (error) {
     console.error("Erro ao enviar mensagem no Telegram:", error);
   }
@@ -133,8 +135,11 @@ export async function handleCreateEvent(
     );
     console.log("Evento criado com sucesso no Google Calendar:", createdEvent);
 
-    eventData.id = createdEvent.id;
+    eventData.calendarEventId = createdEvent.id;
     eventData.htmlLink = createdEvent.htmlLink;
+
+    updateCalendarEventData(eventData.id, eventData);
+
     // Envia a mensagem no Telegram
     await sendEventMessage(bot, eventData);
   } catch (error) {
