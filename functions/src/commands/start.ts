@@ -14,6 +14,7 @@ import {
   getQuemSouEuCommandName,
   getQuemSouEuCommandDescription,
 } from "./quemsoueu";
+import { getPedidoCommandDescription } from "./pedido_de_informacao";
 
 export function getStartCommandName() {
   return "/start";
@@ -50,6 +51,7 @@ Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropoli
 🔗 <b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
 📌 <b>${getDemandaCommandName()}</b> - ${getDemandaCommandDescription()}
 🔄 <b>${getEncaminhamentoCommandName()}</b> - ${getEncaminhamentoCommandDescription()}
+🔐 <b>${getPedidoCommandDescription()}</b> - ${getPedidoCommandDescription()}
 🤔 <b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
 
 📩 Se tiver dúvidas ou sugestões, registre-a na Ameciclo em <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com @ameciclo_info aqui no Telegram.
