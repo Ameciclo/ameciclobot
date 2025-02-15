@@ -95,6 +95,7 @@ export async function getCalendarEventData(eventId: string) {
 // Exemplo de função para atualizar dados de um evento
 export async function updateCalendarEventData(eventId: string, update: any) {
   await admin.database().ref(`calendar/${eventId}`).update(update);
+  console.log(`Calendar event updated for event ${eventId}:`, update);
 }
 
 // Buscar dados de uma solicitação pelo `requestId`

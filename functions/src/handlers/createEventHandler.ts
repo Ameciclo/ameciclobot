@@ -1,7 +1,17 @@
 import { createEvent } from "../services/google";
 import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
-import { updateCalendarEventGroupMessage } from "../services/firebase";
+import { updateCalendarEventData } from "../services/firebase";
+
+// Nomes dos calendários para exibição
+
+const calendarNames: { [key: string]: string } = {
+  "ameciclo@gmail.com": "Eventos Internos",
+  "oj4bkgv1g6cmcbtsap4obgi9vc@group.calendar.google.com": "Eventos Externos",
+  "k0gbrljrh0e4l2v8cuc05nsljc@group.calendar.google.com":
+    "Divulgação de eventos externos",
+  "an6nh96auj9n3jtj28qno1limg@group.calendar.google.com": "Organizacional",
+};
 
 function getDuration(start: string, end: string): string {
   const startDate = new Date(start);
@@ -49,8 +59,8 @@ Evento adicionado na agenda por ${from.first_name}!
 
 ${name}
 🗓 Data: ${start} (${duration})
-📍 Local: ${location}
-📫 Tipo: ${calendarId}
+📍 Local: ${location}calendars
+📫 Tipo: ${calendarNames[calendarId]}
 
 🖌 Descrição: ${description}`;
 
@@ -78,7 +88,7 @@ ${name}
   try {
     // Enviar para a conversa privada do usuário
     // O ID do usuário está em `from.id` (caso você tenha permissão para enviar PM)
-    await bot.telegram.sendMessage(from.id, message, inlineKeyboard);
+    await bot.telegram.sendMessage(from.id, message);
 
     const groupMessage = await bot.telegram.sendMessage(
       workgroup,
@@ -91,7 +101,9 @@ ${name}
     );
 
     // Salva no Firebase o ID da mensagem do grupo
-    await updateCalendarEventGroupMessage(id, groupMessage.message_id);
+    await updateCalendarEventData(id, {
+      groupMessageId: groupMessage.message_id,
+    });
   } catch (error) {
     console.error("Erro ao enviar mensagem no Telegram:", error);
   }
@@ -103,6 +115,15 @@ export async function handleCreateEvent(
 ): Promise<void> {
   const eventData = event.data.val() as CalendarEventData;
 
+  // Log completo dos dados recebidos para verificar se estão corretos
+  console.log("Dados recebidos para criação de evento:", eventData);
+
+  // Verifica se o calendarId está presente
+  if (!eventData.calendarId) {
+    console.error("calendarId ausente no evento:", eventData);
+    return; // ou trate esse caso conforme a sua lógica
+  }
+
   try {
     const createdEvent = await createEvent(
       eventData.calendarId,
@@ -112,10 +133,12 @@ export async function handleCreateEvent(
       eventData.location,
       eventData.description
     );
-    console.log("Evento criado com sucesso no Google Calendar:", createdEvent);
 
-    eventData.id = createdEvent.id;
+    eventData.calendarEventId = createdEvent.id;
     eventData.htmlLink = createdEvent.htmlLink;
+
+    updateCalendarEventData(eventData.id, eventData);
+
     // Envia a mensagem no Telegram
     await sendEventMessage(bot, eventData);
   } catch (error) {

@@ -8,9 +8,7 @@ function buildCoordinatorButtons(
   requestId: string
 ) {
   return coordinators.map((coordinator) => {
-    const buttonText = `${
-      coordinator.telegram_user.first_name
-    }`;
+    const buttonText = `${coordinator.telegram_user.first_name}`;
     const callbackData = `confirm_${coordinator.telegram_user.id}_${requestId}`;
     return Markup.button.callback(buttonText, callbackData);
   });
@@ -20,14 +18,20 @@ async function createPaymentConfirmationButtons(
   coordinators: AmecicloUser[],
   request: PaymentRequest
 ) {
-  const coordinatorButtonsRows = buildCoordinatorButtons(coordinators, request.id);
+  const coordinatorButtonsRows = buildCoordinatorButtons(
+    coordinators,
+    request.id
+  );
 
   const viewSpreadsheetButton = Markup.button.url(
     "📊 Ver planilha",
     `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id}`
   );
 
-  const cancelButton = Markup.button.callback("❌ CANCELAR", "cancel_payment");
+  const cancelButton = Markup.button.callback(
+    "❌ CANCELAR",
+    `cancel_payment_${request.id}`
+  );
 
   return Markup.inlineKeyboard([
     coordinatorButtonsRows,
