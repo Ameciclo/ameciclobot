@@ -88,7 +88,7 @@ ${name}
   try {
     // Enviar para a conversa privada do usuário
     // O ID do usuário está em `from.id` (caso você tenha permissão para enviar PM)
-    await bot.telegram.sendMessage(from.id, message, inlineKeyboard);
+    await bot.telegram.sendMessage(from.id, message);
 
     const groupMessage = await bot.telegram.sendMessage(
       workgroup,
@@ -102,7 +102,7 @@ ${name}
 
     // Salva no Firebase o ID da mensagem do grupo
     await updateCalendarEventData(id, {
-      group_message_id: groupMessage.message_id,
+      groupMessageId: groupMessage.message_id,
     });
   } catch (error) {
     console.error("Erro ao enviar mensagem no Telegram:", error);
@@ -133,7 +133,6 @@ export async function handleCreateEvent(
       eventData.location,
       eventData.description
     );
-    console.log("Evento criado com sucesso no Google Calendar:", createdEvent);
 
     eventData.calendarEventId = createdEvent.id;
     eventData.htmlLink = createdEvent.htmlLink;
