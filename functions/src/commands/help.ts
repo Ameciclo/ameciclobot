@@ -8,6 +8,7 @@ import {
 } from "./encaminhamentos";
 import { getInformeCommandName, getInformeCommandHelp } from "./informe";
 import { getQuemSouEuCommandName, getQuemSouEuCommandHelp } from "./quemsoueu";
+import { getPedidoCommandDescription } from "./pedido_de_informacao";
 
 export function getHelpCommandName() {
   return "/ajuda";
@@ -42,6 +43,9 @@ ${getDemandaCommandHelp()}
 🔄 <b>${getEncaminhamentoCommandName()}</b>:  
 ${getEncaminhamentoCommandHelp()}
 
+🔐 <b>${getPedidoCommandDescription()}</b>:  
+${getEncaminhamentoCommandHelp()}
+
 🤔 <b>${getQuemSouEuCommandName()}</b>:  
 ${getQuemSouEuCommandHelp()}
 
@@ -61,6 +65,7 @@ async function helpCommandSpecific(ctx: Context, command: string) {
     clipping: getClippingCommandHelp,
     demanda: getDemandaCommandHelp,
     encaminhamento: getEncaminhamentoCommandHelp,
+    pedido_de_informacao: getPedidoCommandDescription,
     quem_sou_eu: getQuemSouEuCommandHelp,
   };
 

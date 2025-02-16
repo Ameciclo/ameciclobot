@@ -23,6 +23,7 @@ import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
+import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -38,7 +39,7 @@ registerIniciarCommand(bot);
 registerPautaCommand(bot);
 registerQuemSouEuCommand(bot);
 registerStartCommand(bot);
-
+registerPedidoDeInformacaoCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);
@@ -52,12 +53,7 @@ export const sendPaymentRequest = onValueCreated(
     const snapshot = event.data;
     const request = snapshot.val() as PaymentRequest;
 
-    return sendPaymentRequestHandler(
-      bot,
-      request,
-      groupChatId,
-      coordinators
-    );
+    return sendPaymentRequestHandler(bot, request, groupChatId, coordinators);
   }
 );
 

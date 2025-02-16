@@ -1,11 +1,20 @@
 // src/types.ts
 
+export interface ProtocolRecord {
+  protocol: string;
+  password: string;
+  from: TelegramUserInfo;
+  group: number;
+  timestamp: number;
+  date: string;
+}
+
 export interface AmecicloUser {
   id: number;
   name: string;
   role: string;
   telegram_user: TelegramUserInfo;
-} 
+}
 
 export interface TelegramUserInfo {
   first_name: string;
@@ -14,7 +23,7 @@ export interface TelegramUserInfo {
   language_code?: string;
   last_name?: string;
   username?: string;
-  allows_write_to_pm?:boolean;
+  allows_write_to_pm?: boolean;
   photo_url?: string;
 }
 
@@ -55,7 +64,7 @@ export interface Supplier {
   id_number: string; // CPF / CNPJ etc.
   name: string;
   nickname: string;
-  payment_methods: TypeValue[]
+  payment_methods: TypeValue[];
   type: string; // Pessoa física ou juridica
 }
 

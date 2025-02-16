@@ -1,5 +1,9 @@
 import { admin } from "../config/firebaseInit";
-import { AmecicloUser, PaymentRequest } from "../config/types";
+import {
+  AmecicloUser,
+  PaymentRequest,
+  TelegramUserInfo,
+} from "../config/types";
 
 export async function getCoordinators() {
   // Busca todos os usuários no endpoint "subscribers"
@@ -123,5 +127,46 @@ export async function getSubscribers(): Promise<any[]> {
   } catch (err) {
     console.error("Erro ao buscar assinantes:", err);
     throw err;
+  }
+}
+
+export async function saveProtocolRecord(
+  protocol: string,
+  password: string,
+  from: TelegramUserInfo,
+  group: number
+): Promise<boolean> {
+  try {
+    const protocolData = {
+      protocol,
+      password,
+      from: from,
+      group: group,
+      timestamp: admin.database.ServerValue.TIMESTAMP,
+      date: new Date().toLocaleString(),
+    };
+
+    // Create a new reference with push() to generate unique ID
+    const newProtocolRef = admin.database().ref("information_requests").push();
+    await newProtocolRef.set(protocolData);
+
+    return true;
+  } catch (error) {
+    console.error("Error saving protocol:", error);
+    return false;
+  }
+}
+
+// Optional: Function to get all protocols
+export async function getProtocolRecords(): Promise<any[]> {
+  try {
+    const snapshot = await admin
+      .database()
+      .ref("information_requests")
+      .once("value");
+    return snapshot.val() ? Object.values(snapshot.val()) : [];
+  } catch (error) {
+    console.error("Error fetching protocols:", error);
+    return [];
   }
 }
