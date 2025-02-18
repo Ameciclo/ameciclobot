@@ -4,6 +4,8 @@ export interface registeredForm {
   sheetId: string;
   telegramGroupId: number;
   lastRow: number;
+  formName: string;
+  responsesTabGid?: string;
 }
 
 export interface registeredForms {

@@ -1,60 +1,49 @@
-import { Telegraf } from "telegraf";
-import { getSheetsClient } from "../services/google";
+// src/scheduler/checkForms.ts
 import {
   getRegisteredForms,
   updateRegisteredFormLastRow,
 } from "../services/firebase";
+import { getSheetsClient } from "../services/google";
+import { Telegraf } from "telegraf";
 
-// Essa função será executada a cada 24 horas (você pode ajustar a cron expression conforme desejar)
 export const checkGoogleForms = async (bot: Telegraf) => {
   try {
     const forms = await getRegisteredForms();
     if (!forms) {
-      console.log("Nenhum formulário cadastrado.");
+      console.log("Nenhuma planilha registrada.");
       return;
     }
-
-    // Para cada formulário cadastrado
+    // Para cada planilha registrada
     for (const formId in forms) {
-      const { sheetId, telegramGroupId, lastRow = 1, formName } = forms[formId];
-
-      // Obtém o cliente do Google Sheets a partir do seu Google Service
+      const { sheetId, telegramGroupId, lastRow, responsesTabGid } =
+        forms[formId];
+      // Define a aba a ser monitorada
+      const tabName = responsesTabGid || "Respostas ao formulário 1";
+      // Monta o range: a partir da linha lastRow+1, coluna A até Z
+      const range = `${tabName}!A${lastRow + 1}:Z`;
       const sheets = getSheetsClient();
-
-      // Supondo que os dados começam na linha lastRow+1 (linha 1 tem cabeçalho)
-      const range = `A${lastRow + 1}:Z`;
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
         range,
       });
       const responses = response.data.values || [];
-
       if (responses.length > 0) {
-        // Atualiza o marcador no Firebase
         const newLastRow = lastRow + responses.length;
         await updateRegisteredFormLastRow(newLastRow, formId);
-
-        // Formata a mensagem (de forma semelhante ao seu handler de eventos)
-        let message = `📝 Novas respostas para o formulário "${
-          formName || formId
-        }":\n`;
+        let message = `📝 Novas respostas na planilha "${sheetId}" (aba "${tabName}"): \n`;
         responses.forEach((row: string[], idx: number) => {
           message += `\nResposta ${idx + 1}:\n`;
           row.forEach((cell: string, i: number) => {
             message += `Campo ${i + 1}: ${cell}\n`;
           });
         });
-
-        // Envia a mensagem para o grupo do Telegram
         await bot.telegram.sendMessage(telegramGroupId, message);
         console.log(
-          `Aviso enviado para o grupo ${telegramGroupId} para o formulário "${
-            formName || formId
-          }".`
+          `Notificação enviada para o grupo ${telegramGroupId} para a planilha "${sheetId}".`
         );
       }
     }
   } catch (error) {
-    console.error("Erro ao verificar formulários:", error);
+    console.error("Erro ao verificar planilhas:", error);
   }
 };

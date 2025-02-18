@@ -28,6 +28,46 @@ function getJwt() {
   );
 }
 
+export async function getSheetDetails(
+  sheetId: string,
+  tabName: string
+): Promise<{ name: string; responsesTabGid: string; rowCount: number }> {
+  const sheets = getSheetsClient();
+
+  // Obter informações gerais da planilha (título e lista de abas)
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId: sheetId,
+    fields: "properties.title,sheets(properties(sheetId,title))",
+  });
+  const overallTitle = spreadsheet.data.properties?.title || "Sem nome";
+  let responsesTabGid = "";
+  const sheetsList = spreadsheet.data.sheets;
+  if (!sheetsList) {
+    throw new Error("Nenhuma aba encontrada na planilha.");
+  }
+  // Procura a aba com o título exato fornecido
+  for (const sheet of sheetsList) {
+    const properties = sheet.properties;
+    if (properties && properties.title === tabName) {
+      responsesTabGid = String(properties.sheetId);
+      break;
+    }
+  }
+  if (!responsesTabGid) {
+    throw new Error(`A aba "${tabName}" não foi encontrada na planilha.`);
+  }
+
+  // Obter a quantidade de linhas preenchidas na aba "Respostas ao formulário 1"
+  const range = `${tabName}!A:A`;
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range,
+  });
+  const rowCount = res.data.values ? res.data.values.length : 1;
+
+  return { name: overallTitle, responsesTabGid, rowCount };
+}
+
 // Inicializa o cliente do Google Sheets
 export function getSheetsClient() {
   return google.sheets({ version: "v4", auth: getJwt() });

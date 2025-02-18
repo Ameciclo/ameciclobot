@@ -30,7 +30,7 @@ import { registerFormularioCommand } from "./commands/formulario";
 import { registerApresentacaoCommand } from "./commands/apresentacao";
 import { registerEventoCommand } from "./commands/evento";
 import { registerPagamentoCommand } from "./commands/pagamento";
-import { registerRegistrarFormularioCommand } from "./commands/registra_formulario";
+import { registerRegistrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
 
@@ -55,7 +55,7 @@ registerStartCommand(bot);
 registerPagamentoCommand(bot);
 registerPedidoDeInformacaoCommand(bot);
 registerPlanilhaCommand(bot);
-registerRegistrarFormularioCommand(bot);
+registerRegistrarPlanilhaCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);
