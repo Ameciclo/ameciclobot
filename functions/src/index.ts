@@ -13,28 +13,34 @@ import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators, getFinancesGroupId } from "./services/firebase";
-import { registerQuemSouEuCommand } from "./commands/quemsoueu";
-import { registerPautaCommand } from "./commands/pauta";
-import { registerInformeCommand } from "./commands/informe";
-import { registerDemandaCommand } from "./commands/demanda";
-import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
+
+import { quemSouEuCommand } from "./commands/quemsoueu";
+import { pautaCommand } from "./commands/pauta";
+import { informeCommand } from "./commands/informe";
+import { demandaCommand } from "./commands/demanda";
+import { encaminhamentoCommand } from "./commands/encaminhamentos";
+import { calendarHandler } from "./callbacks/confirmEventParticipationCallback";
+import { pedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
+import { documentoCommand } from "./commands/documento";
+import { planilhaCommand } from "./commands/planilha";
+import { formularioCommand } from "./commands/formulario";
+import { apresentacaoCommand } from "./commands/apresentacao";
+import { eventoCommand } from "./commands/evento";
+import { pagamentoCommand } from "./commands/pagamento";
+import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
+import { clippingCommand } from "./commands/clipping";
 
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
-import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
-import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
-import { registerDocumentoCommand } from "./commands/documento";
-import { registerPlanilhaCommand } from "./commands/planilha";
-import { registerFormularioCommand } from "./commands/formulario";
-import { apresentacaoCommand } from "./commands/apresentacao";
-import { registerEventoCommand } from "./commands/evento";
-import { registerPagamentoCommand } from "./commands/pagamento";
-import { registerRegistrarPlanilhaCommand } from "./commands/registrar_planilha";
+
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
-import { clippingCommand } from "./commands/clipping";
 
-export const commandsList = [apresentacaoCommand, clippingCommand];
+export const commandsList = [
+  apresentacaoCommand,
+  clippingCommand,
+  demandaCommand,
+];
 
 commandsList.forEach((cmd) => {
   cmd.register(bot);
@@ -46,27 +52,13 @@ const telegramCommands = commandsList.map((cmd) => ({
 }));
 bot.telegram.setMyCommands(telegramCommands);
 
-// Registro dos comandos
-registerDemandaCommand(bot);
-registerDocumentoCommand(bot);
-registerEncaminhamentoCommand(bot);
-registerEventoCommand(bot);
-registerFormularioCommand(bot);
-registerHelpCommand(bot);
-registerInformeCommand(bot);
-registerPautaCommand(bot);
-registerQuemSouEuCommand(bot);
-registerPagamentoCommand(bot);
-registerPedidoDeInformacaoCommand(bot);
-registerPlanilhaCommand(bot);
-registerRegistrarPlanilhaCommand(bot);
-registerCancelPaymentHandler(bot);
-registerConfirmPaymentHandler(bot);
-registerCalendarHandler(bot);
-
 registerAjudaCommand(bot);
+registerHelpCommand(bot);
 registerIniciarCommand(bot);
 registerStartCommand(bot);
+
+registerCancelPaymentHandler(bot);
+registerConfirmPaymentHandler(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(

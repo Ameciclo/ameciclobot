@@ -4,11 +4,11 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getDemandaCommandName() {
+export function getName() {
   return "/demanda";
 }
 
-export function getDemandaCommandHelp() {
+export function getHelp() {
   return (
     "Use o comando `/demanda` para registrar uma demanda. O formato esperado é:\n\n" +
     "`/demanda [data limite] [@destinatário(s)] [texto da demanda]`\n\n" +
@@ -16,11 +16,11 @@ export function getDemandaCommandHelp() {
   );
 }
 
-export function getDemandaCommandDescription() {
+export function getDescription() {
   return "📌 Registrar uma demanda com data limite.";
 }
 
-export function registerDemandaCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("demanda", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -36,7 +36,7 @@ export function registerDemandaCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !demand) {
-        return ctx.reply(getDemandaCommandHelp());
+        return ctx.reply(getHelp());
       }
 
       // Regex para validar o formato: [data] [arrobas] [texto]
@@ -103,3 +103,10 @@ export function registerDemandaCommand(bot: Telegraf) {
     }
   });
 }
+
+export const demandaCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};
