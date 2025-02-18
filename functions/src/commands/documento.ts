@@ -76,13 +76,13 @@ export function registerDocumentoCommand(bot: Telegraf) {
             inline_keyboard: [
               [
                 {
-                  text: "Abrir Documento",
+                  text: "🗎 Abrir Documento",
                   url: documentUrl,
                 },
               ],
               [
                 {
-                  text: "Abrir Pasta do Grupo",
+                  text: "📂 Abrir Pasta do Grupo",
                   url: groupConfig.folderUrl,
                 },
               ],
