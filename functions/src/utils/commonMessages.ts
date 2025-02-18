@@ -151,3 +151,7 @@ export function buildCommandsMessage(
   message += "\n" + footer;
   return message;
 }
+
+export function getCommandByName(name: string): CommandEntry | undefined {
+  return commandsList.find((cmd) => cmd.name === name);
+}
