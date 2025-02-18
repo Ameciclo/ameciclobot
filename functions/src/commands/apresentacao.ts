@@ -4,19 +4,19 @@ import { Context, Telegraf } from "telegraf";
 import { createPresentation, moveDocumentToFolder } from "../services/google";
 import workgroups from "../config/workgroupsfolders.json";
 
-export function getApresentacaoCommandName() {
+export function getName() {
   return "/apresentacao";
 }
 
-export function getApresentacaoCommandHelp() {
+export function getHelp() {
   return "Use o comando `/apresentacao` para criar uma Google Presentation. O formato esperado é:\n\n`/apresentacao [título da apresentação]`";
 }
 
-export function getApresentacaoCommandDescription() {
+export function getDescription() {
   return "🎞️ Criar uma Google Presentation para apresentações.";
 }
 
-export function registerApresentacaoCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("apresentacao", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -88,3 +88,10 @@ export function registerApresentacaoCommand(bot: Telegraf) {
     }
   });
 }
+// Exporta um objeto com todas as funções padronizadas para esse comando
+export const apresentacaoCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

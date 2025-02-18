@@ -27,19 +27,30 @@ import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informac
 import { registerDocumentoCommand } from "./commands/documento";
 import { registerPlanilhaCommand } from "./commands/planilha";
 import { registerFormularioCommand } from "./commands/formulario";
-import { registerApresentacaoCommand } from "./commands/apresentacao";
+import { apresentacaoCommand } from "./commands/apresentacao";
 import { registerEventoCommand } from "./commands/evento";
 import { registerPagamentoCommand } from "./commands/pagamento";
 import { registerRegistrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
 
+export const commandsList = [apresentacaoCommand];
+
+commandsList.forEach(cmd => {
+  cmd.register(bot);
+});
+
+const telegramCommands = commandsList.map(cmd => ({
+  command: cmd.name().replace("/", ""), // sem a barra, se necessário
+  description: cmd.description(),
+}));
+bot.telegram.setMyCommands(telegramCommands);
+
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
 
 // Registro dos comandos
 registerAjudaCommand(bot);
-registerApresentacaoCommand(bot);
 registerClippingCommand(bot);
 registerDemandaCommand(bot);
 registerDocumentoCommand(bot);
