@@ -1,6 +1,6 @@
 // src/commands/start.ts
 import { Context, Telegraf } from "telegraf";
-import { buildCommandsMessage } from "../utils/commonMessages";
+import { commandsList } from "../utils/commands";
 
 export function getStartCommandName() {
   return "/start";
@@ -12,6 +12,23 @@ export function getStartCommandHelp() {
 
 export function getStartCommandDescription() {
   return "🚀 Iniciar o bot.";
+}
+
+export function buildCommandsMessage(
+  header: string,
+  footer: string,
+  hideFromFlag: "hideFromStart" | "hideFromHelp" = "hideFromHelp"
+): string {
+  let message = header + "\n\n";
+  commandsList.forEach((cmd) => {
+    if (hideFromFlag === "hideFromHelp") {
+      message += `<b>${cmd.name}</b>:\n${cmd.help}\n\n`;
+    } else {
+      message += `<b>${cmd.name}</b> - ${cmd.description}\n`;
+    }
+  });
+  message += "\n" + footer;
+  return message;
 }
 
 async function startCommand(ctx: Context) {

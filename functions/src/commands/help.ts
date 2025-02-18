@@ -1,8 +1,6 @@
+// src/commands/help.ts
 import { Context, Telegraf } from "telegraf";
-import {
-  buildCommandsMessage,
-  getCommandByName,
-} from "../utils/commonMessages";
+import { commandsList } from "../utils/commands";
 
 export function getHelpCommandName() {
   return "/ajuda";
@@ -20,16 +18,35 @@ async function helpCommand(ctx: Context) {
   const header = `🤖 <b>@ameciclobot - Auxiliar Ameciclista</b> 🤝\n\nAqui está a lista de comandos disponíveis:`;
   const footer = `\n❓ Para obter ajuda específica, digite: <code>/ajuda [comando]</code>\n\n📩 Se tiver dúvidas, fale com <a href="https://t.me/ameciclo_info">@ameciclo_info</a>.`;
   const helpMessage = buildCommandsMessage(header, footer, "hideFromHelp");
-
   await ctx.reply(helpMessage, { parse_mode: "HTML" });
 }
 
+export function buildCommandsMessage(
+  header: string,
+  footer: string,
+  hideFromFlag: "hideFromStart" | "hideFromHelp" = "hideFromHelp"
+): string {
+  let message = header + "\n\n";
+  commandsList.forEach((cmd) => {
+    if (hideFromFlag === "hideFromHelp") {
+      message += `<b>${cmd.name}</b>:\n${cmd.help}\n\n`;
+    } else {
+      message += `<b>${cmd.name}</b> - ${cmd.description}\n`;
+    }
+  });
+  message += "\n" + footer;
+  return message;
+}
+
+export function getCommandByName(name: string) {
+  return commandsList.find((cmd) => cmd.name() === name);
+}
+
 async function helpCommandSpecific(ctx: Context, command: string) {
-  // Removendo a barra, se existir, e tornando minúscula para comparar
   const normalizedCommand = command.startsWith("/") ? command : `/${command}`;
   const commandHelpers = getCommandByName(normalizedCommand);
   if (commandHelpers) {
-    const helpMessage = `🔍 <b>${commandHelpers.name}</b>\n\n${commandHelpers.description}\n\n${commandHelpers.helpText}`;
+    const helpMessage = `🔍 <b>${commandHelpers.name()}</b>\n\n${commandHelpers.description()}\n\n${commandHelpers.help()}`;
     await ctx.reply(helpMessage, { parse_mode: "HTML" });
   } else {
     await ctx.reply(
@@ -43,8 +60,7 @@ export function registerAjudaCommand(bot: Telegraf) {
   bot.command("ajuda", async (ctx: Context) => {
     if (ctx.message && "text" in ctx.message) {
       const text = ctx.message.text || "";
-      const args = text.split(" ").slice(1); // pega os argumentos após "/ajuda"
-
+      const args = text.split(" ").slice(1);
       if (args.length > 0) {
         await helpCommandSpecific(ctx, args[0]);
       } else {
