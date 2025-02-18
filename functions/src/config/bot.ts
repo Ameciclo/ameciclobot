@@ -33,6 +33,10 @@ import {
   getStartCommandDescription,
   getStartCommandName,
 } from "../commands/start";
+import {
+  getPedidoCommandDescription,
+  getPedidoCommandName,
+} from "../commands/pedido_de_informacao";
 
 const BOT_TOKEN = process.env.DEV_MODE
   ? telegramConfigDEV.BOT_TOKEN
@@ -66,6 +70,10 @@ export function setupCommands() {
       description: getEncaminhamentoCommandDescription(),
     },
     {
+      command: getPedidoCommandName(),
+      description: getPedidoCommandDescription(),
+    },
+    {
       command: getQuemSouEuCommandName(),
       description: getQuemSouEuCommandDescription(),
     },
@@ -73,7 +81,6 @@ export function setupCommands() {
       command: getHelpCommandName(),
       description: getHelpCommandDescription(),
     },
-
     {
       command: getStartCommandName(),
       description: getStartCommandDescription(),

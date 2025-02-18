@@ -14,7 +14,10 @@ import {
   getQuemSouEuCommandName,
   getQuemSouEuCommandDescription,
 } from "./quemsoueu";
-import { getPedidoCommandDescription } from "./pedido_de_informacao";
+import {
+  getPedidoCommandDescription,
+  getPedidoCommandName,
+} from "./pedido_de_informacao";
 
 export function getStartCommandName() {
   return "/start";
@@ -46,13 +49,13 @@ async function startCommand(ctx: Context) {
 
 Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropolitana de Ciclistas do Recife. Aqui estão os comandos disponíveis para facilitar a sua vida:
 
-📝 <b>${getPautaCommandName()}</b> - ${getPautaCommandDescription()}
-📢 <b>${getInformeCommandName()}</b> - ${getInformeCommandDescription()}
-🔗 <b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
-📌 <b>${getDemandaCommandName()}</b> - ${getDemandaCommandDescription()}
-🔄 <b>${getEncaminhamentoCommandName()}</b> - ${getEncaminhamentoCommandDescription()}
-🔐 <b>${getPedidoCommandDescription()}</b> - ${getPedidoCommandDescription()}
-🤔 <b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
+<b>${getPautaCommandName()}</b> - ${getPautaCommandDescription()}
+<b>${getInformeCommandName()}</b> - ${getInformeCommandDescription()}
+<b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
+<b>${getDemandaCommandName()}</b> - ${getDemandaCommandDescription()}
+<b>${getEncaminhamentoCommandName()}</b> - ${getEncaminhamentoCommandDescription()}
+<b>${getPedidoCommandName()}</b> - ${getPedidoCommandDescription()}
+<b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
 
 📩 Se tiver dúvidas ou sugestões, registre-a na Ameciclo em <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com @ameciclo_info aqui no Telegram.
 
