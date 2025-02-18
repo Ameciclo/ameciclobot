@@ -3,6 +3,20 @@ import { createDocument, moveDocumentToFolder } from "../services/google";
 // Importa a lista de grupos a partir do arquivo de configuração
 import workgroups from "../config/workgroupsfolders.json";
 
+// /commands/helpers.ts
+
+export function getDocumentoCommandName() {
+  return "/documento";
+}
+
+export function getDocumentoCommandHelp() {
+  return "Use o comando `/documento` para criar um Google Docs. O formato esperado é:\n\n`/documento [título do documento]`";
+}
+
+export function getDocumentoCommandDescription() {
+  return "🗎 Criar um Google Docs para documentos.";
+}
+
 export function registerDocumentoCommand(bot: Telegraf) {
   bot.command("documento", async (ctx: Context) => {
     try {
