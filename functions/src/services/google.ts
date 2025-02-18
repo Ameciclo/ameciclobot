@@ -120,6 +120,56 @@ export async function createDocument(title: string): Promise<any> {
   }
 }
 
+// Cria uma nova planilha
+export async function createSheet(title: string): Promise<any> {
+  const sheets = google.sheets({ version: "v4", auth: getJwt() });
+  try {
+    const response = await sheets.spreadsheets.create({
+      requestBody: { properties: { title } },
+    });
+    console.log("Planilha criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar planilha:", error);
+    throw error;
+  }
+}
+
+// Cria uma nova apresentação
+export async function createPresentation(title: string): Promise<any> {
+  const slides = google.slides({ version: "v1", auth: getJwt() });
+  try {
+    const response = await slides.presentations.create({
+      requestBody: { title },
+    });
+    console.log("Apresentação criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar apresentação:", error);
+    throw error;
+  }
+}
+
+// Cria um novo formulário usando a API do Drive
+export async function createForm(title: string): Promise<any> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+  try {
+    const fileMetadata = {
+      name: title,
+      mimeType: "application/vnd.google-apps.form",
+    };
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      fields: "id",
+    });
+    console.log("Formulário criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar formulário:", error);
+    throw error;
+  }
+}
+
 export async function moveDocumentToFolder(
   documentId: string,
   folderId: string
