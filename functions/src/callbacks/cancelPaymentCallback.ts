@@ -31,7 +31,7 @@ export function registerCancelPaymentHandler(bot: Telegraf) {
       await updatePaymentRequest(requestId, { status: "cancelled" });
 
       // Reconstrói o trecho original e acrescenta a nota de cancelamento
-      const messageText = excerptFromRequest(requestData, "❌ Solicitação de pagamento cancelada.");
+      const messageText = excerptFromRequest(requestData, "❌❌❌ Solicitação CANCELADA. ❌❌❌");
 
       await ctx.editMessageText(messageText);
       console.log(`Pagamento ${requestId} cancelado com sucesso.`);
