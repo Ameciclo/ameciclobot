@@ -7,7 +7,9 @@ import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 import { PaymentRequest } from "../config/types";
 
-const api_key = process.env.DEV_MODE ? google_keysDEV.api_key : google_keys.api_key;
+const api_key = process.env.DEV_MODE
+  ? google_keysDEV.api_key
+  : google_keys.api_key;
 const credentials = process.env.DEV_MODE
   ? firebaseCredentialsDEV
   : firebaseCredentials;
@@ -118,14 +120,22 @@ export async function createDocument(title: string): Promise<any> {
   }
 }
 
-export async function updateSpreadsheet(
-  request: PaymentRequest
-) {
+export async function updateSpreadsheet(request: PaymentRequest) {
   var range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
-
+  let comments = "";
+  if (request.transactionType === "Registrar Caixa Físico") {
+    comments += `CAIXA FÍSICO ${request.project.account}\n`;
+  }
+  if (
+    request.isRefund &&
+    request.refundSupplier &&
+    typeof request.refundSupplier !== "string"
+  ) {
+    comments += `REEMBOLSO À ${request.refundSupplier.nickname} (${request.refundSupplier.name})`;
+  }
   var row = [
-    date,
+    request.paymentDate,
     request.budgetItem,
     "",
     request.supplier.name,
@@ -137,11 +147,15 @@ export async function updateSpreadsheet(
     "⚠️PREENCHER",
     "⚠️PREENCHER",
     date,
+    comments,
   ];
-  const rowRange = await appendSheetRowAsPromise(request.project.spreadsheet_id!, range, row);
-  const rowLink = `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id!}/edit#gid=137441560&range=${
-    rowRange.split("!")[1]
-  }`;
+  const rowRange = await appendSheetRowAsPromise(
+    request.project.spreadsheet_id!,
+    range,
+    row
+  );
+  const rowLink = `https://docs.google.com/spreadsheets/d/${request.project
+    .spreadsheet_id!}/edit#gid=137441560&range=${rowRange.split("!")[1]}`;
 
   await updatePaymentRequest(request.id, {
     spreadsheetRange: rowRange,
