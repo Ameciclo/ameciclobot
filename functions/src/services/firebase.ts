@@ -2,8 +2,34 @@ import { admin } from "../config/firebaseInit";
 import {
   AmecicloUser,
   PaymentRequest,
+  registeredForms,
+  registeredForm,
   TelegramUserInfo,
 } from "../config/types";
+
+export async function registerNewForm(registeredForm: registeredForm) {
+  await admin
+    .database()
+    .ref(`registeredForms/${registeredForm.sheetId}`)
+    .set({
+      ...registeredForm,
+    });
+}
+export async function updateRegisteredFormLastRow(
+  newLastRow: number,
+  formId: string
+): Promise<void> {
+  await admin
+    .database()
+    .ref(`registeredForms/${formId}/lastRow`)
+    .set(newLastRow);
+}
+
+export async function getRegisteredForms(): Promise<registeredForms> {
+  // Lê os formulários cadastrados no Firebase (nó "registeredForms")
+  const snapshot = await admin.database().ref("registeredForms").once("value");
+  return snapshot.val() || {};
+}
 
 export async function getCoordinators() {
   // Busca todos os usuários no endpoint "subscribers"

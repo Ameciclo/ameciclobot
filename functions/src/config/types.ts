@@ -1,5 +1,15 @@
 // src/types.ts
 
+export interface registeredForm {
+  sheetId: string;
+  telegramGroupId: number;
+  lastRow: number;
+}
+
+export interface registeredForms {
+  [formId: string]: registeredForm;
+}
+
 export interface ProtocolRecord {
   protocol: string;
   password: string;

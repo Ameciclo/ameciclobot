@@ -30,6 +30,9 @@ import { registerFormularioCommand } from "./commands/formulario";
 import { registerApresentacaoCommand } from "./commands/apresentacao";
 import { registerEventoCommand } from "./commands/evento";
 import { registerPagamentoCommand } from "./commands/pagamento";
+import { registerRegistrarFormularioCommand } from "./commands/registra_formulario";
+import { checkGoogleForms } from "./scheduler/checkForms";
+import { onSchedule } from "firebase-functions/scheduler";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
@@ -52,6 +55,7 @@ registerStartCommand(bot);
 registerPagamentoCommand(bot);
 registerPedidoDeInformacaoCommand(bot);
 registerPlanilhaCommand(bot);
+registerRegistrarFormularioCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);
@@ -81,5 +85,13 @@ export const botFunction = onRequest(async (req, res) => {
   console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
+
+export const scheduledCheckGoogleForms = onSchedule(
+  "every 24 hours",
+  async (context) => {
+    console.log("RUN: ... scheduledCheckGoogleForms");
+    await checkGoogleForms(bot);
+  }
+);
 
 console.log("RUN: ... bot iniciado com sucesso!");

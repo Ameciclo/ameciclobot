@@ -29,7 +29,7 @@ function getJwt() {
 }
 
 // Inicializa o cliente do Google Sheets
-function getSheetsClient() {
+export function getSheetsClient() {
   return google.sheets({ version: "v4", auth: getJwt() });
 }
 
