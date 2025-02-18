@@ -1,4 +1,3 @@
-// src/commands/help.ts
 import { Context, Telegraf } from "telegraf";
 import {
   buildCommandsMessage,
@@ -26,12 +25,20 @@ async function helpCommand(ctx: Context) {
 }
 
 async function helpCommandSpecific(ctx: Context, command: string) {
-  const commandHelpers = getCommandByName(command);
+  // Removendo a barra, se existir, e tornando minúscula para comparar
+  const normalizedCommand = command.startsWith("/") ? command : `/${command}`;
+  const commandHelpers = getCommandByName(normalizedCommand);
   if (commandHelpers) {
-    const helpMessage = `�� <b>${commandHelpers.name}</b>\n\n${commandHelpers.description}\n\n${commandHelpers.helpText}`;
+    const helpMessage = `🔍 <b>${commandHelpers.name}</b>\n\n${commandHelpers.description}\n\n${commandHelpers.helpText}`;
     await ctx.reply(helpMessage, { parse_mode: "HTML" });
+  } else {
+    await ctx.reply(
+      `❌ Comando "${command}" não encontrado.\n\nUse /ajuda para ver a lista completa de comandos disponíveis.`,
+      { parse_mode: "HTML" }
+    );
   }
 }
+
 export function registerAjudaCommand(bot: Telegraf) {
   bot.command("ajuda", async (ctx: Context) => {
     if (ctx.message && "text" in ctx.message) {

@@ -1,4 +1,3 @@
-// src/utils/commonMessages.ts
 import {
   getPautaCommandName,
   getPautaCommandDescription,
@@ -58,12 +57,10 @@ export interface CommandEntry {
   name: string;
   description: string;
   helpText: string;
-  // Se true, o comando será ocultado na listagem (quando desejado)
   hideFromStart?: boolean;
   hideFromHelp?: boolean;
 }
 
-// Construa um array com todas as entradas dos comandos
 export const commandsList: CommandEntry[] = [
   {
     name: getPautaCommandName(),
@@ -94,8 +91,6 @@ export const commandsList: CommandEntry[] = [
     name: getPedidoCommandName(),
     description: getPedidoCommandDescription(),
     helpText: getPedidoCommandDescription(),
-    // Por exemplo, se quiser ocultar este comando do /start, basta:
-    // hideFromStart: true,
   },
   {
     name: getQuemSouEuCommandName(),
@@ -128,8 +123,7 @@ export const commandsList: CommandEntry[] = [
  * Constrói uma mensagem listando os comandos.
  * @param header Texto a ser exibido no início.
  * @param footer Texto exibido ao final.
- * @param options.hideFromStart Se true, ocultará os comandos com a flag hideFromStart.
- *                                Use hideFromHelp para o /help.
+ * @param hideFromFlag Se "hideFromStart" ou "hideFromHelp", determina quais comandos serão ocultados.
  */
 export function buildCommandsMessage(
   header: string,
@@ -141,7 +135,6 @@ export function buildCommandsMessage(
     if (cmd[hideFromFlag]) {
       return;
     }
-    // Para o help usamos a versão completa; para o start, apenas nome e descrição.
     if (hideFromFlag === "hideFromHelp") {
       message += `<b>${cmd.name}</b>:\n${cmd.helpText}\n\n`;
     } else {
