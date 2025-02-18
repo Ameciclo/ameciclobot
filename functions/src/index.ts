@@ -24,22 +24,34 @@ import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallbac
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
+import { registerDocumentoCommand } from "./commands/documento";
+import { registerPlanilhaCommand } from "./commands/planilha";
+import { registerFormularioCommand } from "./commands/formulario";
+import { registerApresentacaoCommand } from "./commands/apresentacao";
+import { registerEventoCommand } from "./commands/evento";
+import { registerPagamentoCommand } from "./commands/pagamento";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
 
 // Registro dos comandos
 registerAjudaCommand(bot);
+registerApresentacaoCommand(bot);
 registerClippingCommand(bot);
 registerDemandaCommand(bot);
+registerDocumentoCommand(bot);
 registerEncaminhamentoCommand(bot);
+registerEventoCommand(bot);
+registerFormularioCommand(bot);
 registerHelpCommand(bot);
 registerInformeCommand(bot);
 registerIniciarCommand(bot);
 registerPautaCommand(bot);
 registerQuemSouEuCommand(bot);
 registerStartCommand(bot);
+registerPagamentoCommand(bot);
 registerPedidoDeInformacaoCommand(bot);
+registerPlanilhaCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);

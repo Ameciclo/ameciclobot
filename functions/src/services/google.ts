@@ -7,7 +7,9 @@ import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 import { PaymentRequest } from "../config/types";
 
-const api_key = process.env.DEV_MODE ? google_keysDEV.api_key : google_keys.api_key;
+const api_key = process.env.DEV_MODE
+  ? google_keysDEV.api_key
+  : google_keys.api_key;
 const credentials = process.env.DEV_MODE
   ? firebaseCredentialsDEV
   : firebaseCredentials;
@@ -21,6 +23,7 @@ function getJwt() {
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/documents",
       "https://www.googleapis.com/auth/calendar",
+      "https://www.googleapis.com/auth/drive",
     ]
   );
 }
@@ -98,7 +101,6 @@ export async function createEvent(
   }
 }
 
-// Criar um documento no Google Docs
 export async function createDocument(title: string): Promise<any> {
   const docs = google.docs({ version: "v1", auth: getJwt() });
 
@@ -118,14 +120,96 @@ export async function createDocument(title: string): Promise<any> {
   }
 }
 
-export async function updateSpreadsheet(
-  request: PaymentRequest
-) {
+// Cria uma nova planilha
+export async function createSheet(title: string): Promise<any> {
+  const sheets = google.sheets({ version: "v4", auth: getJwt() });
+  try {
+    const response = await sheets.spreadsheets.create({
+      requestBody: { properties: { title } },
+    });
+    console.log("Planilha criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar planilha:", error);
+    throw error;
+  }
+}
+
+// Cria uma nova apresentação
+export async function createPresentation(title: string): Promise<any> {
+  const slides = google.slides({ version: "v1", auth: getJwt() });
+  try {
+    const response = await slides.presentations.create({
+      requestBody: { title },
+    });
+    console.log("Apresentação criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar apresentação:", error);
+    throw error;
+  }
+}
+
+// Cria um novo formulário usando a API do Drive
+export async function createForm(title: string): Promise<any> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+  try {
+    const fileMetadata = {
+      name: title,
+      mimeType: "application/vnd.google-apps.form",
+    };
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      fields: "id",
+    });
+    console.log("Formulário criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar formulário:", error);
+    throw error;
+  }
+}
+
+export async function moveDocumentToFolder(
+  documentId: string,
+  folderId: string
+): Promise<any> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+
+  // Obtém os pais atuais do arquivo (normalmente "My Drive")
+  const file = await drive.files.get({
+    fileId: documentId,
+    fields: "parents",
+  });
+  const previousParents = file.data.parents?.join(",") || "";
+
+  // Atualiza os pais do arquivo, adicionando o novo e removendo os anteriores
+  const response = await drive.files.update({
+    fileId: documentId,
+    addParents: folderId,
+    removeParents: previousParents,
+    fields: "id, parents",
+  });
+  console.log("Documento movido para a pasta:", folderId);
+  return response.data;
+}
+
+export async function updateSpreadsheet(request: PaymentRequest) {
   var range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
-
+  let comments = "";
+  if (request.transactionType === "Registrar Caixa Físico") {
+    comments += `CAIXA FÍSICO ${request.project.account}\n`;
+  }
+  if (
+    request.isRefund &&
+    request.refundSupplier &&
+    typeof request.refundSupplier !== "string"
+  ) {
+    comments += `REEMBOLSO À ${request.refundSupplier.nickname} (${request.refundSupplier.name})`;
+  }
   var row = [
-    date,
+    request.paymentDate,
     request.budgetItem,
     "",
     request.supplier.name,
@@ -137,11 +221,15 @@ export async function updateSpreadsheet(
     "⚠️PREENCHER",
     "⚠️PREENCHER",
     date,
+    comments,
   ];
-  const rowRange = await appendSheetRowAsPromise(request.project.spreadsheet_id!, range, row);
-  const rowLink = `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id!}/edit#gid=137441560&range=${
-    rowRange.split("!")[1]
-  }`;
+  const rowRange = await appendSheetRowAsPromise(
+    request.project.spreadsheet_id!,
+    range,
+    row
+  );
+  const rowLink = `https://docs.google.com/spreadsheets/d/${request.project
+    .spreadsheet_id!}/edit#gid=137441560&range=${rowRange.split("!")[1]}`;
 
   await updatePaymentRequest(request.id, {
     spreadsheetRange: rowRange,

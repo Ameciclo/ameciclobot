@@ -1,20 +1,6 @@
+// src/commands/start.ts
 import { Context, Telegraf } from "telegraf";
-import {
-  getClippingCommandName,
-  getClippingCommandDescription,
-} from "./clipping";
-import { getDemandaCommandName, getDemandaCommandDescription } from "./demanda";
-import {
-  getEncaminhamentoCommandName,
-  getEncaminhamentoCommandDescription,
-} from "./encaminhamentos";
-import { getInformeCommandName, getInformeCommandDescription } from "./informe";
-import { getPautaCommandName, getPautaCommandDescription } from "./pauta";
-import {
-  getQuemSouEuCommandName,
-  getQuemSouEuCommandDescription,
-} from "./quemsoueu";
-import { getPedidoCommandDescription } from "./pedido_de_informacao";
+import { buildCommandsMessage } from "../utils/commonMessages";
 
 export function getStartCommandName() {
   return "/start";
@@ -28,6 +14,17 @@ export function getStartCommandDescription() {
   return "🚀 Iniciar o bot.";
 }
 
+async function startCommand(ctx: Context) {
+  const header =
+    `🎉 Olá, sou <b>@ameciclobot</b>! 🚴‍♀️🚴‍♂️\n\n` +
+    `Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropolitana de Ciclistas do Recife.\n\n` +
+    `Aqui estão os comandos disponíveis:`;
+  const footer = `\n\n📩 Se tiver dúvidas ou sugestões, registre no <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com <a href="https://t.me/ameciclo_info">@ameciclo_info</a>.\n\n🚀 Bora começar? Digite um dos comandos acima para usar o bot!`;
+  // Aqui usamos o buildCommandsMessage com o filtro "hideFromStart"
+  const startMessage = buildCommandsMessage(header, footer, "hideFromStart");
+  await ctx.reply(startMessage, { parse_mode: "HTML" });
+}
+
 export function registerStartCommand(bot: Telegraf) {
   bot.start(async (ctx: Context) => {
     await startCommand(ctx);
@@ -38,26 +35,4 @@ export function registerIniciarCommand(bot: Telegraf) {
   bot.command("iniciar", async (ctx: Context) => {
     await startCommand(ctx);
   });
-}
-
-async function startCommand(ctx: Context) {
-  const startMessage = `
-  🎉 Olá, sou <b>@ameciclobot</b>! 🚴‍♀️🚴‍♂️
-
-Auxiliar para demandas e registros da <b>Ameciclo</b> – Associação Metropolitana de Ciclistas do Recife. Aqui estão os comandos disponíveis para facilitar a sua vida:
-
-📝 <b>${getPautaCommandName()}</b> - ${getPautaCommandDescription()}
-📢 <b>${getInformeCommandName()}</b> - ${getInformeCommandDescription()}
-🔗 <b>${getClippingCommandName()}</b> - ${getClippingCommandDescription()}
-📌 <b>${getDemandaCommandName()}</b> - ${getDemandaCommandDescription()}
-🔄 <b>${getEncaminhamentoCommandName()}</b> - ${getEncaminhamentoCommandDescription()}
-🔐 <b>${getPedidoCommandDescription()}</b> - ${getPedidoCommandDescription()}
-🤔 <b>${getQuemSouEuCommandName()}</b> - ${getQuemSouEuCommandDescription()}
-
-📩 Se tiver dúvidas ou sugestões, registre-a na Ameciclo em <a href="https://github.com/Ameciclo/ameciclobot">GitHub</a> ou fale com @ameciclo_info aqui no Telegram.
-
-🚀 Bora começar? Digite um dos comandos acima para começar a usar!
-`;
-
-  await ctx.reply(startMessage, { parse_mode: "HTML" });
 }

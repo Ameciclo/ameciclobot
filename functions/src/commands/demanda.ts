@@ -12,7 +12,7 @@ export function getDemandaCommandHelp() {
   return (
     "Use o comando `/demanda` para registrar uma demanda. O formato esperado é:\n\n" +
     "`/demanda [data limite] [@destinatário(s)] [texto da demanda]`\n\n" +
-    "Exemplo:\n`/demanda 20/12/2023 @dvalenca @chatgpt Fazer um bot pro Telegram`"
+    "Exemplo:\n`/demanda 22/09 @ameciclobot Fazer um bot pro Telegram`"
   );
 }
 
