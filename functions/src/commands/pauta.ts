@@ -4,19 +4,19 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getPautaCommandName() {
+export function getName() {
   return "/pauta";
 }
 
-export function getPautaCommandHelp() {
+export function getHelp() {
   return "Use o comando `/pauta` para adicionar uma pauta. O formato esperado é:\n\n`/pauta [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa.";
 }
 
-export function getPautaCommandDescription() {
+export function getDescription() {
   return "📝 Adicionar uma pauta para a reunião ordinária.";
 }
 
-export function registerPautaCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("pauta", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -32,7 +32,7 @@ export function registerPautaCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !topic) {
-        return ctx.reply(getPautaCommandHelp());
+        return ctx.reply(getHelp());
       }
 
       // Validação: verifica se a pauta tem pelo menos MIN_TOPIC_SIZE palavras
@@ -86,3 +86,10 @@ export function registerPautaCommand(bot: Telegraf) {
     }
   });
 }
+
+export const pautaCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

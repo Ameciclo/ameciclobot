@@ -1,7 +1,7 @@
 // src/commands/evento.ts
 import { Context, Telegraf } from "telegraf";
 
-export function registerEventoCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     await ctx.reply(
       "O comando /evento foi desativado e suas funcionalidades foram transferidas para a Central Ameciclista (vem no privado comigo).",
@@ -21,3 +21,7 @@ export function registerEventoCommand(bot: Telegraf) {
     );
   });
 }
+
+export const eventoCommand = {
+  register,
+};

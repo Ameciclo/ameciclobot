@@ -3,19 +3,19 @@ import { Context, Telegraf } from "telegraf";
 import { createSheet, moveDocumentToFolder } from "../services/google";
 import workgroups from "../config/workgroupsfolders.json";
 
-export function getPlanilhaCommandName() {
+export function getName() {
   return "/planilha";
 }
 
-export function getPlanilhaCommandHelp() {
+export function getHelp() {
   return "Use o comando `/planilha` para criar uma Google Sheet. O formato esperado é:\n\n`/planilha [título da planilha]`";
 }
 
-export function getPlanilhaCommandDescription() {
+export function getDescription() {
   return "📊 Criar uma Google Sheet para planilhas.";
 }
 
-export function registerPlanilhaCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("planilha", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -87,3 +87,10 @@ export function registerPlanilhaCommand(bot: Telegraf) {
     }
   });
 }
+
+export const planilhaCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

@@ -1,7 +1,7 @@
 // src/commands/pagamento.ts
 import { Context, Telegraf } from "telegraf";
 
-export function registerPagamentoCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("pagamento", async (ctx: Context) => {
     await ctx.reply(
       "O comando /pagamento foi desativado e suas funcionalidades foram transferidas para a Central Ameciclista (vem no privado comigo).",
@@ -21,3 +21,7 @@ export function registerPagamentoCommand(bot: Telegraf) {
     );
   });
 }
+
+export const pagamentoCommand = {
+  register,
+};

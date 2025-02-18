@@ -5,19 +5,19 @@ import workgroups from "../config/workgroupsfolders.json";
 
 // /commands/helpers.ts
 
-export function getDocumentoCommandName() {
+export function getName() {
   return "/documento";
 }
 
-export function getDocumentoCommandHelp() {
+export function getHelp() {
   return "Use o comando `/documento` para criar um Google Docs. O formato esperado é:\n\n`/documento [título do documento]`";
 }
 
-export function getDocumentoCommandDescription() {
+export function getDescription() {
   return "🗎 Criar um Google Docs para documentos.";
 }
 
-export function registerDocumentoCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("documento", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -112,3 +112,10 @@ export function registerDocumentoCommand(bot: Telegraf) {
     }
   });
 }
+
+export const documentoCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};
