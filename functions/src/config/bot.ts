@@ -37,6 +37,22 @@ import {
   getPedidoCommandDescription,
   getPedidoCommandName,
 } from "../commands/pedido_de_informacao";
+import {
+  getPlanilhaCommandDescription,
+  getPlanilhaCommandName,
+} from "../commands/planilha";
+import {
+  getDocumentoCommandDescription,
+  getDocumentoCommandName,
+} from "../commands/documento";
+import {
+  getApresentacaoCommandDescription,
+  getApresentacaoCommandName,
+} from "../commands/apresentacao";
+import {
+  getFormularioCommandDescription,
+  getFormularioCommandName,
+} from "../commands/formulario";
 
 const BOT_TOKEN = process.env.DEV_MODE
   ? telegramConfigDEV.BOT_TOKEN
@@ -84,6 +100,24 @@ export function setupCommands() {
     {
       command: getStartCommandName(),
       description: getStartCommandDescription(),
+    },
+    {
+      command: getDocumentoCommandName(),
+      description: getDocumentoCommandDescription(),
+    },
+
+    {
+      command: getApresentacaoCommandName(),
+      description: getApresentacaoCommandDescription(),
+    },
+
+    {
+      command: getFormularioCommandName(),
+      description: getFormularioCommandDescription(),
+    },
+    {
+      command: getPlanilhaCommandName(),
+      description: getPlanilhaCommandDescription(),
     },
   ]);
 }
