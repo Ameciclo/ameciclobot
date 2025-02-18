@@ -4,7 +4,7 @@ console.log(admin);
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 
-import { bot, setupCommands } from "./config/bot";
+import { bot } from "./config/bot";
 import { PaymentRequest } from "./config/types";
 
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
@@ -13,36 +13,40 @@ import { handleCreateEvent } from "./handlers/createEventHandler";
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators, getFinancesGroupId } from "./services/firebase";
-import { registerQuemSouEuCommand } from "./commands/quemsoueu";
-import { registerPautaCommand } from "./commands/pauta";
-import { registerInformeCommand } from "./commands/informe";
-import { registerClippingCommand } from "./commands/clipping";
-import { registerDemandaCommand } from "./commands/demanda";
-import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 
+import { eventoCommand } from "./commands/evento";
+import { pagamentoCommand } from "./commands/pagamento";
+
+import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
-import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
-import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 
-// ATIVAR QUANDO ALTERAR COMANDOS
-setupCommands();
+import { checkGoogleForms } from "./scheduler/checkForms";
+import { onSchedule } from "firebase-functions/scheduler";
+import { commandsList } from "./utils/commands";
 
-// Registro dos comandos
+const validCommands = commandsList
+validCommands.forEach((cmd) => {
+  cmd.register(bot);
+});
+
+eventoCommand.register(bot);
+pagamentoCommand.register(bot);
+
+const telegramCommands = validCommands.map((cmd) => ({
+  command: cmd.name(),
+  description: cmd.description(),
+}));
+bot.telegram.setMyCommands(telegramCommands);
+
 registerAjudaCommand(bot);
-registerClippingCommand(bot);
-registerDemandaCommand(bot);
-registerEncaminhamentoCommand(bot);
 registerHelpCommand(bot);
-registerInformeCommand(bot);
 registerIniciarCommand(bot);
-registerPautaCommand(bot);
-registerQuemSouEuCommand(bot);
 registerStartCommand(bot);
-registerPedidoDeInformacaoCommand(bot);
+
+registerCalendarHandler(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
-registerCalendarHandler(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -69,5 +73,13 @@ export const botFunction = onRequest(async (req, res) => {
   console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
+
+export const scheduledCheckGoogleForms = onSchedule(
+  "every 24 hours",
+  async (context) => {
+    console.log("RUN: ... scheduledCheckGoogleForms");
+    await checkGoogleForms(bot);
+  }
+);
 
 console.log("RUN: ... bot iniciado com sucesso!");

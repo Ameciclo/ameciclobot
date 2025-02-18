@@ -1,0 +1,27 @@
+import { quemSouEuCommand } from "../commands/quemsoueu";
+import { pautaCommand } from "../commands/pauta";
+import { informeCommand } from "../commands/informe";
+import { demandaCommand } from "../commands/demanda";
+import { encaminhamentoCommand } from "../commands/encaminhamentos";
+import { pedidoDeInformacaoCommand } from "../commands/pedido_de_informacao";
+import { documentoCommand } from "../commands/documento";
+import { planilhaCommand } from "../commands/planilha";
+import { formularioCommand } from "../commands/formulario";
+import { apresentacaoCommand } from "../commands/apresentacao";
+import { registrarPlanilhaCommand } from "../commands/registrar_planilha";
+import { clippingCommand } from "../commands/clipping";
+
+export const commandsList = [
+  apresentacaoCommand,
+  demandaCommand,
+  documentoCommand,
+  encaminhamentoCommand,
+  formularioCommand,
+  informeCommand,
+  pautaCommand,
+  pedidoDeInformacaoCommand,
+  planilhaCommand,
+  quemSouEuCommand,
+  registrarPlanilhaCommand,
+  clippingCommand,
+];

@@ -2,20 +2,20 @@ import { Context, Telegraf } from "telegraf";
 import { saveProtocolRecord } from "../services/firebase";
 
 // Helper functions for command metadata
-export function getPedidoCommandName() {
+export function getName() {
   return "/pedido_de_informacao";
 }
 
-export function getPedidoCommandHelp() {
+export function getHelp() {
   return "Use o comando `/pedido_de_informacao` seguido do protocolo e senha, ou responda a uma mensagem contendo esses dados.\n\nFormato:\n`/pedido_de_informacao [protocolo] [senha]`\nOu responda a uma mensagem com o texto padrão de solicitação.";
 }
 
-export function getPedidoCommandDescription() {
+export function getDescription() {
   return "🔐 Registrar protocolo e senha de solicitação de informação";
 }
 
 // Main command handler
-export function registerPedidoDeInformacaoCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("pedido_de_informacao", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -61,7 +61,7 @@ export function registerPedidoDeInformacaoCommand(bot: Telegraf) {
       }
 
       if (!protocol || !password) {
-        return ctx.reply(getPedidoCommandHelp());
+        return ctx.reply(getHelp());
       }
       // Save to Firebase
       const firebaseSuccess = await saveProtocolRecord(
@@ -103,3 +103,10 @@ function extractProtocolAndPassword(text: string): {
     password: passwordMatch ? passwordMatch[1] : "",
   };
 }
+
+export const pedidoDeInformacaoCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

@@ -4,19 +4,19 @@ import urls from "../config/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getInformeCommandName() {
+export function getName() {
   return "/informe";
 }
 
-export function getInformeCommandHelp() {
+export function getHelp() {
   return "Use o comando `/informe` para registrar um informe. O formato esperado é:\n\n`/informe [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /informe em resposta a alguma mensagem sua ou de outra pessoa.";
 }
 
-export function getInformeCommandDescription() {
+export function getDescription() {
   return "📢 Registrar um informe.";
 }
 
-export function registerInformeCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("informe", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -32,7 +32,7 @@ export function registerInformeCommand(bot: Telegraf) {
       }
 
       if (!from || !chat || !inform) {
-        return ctx.reply(getInformeCommandHelp());
+        return ctx.reply(getHelp());
       }
 
       // Validação: verifica se a informe tem pelo menos MIN_TOPIC_SIZE palavras
@@ -86,3 +86,10 @@ export function registerInformeCommand(bot: Telegraf) {
     }
   });
 }
+
+export const informeCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

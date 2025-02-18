@@ -1,5 +1,17 @@
 // src/types.ts
 
+export interface registeredForm {
+  sheetId: string;
+  telegramGroupId: number;
+  lastRow: number;
+  formName: string;
+  responsesTabGid?: string;
+}
+
+export interface registeredForms {
+  [formId: string]: registeredForm;
+}
+
 export interface ProtocolRecord {
   protocol: string;
   password: string;
@@ -69,6 +81,10 @@ export interface Supplier {
 }
 
 export interface PaymentRequest {
+  transactionType: string;
+  paymentDate: string;
+  isRefund: boolean;
+  refundSupplier: Supplier | string | null | undefined;
   budgetItem: string;
   date: string;
   description: string;
