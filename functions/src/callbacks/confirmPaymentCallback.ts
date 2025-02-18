@@ -247,7 +247,10 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         [viewSpreadsheetButton, cancelButton],
       ]);
 
-      const baseText = excerptFromRequest(requestData);
+      const baseText = excerptFromRequest(
+        requestData,
+        `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+      );
       const signedByText = buildSignedByText(signatures);
       const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
