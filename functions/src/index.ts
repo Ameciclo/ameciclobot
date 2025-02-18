@@ -24,10 +24,11 @@ import { documentoCommand } from "./commands/documento";
 import { planilhaCommand } from "./commands/planilha";
 import { formularioCommand } from "./commands/formulario";
 import { apresentacaoCommand } from "./commands/apresentacao";
-import { eventoCommand } from "./commands/evento";
-import { pagamentoCommand } from "./commands/pagamento";
 import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { clippingCommand } from "./commands/clipping";
+
+import { eventoCommand } from "./commands/evento";
+import { pagamentoCommand } from "./commands/pagamento";
 
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
@@ -36,18 +37,30 @@ import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback"
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
 
-export const commandsList = [
+const validCommands = [
   apresentacaoCommand,
-  clippingCommand,
   demandaCommand,
+  documentoCommand,
+  encaminhamentoCommand,
+  formularioCommand,
+  informeCommand,
+  pautaCommand,
+  pedidoDeInformacaoCommand,
+  planilhaCommand,
+  quemSouEuCommand,
+  registrarPlanilhaCommand,
+  clippingCommand,
 ];
 
-commandsList.forEach((cmd) => {
+validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
 
-const telegramCommands = commandsList.map((cmd) => ({
-  command: cmd.name().replace("/", ""), // sem a barra, se necessário
+eventoCommand.register(bot);
+pagamentoCommand.register(bot);
+
+const telegramCommands = validCommands.map((cmd) => ({
+  command: cmd.name(),
   description: cmd.description(),
 }));
 bot.telegram.setMyCommands(telegramCommands);

@@ -24,4 +24,7 @@ export function register(bot: Telegraf) {
 
 export const eventoCommand = {
   register,
+  name: undefined,
+  help: undefined,
+  description: undefined,
 };

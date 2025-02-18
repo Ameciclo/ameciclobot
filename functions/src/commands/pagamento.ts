@@ -24,4 +24,7 @@ export function register(bot: Telegraf) {
 
 export const pagamentoCommand = {
   register,
+  name: undefined,
+  help: undefined,
+  description: undefined,
 };
