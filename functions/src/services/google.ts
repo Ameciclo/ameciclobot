@@ -101,7 +101,6 @@ export async function createEvent(
   }
 }
 
-// Criar um documento no Google Docs
 export async function createDocument(title: string): Promise<any> {
   const docs = google.docs({ version: "v1", auth: getJwt() });
 
@@ -119,6 +118,30 @@ export async function createDocument(title: string): Promise<any> {
     console.error("Erro ao criar documento:", error);
     throw error;
   }
+}
+
+export async function moveDocumentToFolder(
+  documentId: string,
+  folderId: string
+): Promise<any> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+
+  // Obtém os pais atuais do arquivo (normalmente "My Drive")
+  const file = await drive.files.get({
+    fileId: documentId,
+    fields: "parents",
+  });
+  const previousParents = file.data.parents?.join(",") || "";
+
+  // Atualiza os pais do arquivo, adicionando o novo e removendo os anteriores
+  const response = await drive.files.update({
+    fileId: documentId,
+    addParents: folderId,
+    removeParents: previousParents,
+    fields: "id, parents",
+  });
+  console.log("Documento movido para a pasta:", folderId);
+  return response.data;
 }
 
 export async function updateSpreadsheet(request: PaymentRequest) {
