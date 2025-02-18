@@ -69,6 +69,10 @@ export interface Supplier {
 }
 
 export interface PaymentRequest {
+  transactionType: string;
+  paymentDate: string;
+  isRefund: boolean;
+  refundSupplier: Supplier | string | null | undefined;
   budgetItem: string;
   date: string;
   description: string;

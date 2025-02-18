@@ -44,7 +44,7 @@ export async function sendPaymentRequestHandler(
   groupChatId: string,
   coordinators: AmecicloUser[]
 ) {
-  console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA");
+  console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA", );
 
   // Monta o texto que será enviado
   const messageToGroup = excerptFromRequest(request);
