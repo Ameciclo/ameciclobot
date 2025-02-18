@@ -19,7 +19,6 @@ import { pautaCommand } from "./commands/pauta";
 import { informeCommand } from "./commands/informe";
 import { demandaCommand } from "./commands/demanda";
 import { encaminhamentoCommand } from "./commands/encaminhamentos";
-import { calendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { pedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 import { documentoCommand } from "./commands/documento";
 import { planilhaCommand } from "./commands/planilha";
@@ -30,6 +29,7 @@ import { pagamentoCommand } from "./commands/pagamento";
 import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { clippingCommand } from "./commands/clipping";
 
+import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
 
@@ -57,6 +57,7 @@ registerHelpCommand(bot);
 registerIniciarCommand(bot);
 registerStartCommand(bot);
 
+registerCalendarHandler(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 
