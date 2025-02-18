@@ -3,7 +3,19 @@ import { Context, Telegraf, Markup } from "telegraf";
 import { registerNewForm } from "../services/firebase";
 import { getSheetDetails } from "../services/google";
 
-export function registerRegistrarPlanilhaCommand(bot: Telegraf) {
+export function getName() {
+  return "/registrar_planilha";
+}
+
+export function getHelp() {
+  return "Use o comando `/registrar_planilha` para registrar uma planilha de formulário a ser monitorada:\n\n`/registrar_planilha [url da planilha]`";
+}
+
+export function getDescription() {
+  return "📊 Registrar uma planilha de formulário para monitoramento.";
+}
+
+export function register(bot: Telegraf) {
   bot.command("registrar_planilha", async (ctx: Context) => {
     if (!ctx.message || !("text" in ctx.message)) {
       return ctx.reply(
@@ -62,3 +74,10 @@ export function registerRegistrarPlanilhaCommand(bot: Telegraf) {
     }
   });
 }
+
+export const registrarPlanilhaCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};
