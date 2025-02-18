@@ -25,16 +25,21 @@ import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback"
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerPedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 import { registerDocumentoCommand } from "./commands/documento";
+import { registerPlanilhaCommand } from "./commands/planilha";
+import { registerFormularioCommand } from "./commands/formulario";
+import { registerApresentacaoCommand } from "./commands/apresentacao";
 
 // ATIVAR QUANDO ALTERAR COMANDOS
 setupCommands();
 
 // Registro dos comandos
 registerAjudaCommand(bot);
+registerApresentacaoCommand(bot);
 registerClippingCommand(bot);
 registerDemandaCommand(bot);
 registerDocumentoCommand(bot);
 registerEncaminhamentoCommand(bot);
+registerFormularioCommand(bot);
 registerHelpCommand(bot);
 registerInformeCommand(bot);
 registerIniciarCommand(bot);
@@ -42,6 +47,7 @@ registerPautaCommand(bot);
 registerQuemSouEuCommand(bot);
 registerStartCommand(bot);
 registerPedidoDeInformacaoCommand(bot);
+registerPlanilhaCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);
