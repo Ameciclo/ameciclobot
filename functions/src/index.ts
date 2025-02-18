@@ -4,7 +4,7 @@ console.log(admin);
 import { onRequest } from "firebase-functions/v2/https";
 import { onValueCreated } from "firebase-functions/database";
 
-import { bot, setupCommands } from "./config/bot";
+import { bot } from "./config/bot";
 import { PaymentRequest } from "./config/types";
 
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
@@ -16,7 +16,6 @@ import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 import { registerQuemSouEuCommand } from "./commands/quemsoueu";
 import { registerPautaCommand } from "./commands/pauta";
 import { registerInformeCommand } from "./commands/informe";
-import { registerClippingCommand } from "./commands/clipping";
 import { registerDemandaCommand } from "./commands/demanda";
 import { registerEncaminhamentoCommand } from "./commands/encaminhamentos";
 
@@ -33,25 +32,21 @@ import { registerPagamentoCommand } from "./commands/pagamento";
 import { registerRegistrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
+import { clippingCommand } from "./commands/clipping";
 
-export const commandsList = [apresentacaoCommand];
+export const commandsList = [apresentacaoCommand, clippingCommand];
 
-commandsList.forEach(cmd => {
+commandsList.forEach((cmd) => {
   cmd.register(bot);
 });
 
-const telegramCommands = commandsList.map(cmd => ({
+const telegramCommands = commandsList.map((cmd) => ({
   command: cmd.name().replace("/", ""), // sem a barra, se necessário
   description: cmd.description(),
 }));
 bot.telegram.setMyCommands(telegramCommands);
 
-// ATIVAR QUANDO ALTERAR COMANDOS
-setupCommands();
-
 // Registro dos comandos
-registerAjudaCommand(bot);
-registerClippingCommand(bot);
 registerDemandaCommand(bot);
 registerDocumentoCommand(bot);
 registerEncaminhamentoCommand(bot);
@@ -59,10 +54,8 @@ registerEventoCommand(bot);
 registerFormularioCommand(bot);
 registerHelpCommand(bot);
 registerInformeCommand(bot);
-registerIniciarCommand(bot);
 registerPautaCommand(bot);
 registerQuemSouEuCommand(bot);
-registerStartCommand(bot);
 registerPagamentoCommand(bot);
 registerPedidoDeInformacaoCommand(bot);
 registerPlanilhaCommand(bot);
@@ -70,6 +63,10 @@ registerRegistrarPlanilhaCommand(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
 registerCalendarHandler(bot);
+
+registerAjudaCommand(bot);
+registerIniciarCommand(bot);
+registerStartCommand(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(

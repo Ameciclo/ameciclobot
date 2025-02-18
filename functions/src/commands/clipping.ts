@@ -5,19 +5,19 @@ import urls from "../config/urls.json";
 const URL_REGEX = /(https?:\/\/[^\s]+)/; // Regex para capturar URLs
 
 // Exemplo para o comando /clipping
-export function getClippingCommandName() {
+export function getName() {
   return "/clipping";
 }
 
-export function getClippingCommandHelp() {
+export function getHelp() {
   return "Use o comando `/clipping` para adicionar um link de clipping. O formato esperado é:\n\n`/clipping [URL válida]`\n\nVocê também pode dar /clipping em resposta a alguma mensagem sua ou de outra pessoa.";
 }
 
-export function getClippingCommandDescription() {
+export function getDescription() {
   return "🔗 Adicionar um link de clipping.";
 }
 
-export function registerClippingCommand(bot: Telegraf) {
+export function register(bot: Telegraf) {
   bot.command("clipping", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -33,7 +33,7 @@ export function registerClippingCommand(bot: Telegraf) {
       }
 
       if (!clip) {
-        return ctx.reply(getClippingCommandHelp(), { parse_mode: "Markdown" });
+        return ctx.reply(getHelp(), { parse_mode: "Markdown" });
       }
 
       const urlMatch = clip.match(URL_REGEX);
@@ -93,3 +93,10 @@ export function registerClippingCommand(bot: Telegraf) {
     }
   });
 }
+
+export const clippingCommand = {
+  register,
+  name: getName,
+  help: getHelp,
+  description: getDescription,
+};

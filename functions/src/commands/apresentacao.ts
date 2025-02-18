@@ -88,7 +88,7 @@ export function register(bot: Telegraf) {
     }
   });
 }
-// Exporta um objeto com todas as funções padronizadas para esse comando
+
 export const apresentacaoCommand = {
   register,
   name: getName,
