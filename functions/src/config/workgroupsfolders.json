@@ -1,0 +1,44 @@
+[
+  {
+    "value": "-1001163972258",
+    "label": "Incidência",
+    "folderId": "FOLDER_ID_INCIDENCIA",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_INCIDENCIA"
+  },
+  {
+    "value": "-1001434654374",
+    "label": "Pesquisa",
+    "folderId": "FOLDER_ID_PESQUISA",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_PESQUISA"
+  },
+  {
+    "value": "-1001262630444",
+    "label": "Formação Externa",
+    "folderId": "FOLDER_ID_FORMACAO_EXTERNA",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_FORMACAO_EXTERNA"
+  },
+  {
+    "value": "-1001283224155",
+    "label": "Interpautas",
+    "folderId": "FOLDER_ID_INTERPAUTAS",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_INTERPAUTAS"
+  },
+  {
+    "value": "-1001387463477",
+    "label": "Escola de Cicloativismo",
+    "folderId": "FOLDER_ID_ESCOLA_CICLOATIVISMO",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_ESCOLA_CICLOATIVISMO"
+  },
+  {
+    "value": "-1002002954299",
+    "label": "Cultura",
+    "folderId": "FOLDER_ID_CULTURA",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_CULTURA"
+  },
+  {
+    "value": "-1001378328092",
+    "label": "Algum dos Eixos",
+    "folderId": "FOLDER_ID_ALGUM_DOS_EIXOS",
+    "folderUrl": "https://drive.google.com/drive/folders/FOLDER_ID_ALGUM_DOS_EIXOS"
+  }
+]
