@@ -6,14 +6,7 @@ import {
   getFileMetadata,
 } from "../services/google";
 import workgroups from "../config/workgroupsfolders.json";
-
-// Função auxiliar para formatar data no formato AAAA.MM.DD
-function formatDate(date: Date): string {
-  const yyyy = date.getFullYear();
-  const mm = ("0" + (date.getMonth() + 1)).slice(-2);
-  const dd = ("0" + date.getDate()).slice(-2);
-  return `${yyyy}.${mm}.${dd}`;
-}
+import { getPreviewTitle } from "../utils/utils";
 
 export function registerModeloUseCallback(bot: Telegraf) {
   bot.action(/modelo_(.+)/, async (ctx: Context) => {
@@ -44,18 +37,8 @@ export function registerModeloUseCallback(bot: Telegraf) {
 
       // Obtém os metadados do modelo
       const metadata = await getFileMetadata(templateId);
-      let modelName = metadata.name || "";
-      // Remove a tag "[modelo]" se existir e faz trim
-      modelName = modelName.replace("[modelo]", "").trim();
-      // Supomos que o nome do modelo tem o formato: "Tipo de documento - 2025.00.00 - Alguma coisa"
-      const parts = modelName.split(" - ");
-      if (parts.length < 3) {
-        throw new Error("Formato de nome de modelo inválido.");
-      }
-      const type = parts[0]; // Exemplo: "Ata", "Requerimento", etc.
-      const currentDate = formatDate(new Date());
-      // Constrói o novo título: "Tipo de documento - YYYY.MM.DD - Título do documento"
-      const newTitle = `${type} - ${currentDate} - ${finalTitleFromMsg}`;
+
+      const newTitle = getPreviewTitle(metadata.name || "", finalTitleFromMsg);
 
       // Copia o arquivo modelo com o novo título
       const copied = await copyFile(templateId, newTitle);
