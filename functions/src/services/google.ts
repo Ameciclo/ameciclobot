@@ -64,7 +64,6 @@ export async function getFileMetadata(
     throw error;
   }
 }
-
 export async function copyFile(
   templateId: string,
   newTitle: string
@@ -74,7 +73,7 @@ export async function copyFile(
     const res = await drive.files.copy({
       fileId: templateId,
       requestBody: { name: newTitle },
-      fields: "id, documentId",
+      fields: "id", // Apenas o id é retornado
     });
     return res.data;
   } catch (error) {

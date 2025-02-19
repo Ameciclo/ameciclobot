@@ -10,6 +10,7 @@ import { formularioCommand } from "../commands/formulario";
 import { apresentacaoCommand } from "../commands/apresentacao";
 import { registrarPlanilhaCommand } from "../commands/registrar_planilha";
 import { clippingCommand } from "../commands/clipping";
+import { modeloCommand } from "../commands/modelo";
 
 export const commandsList = [
   apresentacaoCommand,
@@ -18,6 +19,7 @@ export const commandsList = [
   encaminhamentoCommand,
   formularioCommand,
   informeCommand,
+  modeloCommand,
   pautaCommand,
   pedidoDeInformacaoCommand,
   planilhaCommand,

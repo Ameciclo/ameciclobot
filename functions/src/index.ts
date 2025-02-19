@@ -20,6 +20,7 @@ import { pagamentoCommand } from "./commands/pagamento";
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
+import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
@@ -44,6 +45,7 @@ registerHelpCommand(bot);
 registerIniciarCommand(bot);
 registerStartCommand(bot);
 
+registerModeloUseCallback(bot);
 registerCalendarHandler(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);

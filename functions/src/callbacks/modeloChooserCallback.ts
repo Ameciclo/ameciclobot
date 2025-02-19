@@ -16,40 +16,56 @@ function formatDate(date: Date): string {
 }
 
 export function registerModeloUseCallback(bot: Telegraf) {
-  bot.action(/modelo_(.+?)_(.+)/, async (ctx: Context) => {
+  bot.action(/modelo_(.+)/, async (ctx: Context) => {
     try {
-      // Cast para acessar ctx.match
+      // A callback_data é do formato: "modelo_<templateId>"
       const match = (ctx as any).match;
       if (!match) {
         await ctx.answerCbQuery("Erro: Dados inválidos.");
         return;
       }
       const templateId = match[1];
-      const newTitleProvided = decodeURIComponent(match[2]);
+      const message = ctx.callbackQuery?.message;
+      if (!message || !("text" in message)) {
+        await ctx.reply(
+          "Não foi possível recuperar o texto da mensagem original."
+        );
+        return;
+      }
+      const originalMessage = message.text;
+      const titleMatch = originalMessage.match(/Título do documento:\s*(.+)/);
+      if (!titleMatch) {
+        await ctx.reply(
+          "Não foi possível extrair o título do documento da mensagem."
+        );
+        return;
+      }
+      const finalTitleFromMsg = titleMatch[1].trim(); // Ex: "2025.02.19 - Relatório Mensal"
+
       // Obtém os metadados do modelo
       const metadata = await getFileMetadata(templateId);
       let modelName = metadata.name || "";
       // Remove a tag "[modelo]" se existir e faz trim
       modelName = modelName.replace("[modelo]", "").trim();
-      // Divide pelo separador " - "
+      // Supomos que o nome do modelo tem o formato: "Tipo de documento - 2025.00.00 - Alguma coisa"
       const parts = modelName.split(" - ");
       if (parts.length < 3) {
         throw new Error("Formato de nome de modelo inválido.");
       }
-      const type = parts[0]; // Tipo de documento
+      const type = parts[0]; // Exemplo: "Ata", "Requerimento", etc.
       const currentDate = formatDate(new Date());
-      const newTitle = `${type} - ${currentDate} - ${newTitleProvided}`;
+      // Constrói o novo título: "Tipo de documento - YYYY.MM.DD - Título do documento"
+      const newTitle = `${type} - ${currentDate} - ${finalTitleFromMsg}`;
 
+      // Copia o arquivo modelo com o novo título
       const copied = await copyFile(templateId, newTitle);
       const documentId = copied.documentId || copied.id;
       if (!documentId) {
         throw new Error("Não foi possível obter o ID do documento criado.");
       }
-      // Aqui você pode definir a pasta do grupo se necessário; neste exemplo, usamos um ID fixo
-      await moveDocumentToFolder(documentId, "ID_DA_PASTA_DE_DESTINO"); // substitua pelo ID correto ou lógica para determinar a pasta
 
-      // Procura a configuração do grupo a partir do chat.id
-      const chat = ctx.message?.chat;
+      // Determina a pasta do grupo a partir do chat.id
+      const chat = ctx.callbackQuery?.message?.chat;
       if (!chat) {
         await ctx.reply(
           "Não foi possível identificar as informações da mensagem."
@@ -63,14 +79,18 @@ export function registerModeloUseCallback(bot: Telegraf) {
         await ctx.reply("Não foi possível identificar o grupo de Trabalho.");
         return;
       }
-      const documentUrl = `https://docs.google.com/document/d/${documentId}/edit`;
-      await ctx.editMessageText("Documento criado com sucesso...", {
-        reply_markup: Markup.inlineKeyboard([
-          [{ text: "🗎 Abrir Documento", url: documentUrl }],
-          [{ text: "📂 Abrir Pasta do Grupo", url: groupConfig.folderUrl }],
-        ]).reply_markup,
-      });
+      await moveDocumentToFolder(documentId, groupConfig.folderId);
 
+      const documentUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+      await ctx.editMessageText(
+        `Documento clonado com sucesso com o título:\n${newTitle}`,
+        {
+          reply_markup: Markup.inlineKeyboard([
+            [{ text: "🗎 Abrir Documento", url: documentUrl }],
+            [{ text: "📂 Abrir Pasta do Grupo", url: groupConfig.folderUrl }],
+          ]).reply_markup,
+        }
+      );
       await ctx.answerCbQuery();
     } catch (error) {
       console.error("Erro ao criar documento a partir do modelo:", error);
@@ -78,6 +98,6 @@ export function registerModeloUseCallback(bot: Telegraf) {
         "Ocorreu um erro ao criar o documento a partir do modelo."
       );
     }
-    return; // Retorno explícito para garantir que todas as rotas retornem um valor.
+    return;
   });
 }
