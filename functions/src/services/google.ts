@@ -28,6 +28,60 @@ function getJwt() {
   );
 }
 
+export async function listModelsFromFolder(
+  folderId: string
+): Promise<{ id: string; name: string }[]> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+  try {
+    const res = await drive.files.list({
+      q: `'${folderId}' in parents and trashed = false and (mimeType='application/vnd.google-apps.document' or mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.google-apps.presentation' or mimeType='application/vnd.google-apps.form')`,
+      fields: "files(id, name)",
+    });
+    // Garante que name seja uma string (substituindo null por vazio)
+    const files = res.data.files || [];
+    return files.map((file) => ({
+      id: file.id!,
+      name: file.name || "",
+    }));
+  } catch (error) {
+    console.error("Erro ao listar modelos:", error);
+    throw error;
+  }
+}
+
+export async function getFileMetadata(
+  fileId: string
+): Promise<{ name: string }> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+  try {
+    const res = await drive.files.get({
+      fileId,
+      fields: "name",
+    });
+    return { name: res.data.name || "" };
+  } catch (error) {
+    console.error("Erro ao obter metadados do arquivo:", error);
+    throw error;
+  }
+}
+export async function copyFile(
+  templateId: string,
+  newTitle: string
+): Promise<any> {
+  const drive = google.drive({ version: "v3", auth: getJwt() });
+  try {
+    const res = await drive.files.copy({
+      fileId: templateId,
+      requestBody: { name: newTitle },
+      fields: "id", // Apenas o id é retornado
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Erro ao copiar arquivo:", error);
+    throw error;
+  }
+}
+
 export async function getSheetDetails(
   sheetId: string,
   tabName: string

@@ -20,12 +20,13 @@ import { pagamentoCommand } from "./commands/pagamento";
 import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
+import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
 import { commandsList } from "./utils/commands";
 
-const validCommands = commandsList
+const validCommands = commandsList;
 validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
@@ -44,6 +45,7 @@ registerHelpCommand(bot);
 registerIniciarCommand(bot);
 registerStartCommand(bot);
 
+registerModeloUseCallback(bot);
 registerCalendarHandler(bot);
 registerCancelPaymentHandler(bot);
 registerConfirmPaymentHandler(bot);
@@ -68,18 +70,21 @@ export const createCalendarEvent = onValueCreated(
   }
 );
 
+export const scheduledCheckGoogleForms = onSchedule(
+  "every 2 hours", // Agenda para rodar a cada 6 horas
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckGoogleForms disparado em",
+      new Date().toISOString()
+    );
+    await checkGoogleForms(bot);
+  }
+);
+
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {
   console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
-
-export const scheduledCheckGoogleForms = onSchedule(
-  "every 24 hours",
-  async (context) => {
-    console.log("RUN: ... scheduledCheckGoogleForms");
-    await checkGoogleForms(bot);
-  }
-);
 
 console.log("RUN: ... bot iniciado com sucesso!");
