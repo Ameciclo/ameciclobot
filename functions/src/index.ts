@@ -84,7 +84,7 @@ export const scheduledCheckGoogleForms = onSchedule(
 );
 
 export const scheduledCheckScheduledPayments = onSchedule(
-  "every 7 days",
+  "every 1 week",
   async (context) => {
     console.log(
       "RUN: scheduledCheckScheduledPayments disparado em",

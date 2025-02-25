@@ -29,13 +29,12 @@ export const checkScheduledPayments = async (bot: Telegraf) => {
     });
 
     if (scheduledPayments.length > 0) {
-      let message = "📢 *Agendamentos Bancários para os próximos 7 dias:*\n\n";
+      let message = "📢 *Agendamentos Bancários para os próximos 3 dias:*\n\n";
       scheduledPayments.forEach((payment, index) => {
-        message += `*${index + 1}.*Projeto: ${
-          payment.project.name
-        }\nFornecedor:${payment.supplier.nickname}\nData: ${
-          payment.paymentDate
-        }\nValor: ${payment.value || "N/A"}\n\n`;
+        message += `*${index + 1}.* 📄 Projeto: ${payment.project.name}\n`;
+        message += `    👤 Fornecedor: ${payment.supplier.nickname}\n`;
+        message += `    📅 Data: ${payment.paymentDate}\n`;
+        message += `    💲 Valor: ${payment.value || "N/A"}\n\n`;
       });
       const groupChatId = await getFinancesGroupId();
       await bot.telegram.sendMessage(groupChatId, message, {
