@@ -382,3 +382,53 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   });
   return rowLink;
 }
+
+export async function getEventsForPeriod(
+  startDate: Date,
+  endDate: Date,
+  workgroup?: string | number
+): Promise<any[]> {
+  const calendar = google.calendar({ version: "v3", auth: getJwt() });
+  // Lista dos calendários que você deseja consultar.
+  const calendarIds = [
+    "ameciclo@gmail.com",
+    "oj4bkgv1g6cmcbtsap4obgi9vc@group.calendar.google.com",
+    "k0gbrljrh0e4l2v8cuc05nsljc@group.calendar.google.com",
+    "an6nh96auj9n3jtj28qno1limg@group.calendar.google.com",
+  ];
+
+  let events: any[] = [];
+
+  for (const calendarId of calendarIds) {
+    try {
+      const res = await calendar.events.list({
+        calendarId,
+        timeMin: startDate.toISOString(),
+        timeMax: endDate.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        fields:
+          "items(id,summary,location,start,end,htmlLink,extendedProperties)",
+      });
+      if (res.data.items) {
+        events = events.concat(res.data.items);
+      }
+    } catch (error) {
+      console.error(
+        `Erro ao listar eventos do calendário ${calendarId}:`,
+        error
+      );
+    }
+  }
+
+  // Se o parâmetro workgroup for fornecido, filtra os eventos
+  if (workgroup !== undefined) {
+    const workgroupStr = workgroup.toString();
+    events = events.filter((ev) => {
+      const props = ev.extendedProperties?.private;
+      return props && props.workgroup === workgroupStr;
+    });
+  }
+
+  return events;
+}
