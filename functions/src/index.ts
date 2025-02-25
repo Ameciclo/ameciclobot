@@ -25,6 +25,7 @@ import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
+import { checkWorkgroupEvents } from "./scheduler/checkWorkgroupEvents";
 
 import { commandsList } from "./utils/commands";
 
@@ -91,6 +92,17 @@ export const scheduledCheckScheduledPayments = onSchedule(
       new Date().toISOString()
     );
     await checkScheduledPayments(bot);
+  }
+);
+
+export const scheduledCheckEvents = onSchedule(
+  { schedule: "0 8 * * 1", timeZone: "America/Recife" },
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckEvents disparado em",
+      new Date().toISOString()
+    );
+    await checkWorkgroupEvents(bot);
   }
 );
 
