@@ -96,7 +96,7 @@ export const scheduledCheckScheduledPayments = onSchedule(
 );
 
 export const scheduledCheckEvents = onSchedule(
-  { schedule: "0 8 * * 1", timeZone: "America/Recife" },
+  "every 5 minutes",
   async (context) => {
     console.log(
       "RUN: scheduledCheckEvents disparado em",
