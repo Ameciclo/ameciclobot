@@ -84,9 +84,12 @@ export const scheduledCheckGoogleForms = onSchedule(
 );
 
 export const scheduledCheckScheduledPayments = onSchedule(
-  "every 5 minutes",  
+  "every 7 days",
   async (context) => {
-    console.log("RUN: scheduledCheckScheduledPayments disparado em", new Date().toISOString());
+    console.log(
+      "RUN: scheduledCheckScheduledPayments disparado em",
+      new Date().toISOString()
+    );
     await checkScheduledPayments(bot);
   }
 );
