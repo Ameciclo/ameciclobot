@@ -13,7 +13,7 @@ export const checkScheduledPayments = async (bot: Telegraf) => {
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
     const oneWeekLater = new Date();
-    oneWeekLater.setDate(today.getDate() + 7);
+    oneWeekLater.setDate(today.getDate() + 8);
 
     // Filtra os requests conforme critérios
     Object.values(requestsData).forEach((req: any) => {
