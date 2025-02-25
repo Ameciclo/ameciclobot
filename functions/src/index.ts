@@ -22,8 +22,10 @@ import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallbac
 import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 
-import { checkGoogleForms } from "./scheduler/checkForms";
 import { onSchedule } from "firebase-functions/scheduler";
+import { checkGoogleForms } from "./scheduler/checkForms";
+import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
+
 import { commandsList } from "./utils/commands";
 
 const validCommands = commandsList;
@@ -78,6 +80,14 @@ export const scheduledCheckGoogleForms = onSchedule(
       new Date().toISOString()
     );
     await checkGoogleForms(bot);
+  }
+);
+
+export const scheduledCheckScheduledPayments = onSchedule(
+  "every 5 minutes",  
+  async (context) => {
+    console.log("RUN: scheduledCheckScheduledPayments disparado em", new Date().toISOString());
+    await checkScheduledPayments(bot);
   }
 );
 
