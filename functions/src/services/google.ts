@@ -155,6 +155,56 @@ export async function appendSheetRowAsPromise(
   }
 }
 
+export async function createEventWithMetadata(
+  calendarId: string,
+  name: string,
+  startDate: string,
+  endDate: string,
+  location = "",
+  description = "",
+  workgroup?: number
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth: getJwt() });
+
+  // Cria o recurso do evento com propriedades básicas
+  const eventResource: any = {
+    summary: name,
+    location,
+    description,
+    start: {
+      dateTime: startDate,
+      timeZone: "America/Recife",
+    },
+    end: {
+      dateTime: endDate,
+      timeZone: "America/Recife",
+    },
+  };
+
+  // Se workgroup for fornecido, adiciona extendedProperties
+  if (workgroup !== undefined) {
+    eventResource.extendedProperties = {
+      private: {
+        workgroup: workgroup.toString(),
+      },
+    };
+  }
+
+  const event = {
+    calendarId,
+    resource: eventResource,
+  };
+
+  try {
+    const response = await calendar.events.insert(event);
+    console.log("Evento criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar evento:", error);
+    throw error;
+  }
+}
+
 // Criar um evento no Google Calendar
 export async function createEvent(
   calendarId: string,

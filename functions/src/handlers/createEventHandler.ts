@@ -1,4 +1,4 @@
-import { createEvent } from "../services/google";
+import { createEventWithMetadata } from "../services/google";
 import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
 import { updateCalendarEventData } from "../services/firebase";
@@ -114,32 +114,29 @@ export async function handleCreateEvent(
   bot: Telegraf
 ): Promise<void> {
   const eventData = event.data.val() as CalendarEventData;
-
-  // Log completo dos dados recebidos para verificar se estão corretos
   console.log("Dados recebidos para criação de evento:", eventData);
 
-  // Verifica se o calendarId está presente
   if (!eventData.calendarId) {
     console.error("calendarId ausente no evento:", eventData);
-    return; // ou trate esse caso conforme a sua lógica
+    return;
   }
 
   try {
-    const createdEvent = await createEvent(
+    // Agora, passe eventData.workgroup para criar o evento com metadados
+    const createdEvent = await createEventWithMetadata(
       eventData.calendarId,
       eventData.name,
       eventData.startDate,
       eventData.endDate,
       eventData.location,
-      eventData.description
+      eventData.description,
+      eventData.workgroup // Aqui inserimos o metadado do grupo
     );
 
     eventData.calendarEventId = createdEvent.id;
     eventData.htmlLink = createdEvent.htmlLink;
 
     updateCalendarEventData(eventData.id, eventData);
-
-    // Envia a mensagem no Telegram
     await sendEventMessage(bot, eventData);
   } catch (error) {
     console.error("Erro ao criar evento no Google Calendar:", error);
