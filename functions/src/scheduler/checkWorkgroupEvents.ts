@@ -1,14 +1,35 @@
 // src/scheduler/checkEvents.ts
 import workgroups from "../credentials/workgroupsfolders.json";
-import { getEventsForPeriod } from "../services/google"; // Função que você deverá implementar
+import { getEventsForPeriod } from "../services/google";
 import { Telegraf } from "telegraf";
 
-// Função auxiliar para formatar mensagens de agenda
+// Função auxiliar para formatar um único evento
+function formatEvent(ev: any): string {
+  const title = ev.summary || "Sem título";
+  const location = ev.location || "Sem local";
+  let date = "";
+  let time = "";
+
+  if (ev.start) {
+    if (ev.start.dateTime) {
+      const dt = new Date(ev.start.dateTime);
+      date = dt.toLocaleDateString("pt-BR");
+      time = dt.toLocaleTimeString("pt-BR");
+    } else if (ev.start.date) {
+      date = ev.start.date;
+    }
+  }
+
+  const link = ev.htmlLink || "";
+
+  return `*${title}*\n   📅 ${date}\n   ⏰ ${time}\n   📍 ${location}\n   🔗 [Abrir evento](${link})`;
+}
+
+// Função auxiliar para formatar a mensagem de agenda com todos os eventos
 function formatEventsMessage(events: any[], header: string): string {
   let message = header + "\n\n";
   events.forEach((ev, idx) => {
-    message += `*${idx + 1}.* ${ev.type} - ${ev.title}\n`;
-    message += `   📅 ${ev.date}\n   ⏰ ${ev.time}\n   📍 ${ev.location}\n   🔗 [Abrir evento](${ev.link})\n\n`;
+    message += `*${idx + 1}.* ${formatEvent(ev)}\n\n`;
   });
   return message;
 }
@@ -37,12 +58,13 @@ export const checkWorkgroupEvents = async (bot: Telegraf) => {
         endDate.toISOString()
       );
 
-      // Busca os eventos para o período (sem filtro de grupo, pois será para o grupo de Comunicação)
+      // Busca os eventos para o período (sem filtro de grupo)
       const events = await getEventsForPeriod(startDate, endDate);
       console.log("Eventos retornados para a semana:", events.length);
 
       if (events && events.length > 0) {
         const message = formatEventsMessage(events, "📅 *Agenda Semanal*");
+        // Procura o grupo de Comunicação na configuração
         const commGroup = workgroups.find(
           (group: any) => group.label === "Comunicação"
         );
