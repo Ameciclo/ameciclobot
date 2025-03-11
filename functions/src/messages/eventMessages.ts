@@ -82,8 +82,8 @@ export function buildEventButtons(eventData: CalendarEventData) {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "Abrir evento", url: htmlLink },
-          { text: "Eu vou", callback_data: `eu_vou_${id}` },
+          { text: "📅 Abrir evento", url: htmlLink },
+          { text: "🎟️ Eu vou", callback_data: `eu_vou_${id}` },
         ],
       ],
     },
