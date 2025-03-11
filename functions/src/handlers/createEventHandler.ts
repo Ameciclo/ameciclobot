@@ -47,10 +47,15 @@ export async function sendEventMessage(
     htmlLink,
   } = eventData;
 
-  const start = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "full",
-    timeStyle: "long",
-  }).format(new Date(startDate));
+  const start = new Date(startDate).toLocaleString("pt-BR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   const duration = getDuration(startDate, endDate);
 
   // Monte a mensagem
