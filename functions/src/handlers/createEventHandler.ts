@@ -54,6 +54,7 @@ export async function sendEventMessage(
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Recife",
   });
 
   const duration = getDuration(startDate, endDate);
