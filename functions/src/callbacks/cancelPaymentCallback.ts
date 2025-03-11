@@ -4,7 +4,7 @@ import { getRequestData, updatePaymentRequest } from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 import { PaymentRequest } from "../config/types";
 
-export function registerCancelPaymentHandler(bot: Telegraf) {
+export function registerCancelPaymentCallback(bot: Telegraf) {
   // O callback data agora é no formato "cancel_payment_{requestId}"
   bot.action(/^cancel_payment_(.+)$/, async (ctx: Context) => {
     console.log("CANCELAR PAGAMENTO!");

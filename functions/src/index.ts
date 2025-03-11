@@ -17,9 +17,9 @@ import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 import { eventoCommand } from "./commands/evento";
 import { pagamentoCommand } from "./commands/pagamento";
 
-import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
-import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
-import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
+import { registerEventParticipationCallback } from "./callbacks/confirmEventParticipationCallback";
+import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
+import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 
 import { onSchedule } from "firebase-functions/scheduler";
@@ -49,9 +49,9 @@ registerIniciarCommand(bot);
 registerStartCommand(bot);
 
 registerModeloUseCallback(bot);
-registerCalendarHandler(bot);
-registerCancelPaymentHandler(bot);
-registerConfirmPaymentHandler(bot);
+registerEventParticipationCallback(bot);
+registerCancelPaymentCallback(bot);
+registerConfirmPaymentCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
