@@ -4,7 +4,7 @@ import {
   getCalendarEventData,
   updateCalendarEventData,
 } from "../services/firebase";
-import { buildEventMessage } from "../messages/eventsMessages";
+import { buildEventMessage } from "../messages/eventMessages";
 
 export function registerEventParticipationCallback(bot: Telegraf) {
   bot.action(/^eu_vou_(.+)$/, async (ctx: Context) => {
