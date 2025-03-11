@@ -58,6 +58,12 @@ export function escapeMarkdownV2(text: string): string {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
 }
 
+export function escapeMarkdown(text: string): string {
+  // Esta função escapa os caracteres especiais do Markdown V1
+  return text.replace(/([_*[\]()~`>#+-=|{}.!])/g, '\\$1');
+}
+
+
 export const toDays = (): number => {
   const oneDay = 24 * 60 * 60 * 1000; // Milissegundos em um dia
   const firstDate = new Date(1899, 11, 31); // Data inicial
