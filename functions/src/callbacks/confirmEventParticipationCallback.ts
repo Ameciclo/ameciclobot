@@ -4,7 +4,10 @@ import {
   getCalendarEventData,
   updateCalendarEventData,
 } from "../services/firebase";
-import { buildEventMessage } from "../messages/eventMessages";
+import {
+  buildEventButtons,
+  buildEventMessage,
+} from "../messages/eventMessages";
 
 export function registerEventParticipationCallback(bot: Telegraf) {
   bot.action(/^eu_vou_(.+)$/, async (ctx: Context) => {
@@ -76,20 +79,8 @@ export function registerEventParticipationCallback(bot: Telegraf) {
       // Atualiza o eventData com a lista de participantes atualizada
       eventData.participants = participants;
 
-      // Constrói a mensagem formatada utilizando a função centralizada
       const newText = buildEventMessage(eventData);
-
-      // Prepara o inline keyboard com o link para o evento e o callback para confirmação
-      const inlineKeyboard = {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "Abrir evento", url: eventData.htmlLink },
-              { text: "Eu vou", callback_data: `eu_vou_${eventData.id}` },
-            ],
-          ],
-        },
-      };
+      const inlineKeyboard = buildEventButtons(eventData);
 
       // Edita a mensagem original com o novo texto formatado
       await ctx.editMessageText(newText, {

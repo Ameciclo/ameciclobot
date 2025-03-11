@@ -75,3 +75,18 @@ export function buildEventMessage(data: CalendarEventData): string {
   }
   return message;
 }
+
+export function buildEventButtons(eventData: CalendarEventData) {
+  const { id, htmlLink } = eventData;
+  const inlineKeyboard = {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "Abrir evento", url: htmlLink },
+          { text: "Eu vou", callback_data: `eu_vou_${id}` },
+        ],
+      ],
+    },
+  };
+  return inlineKeyboard;
+}

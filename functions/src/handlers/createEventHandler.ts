@@ -3,28 +3,22 @@ import { createEventWithMetadata } from "../services/google";
 import { Telegraf } from "telegraf";
 import { CalendarEventData } from "../config/types";
 import { updateCalendarEventData } from "../services/firebase";
-import { buildEventMessage } from "../messages/eventMessages";
+import {
+  buildEventButtons,
+  buildEventMessage,
+} from "../messages/eventMessages";
 
 export async function sendEventMessage(
   bot: Telegraf,
   eventData: CalendarEventData
 ): Promise<void> {
-  const { from, id, htmlLink, workgroup } = eventData;
+  const { from, id, workgroup } = eventData;
 
   // Constrói a mensagem formatada utilizando a função centralizada
   const message = buildEventMessage(eventData);
 
   // Define o inline keyboard com os botões "Abrir evento" e "Eu vou"
-  const inlineKeyboard = {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "Abrir evento", url: htmlLink },
-          { text: "Eu vou", callback_data: `eu_vou_${id}` },
-        ],
-      ],
-    },
-  };
+  const inlineKeyboard = buildEventButtons(eventData);
 
   try {
     // Envia a mensagem para a conversa privada do usuário
