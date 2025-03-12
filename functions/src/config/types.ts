@@ -54,6 +54,14 @@ export interface CalendarEventData {
   participants?: { [key: number]: TelegramUserInfo };
 }
 
+// /config/types.ts (ou um arquivo similar)
+export interface CalendarConfig {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+}
+
 export interface ProjectInfo {
   account: string;
   balance: number;

@@ -144,6 +144,17 @@ export async function getRequestData(requestId: string): Promise<any> {
   }
 }
 
+export async function getAllRequests() : Promise<PaymentRequest[]> {
+  console.log(`Get All Payment Requests`);
+  try {
+    const snapshot = await admin.database().ref("requests").once("value");
+    return snapshot.val() || [];
+  } catch (err) {
+    console.error("Erro ao buscar todas as solicitações:", err);
+    throw err;
+  }
+}
+
 // Buscar dados dos assinantes (subscribers)
 export async function getSubscribers(): Promise<any[]> {
   console.log(`GETREQUESTDATA: subscribers`);

@@ -1,7 +1,7 @@
 // /commands/planilha.ts
 import { Context, Telegraf } from "telegraf";
 import { createSheet, moveDocumentToFolder } from "../services/google";
-import workgroups from "../config/workgroupsfolders.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 export function getName() {
   return "/planilha";

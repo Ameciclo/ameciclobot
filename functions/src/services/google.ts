@@ -5,7 +5,8 @@ import google_keysDEV from "../credentials/dev/google.json";
 import firebaseCredentialsDEV from "../credentials/dev/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
-import { PaymentRequest } from "../config/types";
+import { CalendarConfig, PaymentRequest } from "../config/types";
+import calendars from "../credentials/calendars.json";
 
 const api_key = process.env.DEV_MODE
   ? google_keysDEV.api_key
@@ -151,6 +152,56 @@ export async function appendSheetRowAsPromise(
     return result.data.updates?.updatedRange || "";
   } catch (error) {
     console.error("Erro ao adicionar linha na planilha:", error);
+    throw error;
+  }
+}
+
+export async function createEventWithMetadata(
+  calendarId: string,
+  name: string,
+  startDate: string,
+  endDate: string,
+  location = "",
+  description = "",
+  workgroup?: number
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth: getJwt() });
+
+  // Cria o recurso do evento com propriedades básicas
+  const eventResource: any = {
+    summary: name,
+    location,
+    description,
+    start: {
+      dateTime: startDate,
+      timeZone: "America/Recife",
+    },
+    end: {
+      dateTime: endDate,
+      timeZone: "America/Recife",
+    },
+  };
+
+  // Se workgroup for fornecido, adiciona extendedProperties
+  if (workgroup !== undefined) {
+    eventResource.extendedProperties = {
+      private: {
+        workgroup: workgroup.toString(),
+      },
+    };
+  }
+
+  const event = {
+    calendarId,
+    resource: eventResource,
+  };
+
+  try {
+    const response = await calendar.events.insert(event);
+    console.log("Evento criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar evento:", error);
     throw error;
   }
 }
@@ -331,4 +382,38 @@ export async function updateSpreadsheet(request: PaymentRequest) {
     rowLink: rowLink,
   });
   return rowLink;
+}
+
+export async function getEventsForPeriod(
+  startDate: Date,
+  endDate: Date
+): Promise<any[]> {
+  const calendar = google.calendar({ version: "v3", auth: getJwt() });
+  const calendarConfigs = calendars as CalendarConfig[];
+  const calendarIds = calendarConfigs.map((calendar) => calendar.id);
+
+  let events: any[] = [];
+
+  for (const calendarId of calendarIds) {
+    try {
+      const res = await calendar.events.list({
+        calendarId,
+        timeMin: startDate.toISOString(),
+        timeMax: endDate.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        fields:
+          "items(id,summary,location,start,end,htmlLink,extendedProperties)",
+      });
+      if (res.data.items) {
+        events = events.concat(res.data.items);
+      }
+    } catch (error) {
+      console.error(
+        `Erro ao listar eventos do calendário ${calendarId}:`,
+        error
+      );
+    }
+  }
+  return events;
 }

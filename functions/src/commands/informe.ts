@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { appendSheetRowAsPromise } from "../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
-import urls from "../config/urls.json";
+import urls from "../credentials/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
@@ -32,7 +32,18 @@ export function register(bot: Telegraf) {
       }
 
       if (!from || !chat || !inform) {
-        return ctx.reply(getHelp());
+        return ctx.reply(getHelp(), {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📝 Ver informes",
+                  url: `https://docs.google.com/spreadsheets/d/${urls.information.id}`,
+                },
+              ],
+            ],
+          },
+        });
       }
 
       // Validação: verifica se a informe tem pelo menos MIN_TOPIC_SIZE palavras

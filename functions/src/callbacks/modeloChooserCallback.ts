@@ -5,7 +5,7 @@ import {
   moveDocumentToFolder,
   getFileMetadata,
 } from "../services/google";
-import workgroups from "../config/workgroupsfolders.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 import { getPreviewTitle } from "../utils/utils";
 
 export function registerModeloUseCallback(bot: Telegraf) {
