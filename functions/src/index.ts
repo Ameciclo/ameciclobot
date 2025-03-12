@@ -25,7 +25,7 @@ import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
-import { checkWorkgroupEvents } from "./scheduler/checkWorkgroupEvents";
+import { checkEvents } from "./scheduler/checkEvents";
 
 import { commandsList } from "./utils/commands";
 
@@ -74,7 +74,7 @@ export const createCalendarEvent = onValueCreated(
 );
 
 export const scheduledCheckGoogleForms = onSchedule(
-  "every 2 hours", // Agenda para rodar a cada 6 horas
+  "every 2 hours",
   async (context) => {
     console.log(
       "RUN: scheduledCheckGoogleForms disparado em",
@@ -96,13 +96,13 @@ export const scheduledCheckScheduledPayments = onSchedule(
 );
 
 export const scheduledCheckEvents = onSchedule(
-  { schedule: "0 8 * * 1", timeZone: "America/Recife" },
+  { schedule: "0 16 * * 1", timeZone: "America/Recife" },
   async (context) => {
     console.log(
       "RUN: scheduledCheckEvents disparado em",
       new Date().toISOString()
     );
-    await checkWorkgroupEvents(bot);
+    await checkEvents(bot);
   }
 );
 

@@ -5,7 +5,8 @@ import google_keysDEV from "../credentials/dev/google.json";
 import firebaseCredentialsDEV from "../credentials/dev/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
-import { PaymentRequest } from "../config/types";
+import { CalendarConfig, PaymentRequest } from "../config/types";
+import calendars from "../credentials/calendars.json";
 
 const api_key = process.env.DEV_MODE
   ? google_keysDEV.api_key
@@ -385,17 +386,11 @@ export async function updateSpreadsheet(request: PaymentRequest) {
 
 export async function getEventsForPeriod(
   startDate: Date,
-  endDate: Date,
-  workgroup?: string | number
+  endDate: Date
 ): Promise<any[]> {
   const calendar = google.calendar({ version: "v3", auth: getJwt() });
-  // Lista dos calendários que você deseja consultar.
-  const calendarIds = [
-    "ameciclo@gmail.com",
-    "oj4bkgv1g6cmcbtsap4obgi9vc@group.calendar.google.com",
-    "k0gbrljrh0e4l2v8cuc05nsljc@group.calendar.google.com",
-    "an6nh96auj9n3jtj28qno1limg@group.calendar.google.com",
-  ];
+  const calendarConfigs = calendars as CalendarConfig[];
+  const calendarIds = calendarConfigs.map((calendar) => calendar.id);
 
   let events: any[] = [];
 
@@ -420,15 +415,5 @@ export async function getEventsForPeriod(
       );
     }
   }
-
-  // Se o parâmetro workgroup for fornecido, filtra os eventos
-  if (workgroup !== undefined) {
-    const workgroupStr = workgroup.toString();
-    events = events.filter((ev) => {
-      const props = ev.extendedProperties?.private;
-      return props && props.workgroup === workgroupStr;
-    });
-  }
-
   return events;
 }
