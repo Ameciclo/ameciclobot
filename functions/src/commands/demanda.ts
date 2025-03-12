@@ -36,7 +36,18 @@ export function register(bot: Telegraf) {
       }
 
       if (!from || !chat || !demand) {
-        return ctx.reply(getHelp());
+        return ctx.reply(getHelp(), {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📝 Ver demandas",
+                  url: `https://docs.google.com/spreadsheets/d/${urls.demands.id}`,
+                },
+              ],
+            ],
+          },
+        });
       }
 
       // Regex para validar o formato: [data] [arrobas] [texto]

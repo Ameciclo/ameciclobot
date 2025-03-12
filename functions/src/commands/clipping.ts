@@ -33,7 +33,19 @@ export function register(bot: Telegraf) {
       }
 
       if (!clip) {
-        return ctx.reply(getHelp(), { parse_mode: "Markdown" });
+        return ctx.reply(getHelp(), {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📝 Ver clippings",
+                  url: `https://docs.google.com/spreadsheets/d/${urls.clipping.id}`,
+                },
+              ],
+            ],
+          },
+        });
       }
 
       const urlMatch = clip.match(URL_REGEX);
