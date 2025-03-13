@@ -85,7 +85,7 @@ export const scheduledCheckGoogleForms = onSchedule(
 );
 
 export const scheduledCheckScheduledPayments = onSchedule(
-  { schedule: "0 8 * * 1", timeZone: "America/Recife" },
+  { schedule: "0 8 * * 1,3,5", timeZone: "America/Recife" },
   async (context) => {
     console.log(
       "RUN: scheduledCheckScheduledPayments disparado em",
@@ -96,7 +96,7 @@ export const scheduledCheckScheduledPayments = onSchedule(
 );
 
 export const scheduledCheckEvents = onSchedule(
-  { schedule: "0 16 * * 1", timeZone: "America/Recife" },
+  { schedule: "20 16 * * *", timeZone: "America/Recife" },
   async (context) => {
     console.log(
       "RUN: scheduledCheckEvents disparado em",
