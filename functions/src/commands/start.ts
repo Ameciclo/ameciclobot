@@ -18,9 +18,9 @@ export function getStartCommandDescription() {
 export function buildCommandsMessage(header: string, footer: string): string {
   let message = header + "\n\n";
   commandsList.forEach((cmd) => {
-    message += `**${escapeMarkdownV2(cmd.name())}**:${escapeMarkdownV2(
+    message += `**${escapeMarkdownV2(cmd.name())}**: ${escapeMarkdownV2(
       cmd.description()
-    )}\n\n`;
+    )}\n`;
   });
   message += "\n" + footer;
   return message;
@@ -28,18 +28,16 @@ export function buildCommandsMessage(header: string, footer: string): string {
 
 async function startCommand(ctx: Context) {
   // Header e footer fixos (já escritos em MarkdownV2)
-  const header = `🎉 Olá, sou **@ameciclobot**! 🚴‍♀️🚴‍♂️
+  const header = `🎉 Olá, sou **@ameciclobot**\\! 🚴‍♀️🚴‍♂️
 
-Auxiliar para demandas e registros da *Ameciclo*: Associação Metropolitana de Ciclistas do Recife\\.
+Auxiliar para demandas e registros da **Associação Metropolitana de Ciclistas do Recife**\\.
 
 Aqui estão os comandos disponíveis:`;
 
   const footer = `
 ❓ Para obter ajuda específica, digite: \`/ajuda \\[comando\\]\`
-
-📩 Se tiver dúvidas, fale com @ameciclo\\_info.
-
-🚀 Bora começar? Digite um dos comandos acima para usar o bot!`;
+📩 Se tiver dúvidas, fale com @ameciclo\\_info\\.
+🚀 Bora começar? Digite um dos comandos acima para usar o bot\\!`;
 
   const startMessage = buildCommandsMessage(header, footer);
   console.log("Mensagem de start:", startMessage);
