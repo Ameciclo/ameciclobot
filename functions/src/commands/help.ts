@@ -29,7 +29,7 @@ function buildCommandsMessage(header: string, footer: string): string {
 async function helpCommand(ctx: Context) {
   // Header e footer fixos (não escapados)
   const header = `🤖 **@ameciclobot: Auxiliar Ameciclista** 🤝\n\nAqui está a lista de comandos disponíveis:`;
-  const footer = `\n❓ Para obter ajuda específica, digite: \`/ajuda \\[comando\\]\`\n\n📩 Se tiver dúvidas, fale com @ameciclo\\_info\\.`;
+  const footer = `❓ Para obter ajuda específica, digite: \`/ajuda \\[comando\\]\`\n\n📩 Se tiver dúvidas, fale com @ameciclo\\_info\\.`;
   const helpMessage = buildCommandsMessage(header, footer);
   console.log("Mensagem: " + helpMessage);
   await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
