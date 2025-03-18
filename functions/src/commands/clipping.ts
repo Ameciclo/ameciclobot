@@ -10,7 +10,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/clipping` para adicionar um link de clipping. O formato esperado é:\n\n`/clipping [URL válida]`\n\nVocê também pode dar /clipping em resposta a alguma mensagem sua ou de outra pessoa.";
+  return "Use o comando `/clipping` para adicionar um link de clipping\\. O formato esperado é:\n`/clipping \\[URL válida\\]`\nVocê também pode dar /clipping em resposta a alguma mensagem sua ou de outra pessoa\\.";
 }
 
 export function getDescription() {

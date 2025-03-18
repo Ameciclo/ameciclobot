@@ -9,7 +9,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/pauta` para adicionar uma pauta. O formato esperado é:\n\n`/pauta [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa.";
+  return "Use o comando `/pauta` para adicionar uma pauta\\. O formato esperado é:\n`/pauta \\[texto com pelo menos 5 palavras\\]`\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa\\.";
 }
 
 export function getDescription() {

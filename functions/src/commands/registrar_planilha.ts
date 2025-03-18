@@ -8,7 +8,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/registrar_planilha` para registrar uma planilha de formulário a ser monitorada:\n\n`/registrar_planilha [url da planilha]`";
+  return "Use o comando `/registrar\\_planilha` para registrar uma planilha de formulário a ser monitorada:\n`/registrar\\_planilha \\[url da planilha\\]`";
 }
 
 export function getDescription() {

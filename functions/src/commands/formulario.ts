@@ -8,7 +8,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/formulario` para criar um Google Forms. O formato esperado é:\n\n`/formulario [título do formulário]`";
+  return "Use o comando `/formulario` para criar um Google Forms\\. O formato esperado é:\n`/formulario \\[título do formulário\\]`";
 }
 
 export function getDescription() {

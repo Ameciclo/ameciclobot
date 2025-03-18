@@ -5,7 +5,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/quem_sou_eu` para obter informações sobre você no bot.\n\nEste comando mostrará seu nome de usuário e identificador.";
+  return "Use o comando `/quem\\_sou\\_eu` para obter informações sobre você no bot\\.\nEste comando mostrará seu nome de usuário e identificador\\.";
 }
 
 export function getDescription() {

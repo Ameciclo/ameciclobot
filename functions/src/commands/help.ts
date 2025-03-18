@@ -1,44 +1,41 @@
 // src/commands/help.ts
 import { Context, Telegraf } from "telegraf";
 import { commandsList } from "../utils/commands";
+import { escapeMarkdownV2 } from "../utils/utils";
 
 export function getHelpCommandName() {
   return "/ajuda";
 }
 
 export function getHelpCommandHelp() {
-  return "Use o comando `/ajuda` para obter ajuda sobre os comandos disponíveis no bot.\n\nO bot retornará uma lista de comandos e instruções de uso.";
+  return "Use o comando `/ajuda` para obter ajuda sobre os comandos disponíveis no bot e o bot retornará uma lista de comandos e instruções de uso.\n Outra opção é obter ajuda específica, digitando: `/ajuda [nome-do-comando]`";
 }
 
 export function getHelpCommandDescription() {
-  return "❓ Exibir lista de comandos e instruções.";
+  return "❓ Obter ajuda dos comandos.";
 }
 
-async function helpCommand(ctx: Context) {
-  const header = `🤖 <b>@ameciclobot - Auxiliar Ameciclista</b> 🤝\n\nAqui está a lista de comandos disponíveis:`;
-  const footer = `\n❓ Para obter ajuda específica, digite: <code>/ajuda [comando]</code>\n\n📩 Se tiver dúvidas, fale com <a href="https://t.me/ameciclo_info">@ameciclo_info</a>.`;
-  const helpMessage = buildCommandsMessage(header, footer, "hideFromHelp");
-  await ctx.reply(helpMessage, { parse_mode: "HTML" });
-}
-
-export function buildCommandsMessage(
-  header: string,
-  footer: string,
-  hideFromFlag: "hideFromStart" | "hideFromHelp" = "hideFromHelp"
-): string {
+function buildCommandsMessage(header: string, footer: string): string {
   let message = header + "\n\n";
   commandsList.forEach((cmd) => {
-    if (hideFromFlag === "hideFromHelp") {
-      message += `<b>${cmd.name}</b>:\n${cmd.help}\n\n`;
-    } else {
-      message += `<b>${cmd.name}</b> - ${cmd.description}\n`;
-    }
+    message += `**${escapeMarkdownV2(cmd.name())}**: ${escapeMarkdownV2(
+      cmd.description()
+    )}\n${cmd.help()}\n\n`;
   });
   message += "\n" + footer;
   return message;
 }
 
-export function getCommandByName(name: string) {
+async function helpCommand(ctx: Context) {
+  // Header e footer fixos (não escapados)
+  const header = `🤖 **@ameciclobot: Auxiliar Ameciclista** 🤝\n\nAqui está a lista de comandos disponíveis:`;
+  const footer = `\n❓ Para obter ajuda específica, digite: \`/ajuda \\[comando\\]\`\n\n📩 Se tiver dúvidas, fale com @ameciclo\\_info\\.`;
+  const helpMessage = buildCommandsMessage(header, footer);
+  console.log("Mensagem: " + helpMessage);
+  await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
+}
+
+function getCommandByName(name: string) {
   return commandsList.find((cmd) => cmd.name() === name);
 }
 
@@ -46,12 +43,19 @@ async function helpCommandSpecific(ctx: Context, command: string) {
   const normalizedCommand = command.startsWith("/") ? command : `/${command}`;
   const commandHelpers = getCommandByName(normalizedCommand);
   if (commandHelpers) {
-    const helpMessage = `🔍 <b>${commandHelpers.name()}</b>\n\n${commandHelpers.description()}\n\n${commandHelpers.help()}`;
-    await ctx.reply(helpMessage, { parse_mode: "HTML" });
+    const helpMessage = `🔍 **${escapeMarkdownV2(
+      commandHelpers.name()
+    )}**: ${escapeMarkdownV2(
+      commandHelpers.description()
+    )}\n${commandHelpers.help()}\n\n`;
+    console.log("Mensagem Específica: " + helpMessage);
+    await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
   } else {
     await ctx.reply(
-      `❌ Comando "${command}" não encontrado.\n\nUse /ajuda para ver a lista completa de comandos disponíveis.`,
-      { parse_mode: "HTML" }
+      "❌ Comando " +
+        command +
+        " não encontrado.\nUse `/ajuda` para ver a lista completa de comandos disponíveis.",
+      { parse_mode: "MarkdownV2" }
     );
   }
 }
@@ -69,7 +73,7 @@ export function registerAjudaCommand(bot: Telegraf) {
     } else {
       await ctx.reply(
         "Não consegui processar sua mensagem. Por favor, tente novamente.",
-        { parse_mode: "HTML" }
+        { parse_mode: "MarkdownV2" }
       );
     }
   });
