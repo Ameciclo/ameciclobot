@@ -75,8 +75,6 @@ Texto:
 
       eventObject.from = ctx.from;
       eventObject.workgroup = ctx.chat.id;
-      eventObject.startDate = eventObject.startDate+"Z";
-      eventObject.endDate = eventObject.endDate+"Z";
 
       const jsonMessage =
         "```json\n" + JSON.stringify(eventObject, null, 2) + "\n```";
