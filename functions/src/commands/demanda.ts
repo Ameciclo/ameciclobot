@@ -10,8 +10,8 @@ export function getName() {
 
 export function getHelp() {
   return (
-    "Use o comando `/demanda` para registrar uma demanda. O formato esperado é:\n\n" +
-    "`/demanda [data limite] [@destinatário(s)] [texto da demanda]`\n\n" +
+    "Use o comando `/demanda` para registrar uma demanda\\. O formato esperado é:\n" +
+    "`/demanda \\[data limite\\] \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
     "Exemplo:\n`/demanda 22/09 @ameciclobot Fazer um bot pro Telegram`"
   );
 }
@@ -56,7 +56,7 @@ export function register(bot: Telegraf) {
 
       if (!match) {
         return ctx.reply(
-          "Formato inválido! Use o formato:\n\n`/demanda [data limite] [@destinatário(s)] [texto da demanda]`\n\nExemplo:\n`/demanda 20/12/2023 @dvalenca @chatgpt Fazer um bot pro Telegram`",
+          "Formato inválido! Use o formato:\n`/demanda \\[data limite\\] \\[@destinatário(s)\\] \\[texto da demanda\\]`\nExemplo:\n`/demanda 20/12/2023 @dvalenca @chatgpt Fazer um bot pro Telegram`",
           { parse_mode: "Markdown" }
         );
       }

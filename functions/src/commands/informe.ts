@@ -9,7 +9,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/informe` para registrar um informe. O formato esperado é:\n\n`/informe [texto com pelo menos 5 palavras]`\n\nVocê também pode dar /informe em resposta a alguma mensagem sua ou de outra pessoa.";
+  return "Use o comando `/informe` para registrar um informe\\. O formato esperado é:\n`/informe \\[texto com pelo menos 5 palavras\\]`\nVocê também pode dar /informe em resposta a alguma mensagem sua ou de outra pessoa\\.";
 }
 
 export function getDescription() {

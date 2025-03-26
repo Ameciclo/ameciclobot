@@ -10,7 +10,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/documento` para criar um Google Docs. O formato esperado é:\n\n`/documento [título do documento]`";
+  return "Use o comando `/documento` para criar um Google Docs\\. O formato esperado é:\n`/documento \\[título do documento\\]`";
 }
 
 export function getDescription() {

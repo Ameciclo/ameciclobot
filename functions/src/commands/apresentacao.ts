@@ -9,7 +9,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/apresentacao` para criar uma Google Presentation. O formato esperado é:\n\n`/apresentacao [título da apresentação]`";
+  return "Use o comando `/apresentacao` para criar uma Google Presentation\\. O formato esperado é:\n`/apresentacao \\[título da apresentação\\]`";
 }
 
 export function getDescription() {

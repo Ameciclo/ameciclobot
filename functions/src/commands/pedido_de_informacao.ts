@@ -7,7 +7,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/pedido_de_informacao` seguido do protocolo e senha, ou responda a uma mensagem contendo esses dados.\n\nFormato:\n`/pedido_de_informacao [protocolo] [senha]`\nOu responda a uma mensagem com o texto padrão de solicitação.";
+  return "Use o comando `/pedido\\_de\\_informacao` seguido do protocolo e senha, ou responda a uma mensagem contendo esses dados\\.\nFormato:\n`/pedido_de_informacao \\[protocolo\\] \\[senha\\]`\nOu responda a uma mensagem com o texto padrão de solicitação\\.";
 }
 
 export function getDescription() {

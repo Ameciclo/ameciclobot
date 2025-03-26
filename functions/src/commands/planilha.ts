@@ -8,7 +8,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/planilha` para criar uma Google Sheet. O formato esperado é:\n\n`/planilha [título da planilha]`";
+  return "Use o comando `/planilha` para criar uma Google Sheet\\. O formato esperado é:\n`/planilha \\[título da planilha\\]`";
 }
 
 export function getDescription() {
