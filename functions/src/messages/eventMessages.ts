@@ -91,20 +91,6 @@ export function buildEventButtons(eventData: CalendarEventData) {
   return inlineKeyboard;
 }
 
-/* export function formatCheckEvent(event: CalendarEventData): string {
-  const title = event.name || "Sem título";
-  const location = event.location || "Sem local";
-  let date = "";
-  let time = "";
-  const dt = new Date(event.startDate);
-  date = dt.toLocaleDateString("pt-BR");
-  time = dt.toLocaleTimeString("pt-BR");
-  const link = event.htmlLink || "";
-
-  return `*${title}*\n   📅 ${date}\n   ⏰ ${time}\n   📍 ${location}\n   🔗 [Abrir evento](${link})`;
-}
- */
-
 function formatCheckEvent(ev: any): string {
   const title = ev.summary || "Sem título";
   const location = ev.location || "Sem local";
