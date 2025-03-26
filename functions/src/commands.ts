@@ -1,8 +1,8 @@
-import { quemSouEuCommand } from "./commands/quemsoueu";
+import { quem_sou_euCommand } from "./commands/quem_sou_eu";
 import { pautaCommand } from "./commands/pauta";
 import { informeCommand } from "./commands/informe";
 import { demandaCommand } from "./commands/demanda";
-import { encaminhamentoCommand } from "./commands/encaminhamentos";
+import { encaminhamentoCommand } from "./commands/encaminhamento";
 import { pedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 import { documentoCommand } from "./commands/documento";
 import { planilhaCommand } from "./commands/planilha";
@@ -24,7 +24,7 @@ export const commandsList = [
   pautaCommand,
   pedidoDeInformacaoCommand,
   planilhaCommand,
-  quemSouEuCommand,
+  quem_sou_euCommand,
   registrarPlanilhaCommand,
   clippingCommand,
   transcreverCommand,

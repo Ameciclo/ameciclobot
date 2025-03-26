@@ -20,7 +20,7 @@ export function register(bot: Telegraf) {
   });
 }
 
-export const quemSouEuCommand = {
+export const quem_sou_euCommand = {
   register,
   name: getName,
   help: getHelp,
