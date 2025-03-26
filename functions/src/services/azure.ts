@@ -42,7 +42,7 @@ export async function transcribeAudio(fileUrl: string): Promise<string> {
     },
   });
   console.log("Resposta da transcrição:", response.data);
-  return response.data || "";
+  return response.data.text || "";
 }
 
 /**
