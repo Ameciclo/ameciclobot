@@ -17,14 +17,15 @@ import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 import { eventoCommand } from "./commands/evento";
 import { pagamentoCommand } from "./commands/pagamento";
 
-import { registerCalendarHandler } from "./callbacks/confirmEventParticipationCallback";
-import { registerConfirmPaymentHandler } from "./callbacks/confirmPaymentCallback";
-import { registerCancelPaymentHandler } from "./callbacks/cancelPaymentCallback";
+import { registerEventParticipationCallback } from "./callbacks/confirmEventParticipationCallback";
+import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
+import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 
 import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
+import { checkEvents } from "./scheduler/checkEvents";
 
 import { commandsList } from "./utils/commands";
 
@@ -48,9 +49,9 @@ registerIniciarCommand(bot);
 registerStartCommand(bot);
 
 registerModeloUseCallback(bot);
-registerCalendarHandler(bot);
-registerCancelPaymentHandler(bot);
-registerConfirmPaymentHandler(bot);
+registerEventParticipationCallback(bot);
+registerCancelPaymentCallback(bot);
+registerConfirmPaymentCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -73,7 +74,7 @@ export const createCalendarEvent = onValueCreated(
 );
 
 export const scheduledCheckGoogleForms = onSchedule(
-  "every 2 hours", // Agenda para rodar a cada 6 horas
+  "every 2 hours",
   async (context) => {
     console.log(
       "RUN: scheduledCheckGoogleForms disparado em",
@@ -84,13 +85,24 @@ export const scheduledCheckGoogleForms = onSchedule(
 );
 
 export const scheduledCheckScheduledPayments = onSchedule(
-  { schedule: "0 8 * * 1", timeZone: "America/Recife" },
+  { schedule: "0 8 * * 1,3,5", timeZone: "America/Recife" },
   async (context) => {
     console.log(
       "RUN: scheduledCheckScheduledPayments disparado em",
       new Date().toISOString()
     );
     await checkScheduledPayments(bot);
+  }
+);
+
+export const scheduledCheckEvents = onSchedule(
+  { schedule: "20 16 * * *", timeZone: "America/Recife" },
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckEvents disparado em",
+      new Date().toISOString()
+    );
+    await checkEvents(bot);
   }
 );
 

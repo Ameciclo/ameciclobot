@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { appendSheetRowAsPromise } from "../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
-import urls from "../config/urls.json";
+import urls from "../credentials/urls.json";
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/; // Regex para capturar URLs
 
@@ -33,7 +33,19 @@ export function register(bot: Telegraf) {
       }
 
       if (!clip) {
-        return ctx.reply(getHelp(), { parse_mode: "Markdown" });
+        return ctx.reply(getHelp(), {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📝 Ver clippings",
+                  url: `https://docs.google.com/spreadsheets/d/${urls.clipping.id}`,
+                },
+              ],
+            ],
+          },
+        });
       }
 
       const urlMatch = clip.match(URL_REGEX);

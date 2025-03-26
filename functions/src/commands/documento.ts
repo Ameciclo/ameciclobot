@@ -1,7 +1,7 @@
 import { Context, Telegraf } from "telegraf";
 import { createDocument, moveDocumentToFolder } from "../services/google";
 // Importa a lista de grupos a partir do arquivo de configuração
-import workgroups from "../config/workgroupsfolders.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 // /commands/helpers.ts
 

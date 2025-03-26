@@ -29,7 +29,7 @@ export const checkScheduledPayments = async (bot: Telegraf) => {
     });
 
     if (scheduledPayments.length > 0) {
-      let message = "📢 *Agendamentos Bancários para os próximos 3 dias:*\n\n";
+      let message = "📢 *Agendamentos Bancários para os próximos dias:*\n\n";
       scheduledPayments.forEach((payment, index) => {
         message += `*${index + 1}.* 📄 Projeto: ${payment.project.name}\n`;
         message += `    👤 Fornecedor: ${payment.supplier.nickname}\n`;

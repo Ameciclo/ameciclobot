@@ -267,7 +267,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
 /**
  * Registra o handler no bot para ações de callback que iniciam com "confirm_".
  */
-export function registerConfirmPaymentHandler(bot: Telegraf): void {
+export function registerConfirmPaymentCallback(bot: Telegraf): void {
   bot.action(/^confirm_(\d+)_(.+)$/, async (ctx) => {
     try {
       await confirmPayment(ctx);

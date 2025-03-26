@@ -1,7 +1,7 @@
 // /commands/formulario.ts
 import { Context, Telegraf } from "telegraf";
 import { createForm, moveDocumentToFolder } from "../services/google";
-import workgroups from "../config/workgroupsfolders.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 export function getName() {
   return "/formulario";
