@@ -34,7 +34,7 @@ export function registerEventoCommand(bot: Telegraf) {
         return;
       }
 
-      const prompt = `Extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+      const prompt = `Hoje é dia ${new Date()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
 {
   "name": "Título do Evento",
   "startDate": "ISODate",
@@ -50,7 +50,7 @@ Texto:
         {
           role: "system",
           content:
-            "Você é um assistente que extrai informações de eventos e retorna APENAS um JSON estruturado.",
+            "Você é um assistente da Ameciclo, a Associação Metropolitana de Ciclistas do Recife, que extrai informações de eventos e retorna APENAS um JSON estruturado.",
         },
         { role: "user", content: prompt },
       ]);
