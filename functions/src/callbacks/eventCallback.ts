@@ -69,7 +69,7 @@ export function registerEventCallback(bot: Telegraf) {
       }
 
       // Supõe que o JSON esteja dentro de um bloco de código Markdown: ```json ... ```
-      const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
+      const jsonRegex = /(?:```json\s*)?({[\s\S]*})(?:\s*```)?/;
       const match = jsonRegex.exec(messageText);
       console.log("Resultado da busca pelo JSON:", match);
       if (!match) {
