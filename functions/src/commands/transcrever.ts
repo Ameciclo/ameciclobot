@@ -1,6 +1,6 @@
 // src/commands/transcrever.ts
 import { Context, Telegraf } from "telegraf";
-import { transcribeAudio } from "../services/NOTwhisper";
+import { transcribeAudio } from "../services/azure";
 
 export function registerTranscreverCommand(bot: Telegraf) {
   bot.command("transcrever", async (ctx: Context) => {

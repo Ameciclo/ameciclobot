@@ -1,62 +1,16 @@
 // src/commands/evento.ts
 import { Context, Telegraf } from "telegraf";
-import fetch from "node-fetch";
-import azureConfig from "../credentials/azureConfig.json";
+import { sendChatCompletion } from "../services/azure";
 import workgroups from "../credentials/workgroupsfolders.json";
 
 // Transforma a lista de workgroups em um array de IDs (números ou strings)
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
-
-async function sendTextToAzureGPT(text: string): Promise<any> {
-  const prompt = `Extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
-{
-  "name": "Título do Evento",
-  "startDate": "ISODate",
-  "endDate": "ISODate",
-  "location": "Local do evento",
-  "description": "Descrição completa do evento"
-}
-
-Texto:
-"${text}"`;
-
-  const response = await fetch(
-    `${azureConfig.endpoint}${azureConfig.deployment}/chat/completions?api-version=${azureConfig.apiVersion}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": azureConfig.apiKey,
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você é um assistente que extrai informações de eventos e retorna APENAS um JSON estruturado.",
-          },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-        top_p: 1,
-        model: azureConfig.deployment,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Erro ao chamar Azure GPT: ${response.statusText}`);
-  }
-  return await response.json();
-}
 
 export function registerEventoCommand(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     try {
       const chatId = ctx.chat?.id;
 
-      // Se não tiver chatId ou não estiver nos grupos permitidos, sai
       if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
         await ctx.reply(
           "Este comando só pode ser usado nos grupos de trabalho da Ameciclo."
@@ -66,16 +20,11 @@ export function registerEventoCommand(bot: Telegraf) {
 
       // Tenta pegar o texto da mensagem respondida
       let messageText: string | undefined;
-
-      // Aserta que ctx.message é do tipo 'any', pois a definição TS do Telegraf
-      // pode não conter 'reply_to_message' em alguns subtipos.
       const msg = ctx.message as any;
 
       if (msg?.reply_to_message?.text) {
-        // Se for uma resposta a uma mensagem de texto
         messageText = msg.reply_to_message.text;
       } else if (msg?.text) {
-        // Caso contrário, pega o texto digitado após /evento
         messageText = msg.text.replace("/evento", "").trim();
       }
 
@@ -86,8 +35,29 @@ export function registerEventoCommand(bot: Telegraf) {
         return;
       }
 
-      const azureResponse = await sendTextToAzureGPT(messageText);
+      const prompt = `Extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+{
+  "name": "Título do Evento",
+  "startDate": "ISODate",
+  "endDate": "ISODate",
+  "location": "Local do evento",
+  "description": "Descrição completa do evento"
+}
+
+Texto:
+"${messageText}"`;
+
+      const azureResponse = await sendChatCompletion([
+        {
+          role: "system",
+          content:
+            "Você é um assistente que extrai informações de eventos e retorna APENAS um JSON estruturado.",
+        },
+        { role: "user", content: prompt },
+      ]);
+
       const rawContent = azureResponse.choices?.[0]?.message?.content;
+
       if (!rawContent) {
         await ctx.reply(
           "Não foi possível obter a resposta formatada. Tente novamente."
@@ -95,7 +65,6 @@ export function registerEventoCommand(bot: Telegraf) {
         return;
       }
 
-      // Tenta fazer o parse do JSON contido em rawContent
       try {
         const cleanedContent = rawContent.replace(/\n/g, "").trim();
         const eventObject = JSON.parse(cleanedContent);

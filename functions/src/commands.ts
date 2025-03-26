@@ -11,7 +11,7 @@ import { apresentacaoCommand } from "./commands/apresentacao";
 import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { clippingCommand } from "./commands/clipping";
 import { modeloCommand } from "./commands/modelo";
-//import { transcreverCommand } from "../commands/NOTtranscrever";
+import { transcreverCommand } from "./commands/transcrever";
 
 export const commandsList = [
   apresentacaoCommand,
@@ -27,5 +27,5 @@ export const commandsList = [
   quemSouEuCommand,
   registrarPlanilhaCommand,
   clippingCommand,
-  //  transcreverCommand,
+  transcreverCommand,
 ];
