@@ -1,8 +1,8 @@
-import { quemSouEuCommand } from "../commands/quemsoueu";
+import { quemSouEuCommand } from "../commands/quem_sou_eu";
 import { pautaCommand } from "../commands/pauta";
 import { informeCommand } from "../commands/informe";
 import { demandaCommand } from "../commands/demanda";
-import { encaminhamentoCommand } from "../commands/encaminhamentos";
+import { encaminhamentoCommand } from "../commands/encaminhamento";
 import { pedidoDeInformacaoCommand } from "../commands/pedido_de_informacao";
 import { documentoCommand } from "../commands/documento";
 import { planilhaCommand } from "../commands/planilha";

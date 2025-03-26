@@ -20,7 +20,7 @@ function getDuration(start: string, end: string): string {
   return durationStr;
 }
 
-function getStartDate(startDate: string) {
+function getLocaleDate(startDate: string) {
   return new Date(startDate).toLocaleString("pt-BR", {
     weekday: "long",
     year: "numeric",
@@ -51,7 +51,7 @@ function buildParticipantsList(participants: {
 
 export function buildEventMessage(data: CalendarEventData): string {
   const duration = getDuration(data.startDate, data.endDate);
-  const startDate = getStartDate(data.startDate);
+  const startDate = getLocaleDate(data.startDate);
   const calendarType = getCalendarNameById(data.calendarId);
 
   const messageParts = [
@@ -91,31 +91,14 @@ export function buildEventButtons(eventData: CalendarEventData) {
   return inlineKeyboard;
 }
 
-/* export function formatCheckEvent(event: CalendarEventData): string {
-  const title = event.name || "Sem título";
-  const location = event.location || "Sem local";
-  let date = "";
-  let time = "";
-  const dt = new Date(event.startDate);
-  date = dt.toLocaleDateString("pt-BR");
-  time = dt.toLocaleTimeString("pt-BR");
-  const link = event.htmlLink || "";
-
-  return `*${title}*\n   📅 ${date}\n   ⏰ ${time}\n   📍 ${location}\n   🔗 [Abrir evento](${link})`;
-}
- */
-
 function formatCheckEvent(ev: any): string {
   const title = ev.summary || "Sem título";
   const location = ev.location || "Sem local";
   let date = "";
-  let time = "";
 
   if (ev.start) {
     if (ev.start.dateTime) {
-      const dt = new Date(ev.start.dateTime);
-      date = dt.toLocaleDateString("pt-BR");
-      time = dt.toLocaleTimeString("pt-BR");
+      date = getLocaleDate(ev.start.dateTime);
     } else if (ev.start.date) {
       date = ev.start.date;
     }
@@ -123,7 +106,9 @@ function formatCheckEvent(ev: any): string {
 
   const link = ev.htmlLink || "";
 
-  return `*${title}*\n   📅 ${date}\n   ⏰ ${time}\n   📍 ${location}\n   🔗 [Abrir evento](${link})`;
+  return `*${escapeMarkdownV2(title)}*\n   📅 ${escapeMarkdownV2(
+    date
+  )}\n   📍 ${escapeMarkdownV2(location)}\n   🔗 ${escapeMarkdownV2(link)}`;
 }
 export function buildCheckEventsMessage(
   events: CalendarEventData[],
@@ -131,15 +116,16 @@ export function buildCheckEventsMessage(
 ): string {
   let message = header + "\n\n";
   events.forEach((ev, idx) => {
-    message += `*${idx + 1}.* ${formatCheckEvent(ev)}\n\n`;
+    message += `**${idx + 1}\\.** ${formatCheckEvent(ev)}\n\n`;
   });
-  return escapeMarkdownV2(message);
+  console.log("Check events message: " + message);
+  return message;
 }
 
 export function buildWeeklyAgendaMessage(events: any[]): string {
-  return buildCheckEventsMessage(events, "📅 *Agenda Semanal*");
+  return buildCheckEventsMessage(events, "📅 **Agenda Semanal**");
 }
 
 export function buildDailyAgendaMessage(events: any[]): string {
-  return buildCheckEventsMessage(events, "📅 *Agenda para amanhã*");
+  return buildCheckEventsMessage(events, "📅 **Agenda para amanhã**");
 }

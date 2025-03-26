@@ -9,7 +9,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/encaminhamento` para registrar encaminhamentos. O formato esperado é:\n\n`/encaminhamento [texto do encaminhamento com pelo menos 5 palavras]`";
+  return "Use o comando `/encaminhamento` para registrar encaminhamentos\\. O formato esperado é:\n`/encaminhamento \\[texto do encaminhamento com pelo menos 5 palavras\\]`";
 }
 
 export function getDescription() {

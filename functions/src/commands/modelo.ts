@@ -8,7 +8,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/modelo Título do documento` para criar um documento a partir de um modelo. O bot listará os modelos disponíveis na pasta.";
+  return "Use o comando `/modelo Título do documento` para criar um documento a partir de um modelo\\. O bot listará os modelos disponíveis na pasta\\.";
 }
 
 export function getDescription() {
