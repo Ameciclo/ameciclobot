@@ -1,10 +1,22 @@
 // src/commands/transcrever.ts
 import { Context, Telegraf } from "telegraf";
 import { transcribeAudio } from "../services/azure";
+import workgroups from "../credentials/workgroupsfolders.json";
+
+const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
 
 export function registerTranscreverCommand(bot: Telegraf) {
   bot.command("transcrever", async (ctx: Context) => {
     try {
+      const chatId = ctx.chat?.id;
+
+      if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
+        await ctx.reply(
+          "Este comando só pode ser usado nos grupos de trabalho da Ameciclo."
+        );
+        return;
+      }
+
       // Força o tipo de ctx.message para any para acessar reply_to_message
       const msg = ctx.message as any;
       let voice;
