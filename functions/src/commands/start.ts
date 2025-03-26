@@ -1,6 +1,6 @@
 // src/commands/start.ts
 import { Context, Telegraf } from "telegraf";
-import { commandsList } from "../utils/commands";
+import { commandsList } from "../commands";
 
 export function getStartCommandName() {
   return "/start";

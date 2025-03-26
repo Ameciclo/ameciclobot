@@ -1,6 +1,6 @@
 // src/commands/help.ts
 import { Context, Telegraf } from "telegraf";
-import { commandsList } from "../utils/commands";
+import { commandsList } from "../commands";
 
 export function getHelpCommandName() {
   return "/ajuda";

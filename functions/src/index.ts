@@ -27,7 +27,7 @@ import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
 
-import { commandsList } from "./utils/commands";
+import { commandsList } from "./commands";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
