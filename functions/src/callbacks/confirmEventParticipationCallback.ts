@@ -29,12 +29,6 @@ export function registerEventParticipationCallback(bot: Telegraf) {
       const eventId = parts[2];
       console.log("eventId:", eventId);
 
-      const message = callbackQuery.message;
-      if (!message || !("text" in message)) {
-        console.error("Mensagem inválida ou sem texto.");
-        return;
-      }
-
       // Recupera os dados do evento (incluindo htmlLink e participantes)
       const eventData = await getCalendarEventData(eventId);
       if (!eventData) {

@@ -27,7 +27,8 @@ import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
 
-import { commandsList } from "./utils/commands";
+import { commandsList } from "./commands";
+import { registerEventCallback } from "./callbacks/eventCallback";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -52,6 +53,7 @@ registerModeloUseCallback(bot);
 registerEventParticipationCallback(bot);
 registerCancelPaymentCallback(bot);
 registerConfirmPaymentCallback(bot);
+registerEventCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
