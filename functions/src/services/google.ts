@@ -1,19 +1,13 @@
 import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
 import firebaseCredentials from "../credentials/firebaseServiceKey.json";
-import google_keysDEV from "../credentials/dev/google.json";
-import firebaseCredentialsDEV from "../credentials/dev/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 import { CalendarConfig, PaymentRequest } from "../config/types";
 import calendars from "../credentials/calendars.json";
 
-const api_key = process.env.DEV_MODE
-  ? google_keysDEV.api_key
-  : google_keys.api_key;
-const credentials = process.env.DEV_MODE
-  ? firebaseCredentialsDEV
-  : firebaseCredentials;
+const api_key = google_keys.api_key;
+const credentials = firebaseCredentials;
 // Autenticação com o Google
 function getJwt() {
   return new google.auth.JWT(

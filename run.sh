@@ -14,12 +14,14 @@ fi
 
 # Extrair variáveis dos arquivos de credenciais
 BOT_TOKEN=$(grep -oP '"BOT_TOKEN":\s*"\K[^"]+' functions/src/credentials/telegram.json)
+DEV_BOT_TOKEN=$(grep -oP '"DEV_BOT_TOKEN":\s*"\K[^"]+' functions/src/credentials/telegram.json)
 FB_PROJECT_ID=$(grep -oP '"project_id":\s*"\K[^"]+' functions/src/credentials/firebaseServiceKey.json)
 FB_BOTFUNCTION_URL=$(grep -oP '"FB_BOTFUNCTION_URL":\s*"\K[^"]+' functions/src/credentials/firebaseUrl.json)
 
 # Exibir os valores extraídos
 echo "-------------------------------------"
 echo "BOT_TOKEN:          $BOT_TOKEN"
+echo "DEV_BOT_TOKEN:          $DEV_BOT_TOKEN"
 echo "FB_FUNCTIONS_PORT:  $FB_FUNCTIONS_PORT"
 echo "FB_PROJECT_ID:      $FB_PROJECT_ID"
 echo "FB_BOTFUNCTION_URL: $FB_BOTFUNCTION_URL"
@@ -43,7 +45,7 @@ start_ngrok() {
     # Concatena a URL com o caminho padrão do endpoint
     WEBHOOK_URL="$NGROK_URL/$FB_PROJECT_ID/us-central1/botFunction"
     echo "Configurando webhook no Telegram com a URL: $WEBHOOK_URL"
-    response=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/setWebhook" \
+    response=$(curl -s -X POST "https://api.telegram.org/bot$DEV_BOT_TOKEN/setWebhook" \
         -H "Content-Type: application/json" \
         -d "{\"url\": \"$WEBHOOK_URL\"}")
     echo "Resposta do Telegram:"
@@ -118,6 +120,20 @@ deploy_production() {
     (cd functions && npm install && npm run build && firebase deploy --only functions)
 }
 
+continuos_start_bot() {
+    echo "Iniciando bot com watch mode (tsc) + Firebase Emulator..."
+
+    cd functions
+
+    # Inicia o watch do TypeScript num terminal separado
+    gnome-terminal -- bash -c "npm run watch; exec bash"
+
+    # Inicia o Firebase Emulator com a project_id extraída
+    firebase emulators:start --inspect-functions --project "$FB_PROJECT_ID"
+}
+
+
+
 #####################################
 # Menu interativo de opções
 #####################################
@@ -132,6 +148,7 @@ while true; do
     echo "5. Iniciar o bot em DEVELOPMENT"
     echo "6. Trocar para Node v22.11.0"
     echo "7. Deploy para produção"
+    echo "8. Iniciar o bot em modo WATCH (desenvolvimento contínuo)"
     echo "x. Sair"
     echo "========================================"
     read -r choice
@@ -144,6 +161,7 @@ while true; do
         5) start_bot ;;
         6) change_node ;;
         7) deploy_production ;;
+        8) continuos_start_bot ;;
         x|X) echo "Saindo..."; exit 0 ;;
         *) echo "Opção inválida. Tente novamente." ;;
     esac
