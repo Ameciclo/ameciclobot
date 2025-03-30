@@ -14,9 +14,6 @@ import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators, getFinancesGroupId } from "./services/firebase";
 
-import { eventoCommand } from "./commands/evento";
-import { pagamentoCommand } from "./commands/pagamento";
-
 import { registerEventParticipationCallback } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
@@ -29,14 +26,20 @@ import { checkEvents } from "./scheduler/checkEvents";
 
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
+import { pagamentoCommand } from "./commands/pagamento";
+import { atualizarExtratosCommand } from "./commands/atualizar_extratos";
+import { atualizarProjetosCommand } from "./commands/atualizar_projetos";
+import { verificarPendenciasCommand } from "./commands/atualizar_pendencias";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
 
-eventoCommand.register(bot);
 pagamentoCommand.register(bot);
+atualizarExtratosCommand.register(bot);
+atualizarProjetosCommand.register(bot);
+verificarPendenciasCommand.register(bot);
 
 const telegramCommands = validCommands.map((cmd) => ({
   command: cmd.name(),

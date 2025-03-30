@@ -61,7 +61,7 @@ export async function savePendingItems(
 }
 
 export async function sendProjectsToDB(projectsJson: any) {
-  await admin.database().ref("projectsTEST").set(projectsJson);
+  await admin.database().ref("projects").set(projectsJson);
   console.log("Projetos enviados para o DB:", projectsJson);
 }
 
