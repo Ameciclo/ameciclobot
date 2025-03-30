@@ -1,3 +1,6 @@
+// google.ts service
+// Serviços para interação com as APIs do Google: Drive, Sheets, Calendar, Docs, Slides e Forms.
+
 import { google } from "googleapis";
 import google_keys from "../credentials/google.json";
 import firebaseCredentials from "../credentials/firebaseServiceKey.json";
@@ -8,7 +11,10 @@ import calendars from "../credentials/calendars.json";
 
 const api_key = google_keys.api_key;
 const credentials = firebaseCredentials;
-// Autenticação com o Google
+
+// ------------------------------------------------------
+// Autenticação
+// ------------------------------------------------------
 function getJwt() {
   return new google.auth.JWT(
     credentials.client_email,
@@ -23,16 +29,21 @@ function getJwt() {
   );
 }
 
+// Reutilizamos o mesmo JWT para todas as chamadas.
+const auth = getJwt();
+
+// ------------------------------------------------------
+// Google Drive Functions
+// ------------------------------------------------------
 export async function listModelsFromFolder(
   folderId: string
 ): Promise<{ id: string; name: string }[]> {
-  const drive = google.drive({ version: "v3", auth: getJwt() });
+  const drive = google.drive({ version: "v3", auth });
   try {
     const res = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false and (mimeType='application/vnd.google-apps.document' or mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.google-apps.presentation' or mimeType='application/vnd.google-apps.form')`,
       fields: "files(id, name)",
     });
-    // Garante que name seja uma string (substituindo null por vazio)
     const files = res.data.files || [];
     return files.map((file) => ({
       id: file.id!,
@@ -47,7 +58,7 @@ export async function listModelsFromFolder(
 export async function getFileMetadata(
   fileId: string
 ): Promise<{ name: string }> {
-  const drive = google.drive({ version: "v3", auth: getJwt() });
+  const drive = google.drive({ version: "v3", auth });
   try {
     const res = await drive.files.get({
       fileId,
@@ -59,16 +70,17 @@ export async function getFileMetadata(
     throw error;
   }
 }
+
 export async function copyFile(
   templateId: string,
   newTitle: string
 ): Promise<any> {
-  const drive = google.drive({ version: "v3", auth: getJwt() });
+  const drive = google.drive({ version: "v3", auth });
   try {
     const res = await drive.files.copy({
       fileId: templateId,
       requestBody: { name: newTitle },
-      fields: "id", // Apenas o id é retornado
+      fields: "id",
     });
     return res.data;
   } catch (error) {
@@ -77,13 +89,46 @@ export async function copyFile(
   }
 }
 
+export async function moveDocumentToFolder(
+  documentId: string,
+  folderId: string
+): Promise<any> {
+  const drive = google.drive({ version: "v3", auth });
+  try {
+    // Obter os pais atuais do arquivo (normalmente "Meu Drive")
+    const file = await drive.files.get({
+      fileId: documentId,
+      fields: "parents",
+    });
+    const previousParents = file.data.parents?.join(",") || "";
+    // Atualiza os pais: adiciona a nova pasta e remove as anteriores
+    const response = await drive.files.update({
+      fileId: documentId,
+      addParents: folderId,
+      removeParents: previousParents,
+      fields: "id, parents",
+    });
+    console.log("Documento movido para a pasta:", folderId);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao mover documento:", error);
+    throw error;
+  }
+}
+
+// ------------------------------------------------------
+// Google Sheets Functions
+// ------------------------------------------------------
+export function getSheetsClient() {
+  return google.sheets({ version: "v4", auth });
+}
+
 export async function getSheetDetails(
   sheetId: string,
   tabName: string
 ): Promise<{ name: string; responsesTabGid: string; rowCount: number }> {
   const sheets = getSheetsClient();
-
-  // Obter informações gerais da planilha (título e lista de abas)
+  // Obtém título da planilha e lista de abas
   const spreadsheet = await sheets.spreadsheets.get({
     spreadsheetId: sheetId,
     fields: "properties.title,sheets(properties(sheetId,title))",
@@ -94,7 +139,7 @@ export async function getSheetDetails(
   if (!sheetsList) {
     throw new Error("Nenhuma aba encontrada na planilha.");
   }
-  // Procura a aba com o título exato fornecido
+  // Procura a aba com o título informado
   for (const sheet of sheetsList) {
     const properties = sheet.properties;
     if (properties && properties.title === tabName) {
@@ -105,40 +150,30 @@ export async function getSheetDetails(
   if (!responsesTabGid) {
     throw new Error(`A aba "${tabName}" não foi encontrada na planilha.`);
   }
-
-  // Obter a quantidade de linhas preenchidas na aba "Respostas ao formulário 1"
+  // Conta o número de linhas preenchidas
   const range = `${tabName}!A:A`;
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range,
   });
   const rowCount = res.data.values ? res.data.values.length : 1;
-
   return { name: overallTitle, responsesTabGid, rowCount };
 }
 
-// Inicializa o cliente do Google Sheets
-export function getSheetsClient() {
-  return google.sheets({ version: "v4", auth: getJwt() });
-}
-
-// Adicionar uma linha em uma planilha
 export async function appendSheetRowAsPromise(
   spreadsheetId: string,
   range: string,
   row: any[]
 ): Promise<string> {
   const sheets = getSheetsClient();
-
   try {
     const result = await sheets.spreadsheets.values.append({
-      spreadsheetId: spreadsheetId,
-      range: range,
+      spreadsheetId,
+      range,
       key: api_key,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });
-
     console.log(
       "Linha adicionada com sucesso:",
       result.data.updates?.updatedRange
@@ -150,191 +185,8 @@ export async function appendSheetRowAsPromise(
   }
 }
 
-export async function createEventWithMetadata(
-  calendarId: string,
-  name: string,
-  startDate: string,
-  endDate: string,
-  location = "",
-  description = "",
-  workgroup?: number
-): Promise<any> {
-  const calendar = google.calendar({ version: "v3", auth: getJwt() });
-
-  // Cria o recurso do evento com propriedades básicas
-  const eventResource: any = {
-    summary: name,
-    location,
-    description,
-    start: {
-      dateTime: startDate,
-      timeZone: "America/Recife",
-    },
-    end: {
-      dateTime: endDate,
-      timeZone: "America/Recife",
-    },
-  };
-
-  // Se workgroup for fornecido, adiciona extendedProperties
-  if (workgroup !== undefined) {
-    eventResource.extendedProperties = {
-      private: {
-        workgroup: workgroup.toString(),
-      },
-    };
-  }
-
-  const event = {
-    calendarId,
-    resource: eventResource,
-  };
-
-  try {
-    const response = await calendar.events.insert(event);
-    console.log("Evento criado:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar evento:", error);
-    throw error;
-  }
-}
-
-// Criar um evento no Google Calendar
-export async function createEvent(
-  calendarId: string,
-  name: string,
-  startDate: string,
-  endDate: string,
-  location = "",
-  description = ""
-  //tag = ""
-): Promise<any> {
-  const calendar = google.calendar({ version: "v3", auth: getJwt() });
-
-  const event = {
-    calendarId,
-    resource: {
-      summary: name,
-      location,
-      description,
-      //id: tag,
-      start: {
-        dateTime: startDate,
-        timeZone: "America/Recife",
-      },
-      end: {
-        dateTime: endDate,
-        timeZone: "America/Recife",
-      },
-    },
-  };
-
-  try {
-    const response = await calendar.events.insert(event);
-    console.log("Evento criado:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar evento:", error);
-    throw error;
-  }
-}
-
-export async function createDocument(title: string): Promise<any> {
-  const docs = google.docs({ version: "v1", auth: getJwt() });
-
-  const document = {
-    requestBody: {
-      title,
-    },
-  };
-
-  try {
-    const response = await docs.documents.create(document);
-    console.log("Documento criado:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar documento:", error);
-    throw error;
-  }
-}
-
-// Cria uma nova planilha
-export async function createSheet(title: string): Promise<any> {
-  const sheets = google.sheets({ version: "v4", auth: getJwt() });
-  try {
-    const response = await sheets.spreadsheets.create({
-      requestBody: { properties: { title } },
-    });
-    console.log("Planilha criada:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar planilha:", error);
-    throw error;
-  }
-}
-
-// Cria uma nova apresentação
-export async function createPresentation(title: string): Promise<any> {
-  const slides = google.slides({ version: "v1", auth: getJwt() });
-  try {
-    const response = await slides.presentations.create({
-      requestBody: { title },
-    });
-    console.log("Apresentação criada:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar apresentação:", error);
-    throw error;
-  }
-}
-
-// Cria um novo formulário usando a API do Drive
-export async function createForm(title: string): Promise<any> {
-  const drive = google.drive({ version: "v3", auth: getJwt() });
-  try {
-    const fileMetadata = {
-      name: title,
-      mimeType: "application/vnd.google-apps.form",
-    };
-    const response = await drive.files.create({
-      requestBody: fileMetadata,
-      fields: "id",
-    });
-    console.log("Formulário criado:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao criar formulário:", error);
-    throw error;
-  }
-}
-
-export async function moveDocumentToFolder(
-  documentId: string,
-  folderId: string
-): Promise<any> {
-  const drive = google.drive({ version: "v3", auth: getJwt() });
-
-  // Obtém os pais atuais do arquivo (normalmente "My Drive")
-  const file = await drive.files.get({
-    fileId: documentId,
-    fields: "parents",
-  });
-  const previousParents = file.data.parents?.join(",") || "";
-
-  // Atualiza os pais do arquivo, adicionando o novo e removendo os anteriores
-  const response = await drive.files.update({
-    fileId: documentId,
-    addParents: folderId,
-    removeParents: previousParents,
-    fields: "id, parents",
-  });
-  console.log("Documento movido para a pasta:", folderId);
-  return response.data;
-}
-
 export async function updateSpreadsheet(request: PaymentRequest) {
-  var range = "DETALHAMENTO DAS DESPESAS!A1:M";
+  const range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
   let comments = "";
   if (request.transactionType === "Registrar Caixa Físico") {
@@ -347,7 +199,7 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   ) {
     comments += `REEMBOLSO À ${request.refundSupplier.nickname} (${request.refundSupplier.name})`;
   }
-  var row = [
+  const row = [
     request.paymentDate,
     request.budgetItem,
     "",
@@ -369,7 +221,6 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   );
   const rowLink = `https://docs.google.com/spreadsheets/d/${request.project
     .spreadsheet_id!}/edit#gid=137441560&range=${rowRange.split("!")[1]}`;
-
   await updatePaymentRequest(request.id, {
     spreadsheetRange: rowRange,
     confirmed: true,
@@ -378,16 +229,97 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   return rowLink;
 }
 
+// ------------------------------------------------------
+// Google Calendar Functions
+// ------------------------------------------------------
+export async function createEventWithMetadata(
+  calendarId: string,
+  name: string,
+  startDate: string,
+  endDate: string,
+  location = "",
+  description = "",
+  workgroup?: number
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const eventResource: any = {
+    summary: name,
+    location,
+    description,
+    start: {
+      dateTime: startDate,
+      timeZone: "America/Recife",
+    },
+    end: {
+      dateTime: endDate,
+      timeZone: "America/Recife",
+    },
+  };
+  if (workgroup !== undefined) {
+    eventResource.extendedProperties = {
+      private: {
+        workgroup: workgroup.toString(),
+      },
+    };
+  }
+
+  const event = {
+    calendarId,
+    resource: eventResource,
+  };
+  try {
+    const response = await calendar.events.insert(event);
+    console.log("Evento criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar evento:", error);
+    throw error;
+  }
+}
+
+export async function createEvent(
+  calendarId: string,
+  name: string,
+  startDate: string,
+  endDate: string,
+  location = "",
+  description = ""
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const event = {
+    calendarId,
+    resource: {
+      summary: name,
+      location,
+      description,
+      start: {
+        dateTime: startDate,
+        timeZone: "America/Recife",
+      },
+      end: {
+        dateTime: endDate,
+        timeZone: "America/Recife",
+      },
+    },
+  };
+  try {
+    const response = await calendar.events.insert(event);
+    console.log("Evento criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar evento:", error);
+    throw error;
+  }
+}
+
 export async function getEventsForPeriod(
   startDate: Date,
   endDate: Date
 ): Promise<any[]> {
-  const calendar = google.calendar({ version: "v3", auth: getJwt() });
+  const calendar = google.calendar({ version: "v3", auth });
   const calendarConfigs = calendars as CalendarConfig[];
   const calendarIds = calendarConfigs.map((calendar) => calendar.id);
-
   let events: any[] = [];
-
   for (const calendarId of calendarIds) {
     try {
       const res = await calendar.events.list({
@@ -410,4 +342,60 @@ export async function getEventsForPeriod(
     }
   }
   return events;
+}
+
+// ------------------------------------------------------
+// Google Docs Functions
+// ------------------------------------------------------
+export async function createDocument(title: string): Promise<any> {
+  const docs = google.docs({ version: "v1", auth });
+  try {
+    const response = await docs.documents.create({
+      requestBody: { title },
+    });
+    console.log("Documento criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar documento:", error);
+    throw error;
+  }
+}
+
+// ------------------------------------------------------
+// Google Slides Functions
+// ------------------------------------------------------
+export async function createPresentation(title: string): Promise<any> {
+  const slides = google.slides({ version: "v1", auth });
+  try {
+    const response = await slides.presentations.create({
+      requestBody: { title },
+    });
+    console.log("Apresentação criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar apresentação:", error);
+    throw error;
+  }
+}
+
+// ------------------------------------------------------
+// Google Forms Functions
+// ------------------------------------------------------
+export async function createForm(title: string): Promise<any> {
+  const drive = google.drive({ version: "v3", auth });
+  try {
+    const fileMetadata = {
+      name: title,
+      mimeType: "application/vnd.google-apps.form",
+    };
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      fields: "id",
+    });
+    console.log("Formulário criado:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar formulário:", error);
+    throw error;
+  }
 }
