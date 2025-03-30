@@ -8,7 +8,7 @@ import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 import { CalendarConfig, PaymentRequest } from "../config/types";
 import calendars from "../credentials/calendars.json";
-import projectsSpreadsheet from "../credentials/projetctsSpreadsheet.json";
+import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 
 const api_key = google_keys.api_key;
 const credentials = firebaseCredentials;

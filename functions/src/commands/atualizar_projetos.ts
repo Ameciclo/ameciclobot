@@ -5,7 +5,7 @@ import {
   getProjectBudgetItems,
   getSummaryData,
 } from "../services/google";
-import projectsSpreadsheet from "../credentials/projetctsSpreadsheet.json";
+import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 import { sendProjectsToDB } from "../services/firebase";
 
 export function getName() {
