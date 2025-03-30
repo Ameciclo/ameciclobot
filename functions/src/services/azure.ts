@@ -1,5 +1,5 @@
 // src/services/azure.ts
-import axios from "axios";
+import axiosInstance from "../config/httpService";
 import FormData from "form-data";
 import whisperConfig from "../credentials/whisper.json";
 import azureConfig from "../credentials/gpt35.json";
@@ -11,8 +11,8 @@ import azureConfig from "../credentials/gpt35.json";
 export async function transcribeAudio(fileUrl: string): Promise<string> {
   console.log("Baixando áudio do URL:", fileUrl);
 
-  // Baixa o áudio usando axios (como arraybuffer para obter dados binários)
-  const audioResponse = await axios.get(fileUrl, {
+  // Baixa o áudio usando a instância do axiosInstance (como arraybuffer para obter dados binários)
+  const audioResponse = await axiosInstance.get(fileUrl, {
     responseType: "arraybuffer",
   });
   if (audioResponse.status !== 200) {
@@ -20,7 +20,6 @@ export async function transcribeAudio(fileUrl: string): Promise<string> {
   }
   // Converte os dados para Buffer
   const audioBuffer = Buffer.from(audioResponse.data);
-  //console.log("Áudio baixado, tamanho (bytes):", audioBuffer.length);
 
   // Cria um FormData e anexa o arquivo de áudio
   const formData = new FormData();
@@ -34,8 +33,8 @@ export async function transcribeAudio(fileUrl: string): Promise<string> {
   const endpoint = `${whisperConfig.endpoint}${whisperConfig.deployment}/audio/transcriptions?api-version=${whisperConfig.apiVersion}`;
   console.log("Endpoint do Whisper:", endpoint);
 
-  // Faz a requisição POST com axios
-  const response = await axios.post(endpoint, formData, {
+  // Faz a requisição POST com axiosInstance
+  const response = await axiosInstance.post(endpoint, formData, {
     headers: {
       "api-key": whisperConfig.apiKey,
       ...formData.getHeaders(),
@@ -54,8 +53,8 @@ export async function sendChatCompletion(messages: any[]): Promise<any> {
   const endpoint = `${azureConfig.endpoint}${azureConfig.deployment}/chat/completions?api-version=${azureConfig.apiVersion}`;
   console.log("Endpoint do Chat GPT:", endpoint);
 
-  // Faz a requisição POST com axios (enviando o corpo em JSON)
-  const response = await axios.post(
+  // Faz a requisição POST com axiosInstance (enviando o corpo em JSON)
+  const response = await axiosInstance.post(
     endpoint,
     {
       messages,
