@@ -8,6 +8,7 @@ import { toDays } from "../utils/utils";
 import { updatePaymentRequest } from "./firebase";
 import { CalendarConfig, PaymentRequest } from "../config/types";
 import calendars from "../credentials/calendars.json";
+import projectsSpreadsheet from "../credentials/projetctsSpreadsheet.json";
 
 const api_key = google_keys.api_key;
 const credentials = firebaseCredentials;
@@ -31,6 +32,13 @@ function getJwt() {
 
 // Reutilizamos o mesmo JWT para todas as chamadas.
 const auth = getJwt();
+
+// ------------------------------------------------------
+// CLIENTES DAS APIS – Sheets, Drive, Calendar, etc.
+// ------------------------------------------------------
+export function getSheetsClient() {
+  return google.sheets({ version: "v4", auth });
+}
 
 // ------------------------------------------------------
 // Google Drive Functions
@@ -119,8 +127,123 @@ export async function moveDocumentToFolder(
 // ------------------------------------------------------
 // Google Sheets Functions
 // ------------------------------------------------------
-export function getSheetsClient() {
-  return google.sheets({ version: "v4", auth });
+
+// Retorna os dados da aba "RESUMO" de uma planilha informada
+export async function getSummaryData(spreadsheetId: string): Promise<any[][]> {
+  const sheets = getSheetsClient();
+  const range = projectsSpreadsheet.summarySheet;
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    return res.data.values || [];
+  } catch (error) {
+    console.error("Erro ao obter dados do resumo:", error);
+    throw error;
+  }
+}
+
+// Obtém os itens de orçamento do projeto a partir da aba "ORÇAMENTO E DESPESAS"
+export async function getProjectBudgetItems(
+  spreadsheetId: string
+): Promise<string[]> {
+  const sheets = getSheetsClient();
+  const range = projectsSpreadsheet.budgetsSheet;
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    const data = res.data.values || [];
+    const budgetItems: string[] = [];
+    // Ignora o cabeçalho (primeira linha)
+    for (let i = 1; i < data.length; i++) {
+      const cell = data[i][0];
+      if (cell && cell !== cell.toUpperCase()) {
+        budgetItems.push(cell);
+      }
+    }
+    return budgetItems;
+  } catch (error) {
+    console.error("Erro ao obter itens de orçamento:", error);
+    return [];
+  }
+}
+
+// Lê os dados da aba "RESUMO" e, para cada projeto, abre a planilha de detalhes para contar
+// quantos comprovantes (na coluna K) estão ausentes (não iniciam com "http")
+export async function getPendingItems(
+  summarySpreadsheetId: string
+): Promise<
+  { planilhaLink: string; nomeProjeto: string; quantidadePendencias: number }[]
+> {
+  const sheets = getSheetsClient();
+  const summaryRange = projectsSpreadsheet.summarySheet;
+  try {
+    const summaryRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: summarySpreadsheetId,
+      range: summaryRange,
+    });
+    const summaryData = summaryRes.data.values || [];
+    const headers = projectsSpreadsheet.headers;
+    const pendingItems: {
+      planilhaLink: string;
+      nomeProjeto: string;
+      quantidadePendencias: number;
+    }[] = [];
+
+    // Supondo que a primeira linha seja o cabeçalho (começamos na linha 2)
+    for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
+      const row = summaryData[rowIndex];
+      const linkPlanilha = row[headers.id.col];
+      const nomeProjeto = row[headers.name.col];
+      if (!linkPlanilha) continue;
+      const projectSpreadsheetId = getIdFromUrl(linkPlanilha);
+      const detailsRange = projectsSpreadsheet.detailsSheet;
+      try {
+        const detailsRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: projectSpreadsheetId,
+          range: detailsRange,
+        });
+        const detailsData = detailsRes.data.values || [];
+        let countMissing = 0;
+        // Considera que a primeira linha é cabeçalho
+        for (let i = 1; i < detailsData.length; i++) {
+          const rowDetails = detailsData[i];
+          const cell = rowDetails[10]; // coluna K (índice 10)
+          if (!cell || !cell.toString().startsWith("http")) {
+            countMissing++;
+          }
+        }
+        if (countMissing > 0) {
+          pendingItems.push({
+            planilhaLink: linkPlanilha,
+            nomeProjeto: nomeProjeto,
+            quantidadePendencias: countMissing,
+          });
+        }
+      } catch (error) {
+        console.error(
+          `Erro ao obter detalhes da planilha ${projectSpreadsheetId}:`,
+          error
+        );
+      }
+    }
+    return pendingItems;
+  } catch (error) {
+    console.error("Erro ao obter dados do resumo:", error);
+    throw error;
+  }
+}
+
+// Extrai o ID de uma planilha a partir de uma URL
+export function getIdFromUrl(url: string): string {
+  if (url) {
+    const match = url.match(/[-\w]{15,}/);
+    return match ? match[0] : "";
+  }
+  return "";
 }
 
 export async function getSheetDetails(
