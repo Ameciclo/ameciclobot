@@ -124,6 +124,21 @@ export async function moveDocumentToFolder(
   }
 }
 
+// Cria uma nova planilha
+export async function createSheet(title: string): Promise<any> {
+  const sheets = google.sheets({ version: "v4", auth });
+  try {
+    const response = await sheets.spreadsheets.create({
+      requestBody: { properties: { title } },
+    });
+    console.log("Planilha criada:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao criar planilha:", error);
+    throw error;
+  }
+}
+
 // ------------------------------------------------------
 // Google Sheets Functions
 // ------------------------------------------------------
