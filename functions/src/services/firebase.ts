@@ -43,6 +43,28 @@ export async function getCoordinators() {
   return coordinatorEntries;
 }
 
+// Função para salvar as pendências no nó "pendingItems" do Realtime Database
+export async function savePendingItems(
+  pendingItems: {
+    planilhaLink: string;
+    nomeProjeto: string;
+    quantidadePendencias: number;
+  }[]
+): Promise<void> {
+  try {
+    await admin.database().ref("pendingItems").set(pendingItems);
+    console.log("Pendências salvas no Firebase.");
+  } catch (error) {
+    console.error("Erro ao salvar pendências no Firebase:", error);
+    throw error;
+  }
+}
+
+export async function sendProjectsToDB(projectsJson: any) {
+  await admin.database().ref("projectsTEST").set(projectsJson);
+  console.log("Projetos enviados para o DB:", projectsJson);
+}
+
 export async function getFinancesGroupId(): Promise<string> {
   try {
     const snapshot = await admin.database().ref("/workgroups/").once("value");
@@ -144,7 +166,7 @@ export async function getRequestData(requestId: string): Promise<any> {
   }
 }
 
-export async function getAllRequests() : Promise<PaymentRequest[]> {
+export async function getAllRequests(): Promise<PaymentRequest[]> {
   console.log(`Get All Payment Requests`);
   try {
     const snapshot = await admin.database().ref("requests").once("value");
