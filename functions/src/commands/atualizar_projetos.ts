@@ -1,4 +1,4 @@
-// commands/atualizarProjetosCommand.ts
+// src/commands/atualizarProjetosCommand.ts
 import { Context, Telegraf } from "telegraf";
 import {
   getIdFromUrl,
@@ -6,29 +6,43 @@ import {
   getSummaryData,
 } from "../services/google";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 import { sendProjectsToDB } from "../services/firebase";
 
-export function getName() {
-  return "/atualizar_projetos";
-}
-
-export function getHelp() {
-  return "Atualiza os projetos a partir da planilha principal e envia os dados atualizados para o Firebase.";
-}
-
-export function getDescription() {
-  return "Atualiza os projetos no Firebase usando os dados da planilha RESUMO e demais planilhas vinculadas.";
-}
-
-export function register(bot: Telegraf) {
+function registerAtualizarProjetosCommand(bot: Telegraf) {
   bot.command("atualizar_projetos", async (ctx: Context) => {
     try {
+      console.log("[atualizar_projetos] Iniciando comando...");
+      const currentChatId = ctx.chat?.id?.toString();
+      console.log(`[atualizar_projetos] currentChatId: ${currentChatId}`);
+
+      const financeiroGroup = workgroups.find(
+        (group: any) => group.label === projectsSpreadsheet.workgroup
+      );
+
+      if (!financeiroGroup) {
+        console.log("[atualizar_projetos] Grupo Financeiro não configurado.");
+        return ctx.reply("Workgroup Financeiro não configurado.");
+      }
+
+      if (currentChatId !== financeiroGroup.value) {
+        console.log(
+          "[atualizar_projetos] Comando executado fora do grupo Financeiro."
+        );
+        return ctx.reply(
+          "Este comando só pode ser executado no grupo Financeiro."
+        );
+      }
+
+      console.log("[atualizar_projetos] Grupo Financeiro confirmado.");
       const summaryData = await getSummaryData(projectsSpreadsheet.id);
+      console.log("[atualizar_projetos] Dados do resumo obtidos.");
       const headers = projectsSpreadsheet.headers;
       const projectsJson: { [key: string]: any } = {};
+
       for (const row of summaryData) {
         const id = getIdFromUrl(row[headers.id.col]);
-        // Exemplo: somente projetos com status "Em andamento" serão enviados
+        // Apenas projetos com status igual ao configurado serão enviados
         if (
           id &&
           row[headers.status.col] === projectsSpreadsheet.projectFilterStatus
@@ -42,19 +56,32 @@ export function register(bot: Telegraf) {
             budget_items,
             spreadsheet_id: id,
           };
+          console.log(
+            `[atualizar_projetos] Projeto ${row[headers.name.col]} processado.`
+          );
         }
       }
-      sendProjectsToDB(projectsJson);
+
+      await sendProjectsToDB(projectsJson);
+      console.log(
+        "[atualizar_projetos] Projetos enviados para o DB com sucesso."
+      );
+      return ctx.reply("Tudo certo! Projetos atualizados com sucesso.");
     } catch (error) {
-      console.error("Erro ao enviar projetos para o DB:", error);
-      throw error;
+      console.error(
+        "[atualizar_projetos] Erro ao enviar projetos para o DB:",
+        error
+      );
+      return ctx.reply("Erro ao atualizar projetos.");
     }
   });
 }
 
 export const atualizarProjetosCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerAtualizarProjetosCommand,
+  name: () => "/atualizar_projetos",
+  help: () =>
+    "Atualiza os projetos a partir da planilha principal e envia os dados atualizados para o Firebase.",
+  description: () =>
+    "Atualiza os projetos no Firebase usando os dados da planilha RESUMO e demais planilhas vinculadas.",
 };
