@@ -1,4 +1,3 @@
-// src/commands/transcrever.ts
 import { Context, Telegraf } from "telegraf";
 import { transcribeAudio } from "../services/azure";
 import workgroups from "../credentials/workgroupsfolders.json";
@@ -8,40 +7,47 @@ const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
 export function registerTranscreverCommand(bot: Telegraf) {
   bot.command("transcrever", async (ctx: Context) => {
     try {
+      console.log("[transcrever] Comando iniciado.");
       const chatId = ctx.chat?.id;
-
+      console.log("[transcrever] Chat ID:", chatId);
       if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
+        console.log("[transcrever] Chat não autorizado.");
         await ctx.reply(
           "Este comando só pode ser usado nos grupos de trabalho da Ameciclo."
         );
         return;
       }
 
-      // Força o tipo de ctx.message para any para acessar reply_to_message
+      // Verifica se a mensagem (ou mensagem respondida) contém um áudio
       const msg = ctx.message as any;
       let voice;
       if (msg.reply_to_message && msg.reply_to_message.voice) {
         voice = msg.reply_to_message.voice;
+        console.log("[transcrever] Áudio obtido da mensagem respondida.");
       } else if (msg.voice) {
         voice = msg.voice;
+        console.log("[transcrever] Áudio obtido da própria mensagem.");
       }
-
       if (!voice || !voice.file_id) {
+        console.log("[transcrever] Nenhum áudio encontrado.");
         await ctx.reply(
           "Por favor, responda a uma mensagem de voz para transcrever."
         );
         return;
       }
 
+      console.log("[transcrever] Obtendo link do áudio...");
       const fileLink = await ctx.telegram.getFileLink(voice.file_id);
-      console.log("Link do áudio:", fileLink.toString());
+      console.log("[transcrever] Link do áudio:", fileLink.toString());
 
+      console.log("[transcrever] Chamando transcribeAudio...");
       const transcription = await transcribeAudio(fileLink.toString());
-      console.log("Transcrição:", transcription);
+      console.log("[transcrever] Transcrição obtida:", transcription);
 
       await ctx.reply(`Transcrição:\n${transcription}`);
+      console.log("[transcrever] Comando /transcrever concluído com sucesso.");
     } catch (error) {
-      console.error("Erro ao transcrever áudio:", error);
+      console.error("[transcrever] Erro ao transcrever áudio:", error);
       await ctx.reply("Ocorreu um erro ao transcrever o áudio.");
     }
   });

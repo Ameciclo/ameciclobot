@@ -71,3 +71,23 @@ export const toDays = (): number => {
     Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay)
   );
 };
+
+
+// Mapeia o número do mês para o nome em português
+export function getMonthNamePortuguese(monthNumber: number): string {
+  const meses = [
+    "JANEIRO",
+    "FEVEREIRO",
+    "MARÇO",
+    "ABRIL",
+    "MAIO",
+    "JUNHO",
+    "JULHO",
+    "AGOSTO",
+    "SETEMBRO",
+    "OUTUBRO",
+    "NOVEMBRO",
+    "DEZEMBRO",
+  ];
+  return meses[monthNumber - 1] || "";
+}

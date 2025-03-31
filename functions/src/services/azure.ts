@@ -1,76 +1,82 @@
-// src/services/azure.ts
-import axios from "axios";
+import axiosInstance from "../config/httpService";
 import FormData from "form-data";
 import whisperConfig from "../credentials/whisper.json";
 import azureConfig from "../credentials/gpt35.json";
 
-/**
- * Faz o download do áudio do URL fornecido e envia-o para a API de transcrição (Whisper) do Azure.
- * Retorna a transcrição como string.
- */
 export async function transcribeAudio(fileUrl: string): Promise<string> {
-  console.log("Baixando áudio do URL:", fileUrl);
+  try {
+    console.log("[azure.transcribeAudio] Iniciando transcrição do áudio.");
+    console.log("[azure.transcribeAudio] URL do áudio:", fileUrl);
 
-  // Baixa o áudio usando axios (como arraybuffer para obter dados binários)
-  const audioResponse = await axios.get(fileUrl, {
-    responseType: "arraybuffer",
-  });
-  if (audioResponse.status !== 200) {
-    throw new Error(`Erro ao baixar áudio: ${audioResponse.statusText}`);
+    const audioResponse = await axiosInstance.get(fileUrl, {
+      responseType: "arraybuffer",
+    });
+    console.log(
+      "[azure.transcribeAudio] Resposta de áudio recebida com status:",
+      audioResponse.status
+    );
+    if (audioResponse.status !== 200) {
+      throw new Error(`Erro ao baixar áudio: ${audioResponse.statusText}`);
+    }
+    const audioBuffer = Buffer.from(audioResponse.data);
+    console.log("[azure.transcribeAudio] Áudio convertido para buffer.");
+
+    const formData = new FormData();
+    formData.append("file", audioBuffer, {
+      filename: "audio.ogg",
+      contentType: "audio/ogg",
+    });
+    console.log("[azure.transcribeAudio] FormData preparado.");
+
+    const endpoint = `${whisperConfig.endpoint}${whisperConfig.deployment}/audio/transcriptions?api-version=${whisperConfig.apiVersion}`;
+    console.log("[azure.transcribeAudio] Endpoint do Whisper:", endpoint);
+
+    const response = await axiosInstance.post(endpoint, formData, {
+      headers: {
+        "api-key": whisperConfig.apiKey,
+        ...formData.getHeaders(),
+      },
+    });
+    console.log("[azure.transcribeAudio] Resposta do Whisper:", response.data);
+    return response.data.text || "";
+  } catch (error) {
+    console.error("[azure.transcribeAudio] Erro:", error);
+    throw error;
   }
-  // Converte os dados para Buffer
-  const audioBuffer = Buffer.from(audioResponse.data);
-  //console.log("Áudio baixado, tamanho (bytes):", audioBuffer.length);
-
-  // Cria um FormData e anexa o arquivo de áudio
-  const formData = new FormData();
-  formData.append("file", audioBuffer, {
-    filename: "audio.ogg",
-    contentType: "audio/ogg",
-  });
-  console.log("FormData preparado com o arquivo.");
-
-  // Monta o endpoint final para a transcrição (Whisper) usando as configurações do whisper.json
-  const endpoint = `${whisperConfig.endpoint}${whisperConfig.deployment}/audio/transcriptions?api-version=${whisperConfig.apiVersion}`;
-  console.log("Endpoint do Whisper:", endpoint);
-
-  // Faz a requisição POST com axios
-  const response = await axios.post(endpoint, formData, {
-    headers: {
-      "api-key": whisperConfig.apiKey,
-      ...formData.getHeaders(),
-    },
-  });
-  console.log("Resposta da transcrição:", response.data);
-  return response.data.text || "";
 }
 
-/**
- * Envia uma requisição para a API do Chat GPT (ou similar) do Azure.
- * Recebe um array de mensagens (no formato adequado à API) e retorna a resposta.
- */
 export async function sendChatCompletion(messages: any[]): Promise<any> {
-  // Monta o endpoint para o chat utilizando as configurações do azureConfig.json
-  const endpoint = `${azureConfig.endpoint}${azureConfig.deployment}/chat/completions?api-version=${azureConfig.apiVersion}`;
-  console.log("Endpoint do Chat GPT:", endpoint);
+  try {
+    console.log(
+      "[azure.sendChatCompletion] Enviando mensagens para ChatGPT:",
+      JSON.stringify(messages, null, 2)
+    );
+    const endpoint = `${azureConfig.endpoint}${azureConfig.deployment}/chat/completions?api-version=${azureConfig.apiVersion}`;
+    console.log("[azure.sendChatCompletion] Endpoint do Chat GPT:", endpoint);
 
-  // Faz a requisição POST com axios (enviando o corpo em JSON)
-  const response = await axios.post(
-    endpoint,
-    {
-      messages,
-      max_tokens: 500,
-      temperature: 0.7,
-      top_p: 1,
-      model: azureConfig.deployment,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": azureConfig.apiKey,
+    const response = await axiosInstance.post(
+      endpoint,
+      {
+        messages,
+        max_tokens: 500,
+        temperature: 0.7,
+        top_p: 1,
+        model: azureConfig.deployment,
       },
-    }
-  );
-  console.log("Resposta do Chat GPT:", response.data);
-  return response.data;
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": azureConfig.apiKey,
+        },
+      }
+    );
+    console.log(
+      "[azure.sendChatCompletion] Resposta do Chat GPT:",
+      response.data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("[azure.sendChatCompletion] Erro:", error);
+    throw error;
+  }
 }

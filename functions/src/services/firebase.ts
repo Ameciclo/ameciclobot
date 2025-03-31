@@ -43,6 +43,33 @@ export async function getCoordinators() {
   return coordinatorEntries;
 }
 
+/**
+ * Retorna todos os projetos do nó "financeProjects".
+ */
+export async function getFinanceProjects(): Promise<any> {
+  const snap = await admin.database().ref("financeProjects").once("value");
+  return snap.val() || {};
+}
+
+/**
+ * Sobrescreve (ou cria) todos os projetos no nó "financeProjects" de uma só vez.
+ */
+export async function saveFinanceProjects(projects: any) {
+  await admin.database().ref("financeProjects").set(projects);
+}
+
+/**
+ * Atualiza apenas um projeto específico no nó "financeProjects/{projectId}".
+ */
+export async function updateFinanceProject(projectId: string, update: any) {
+  await admin.database().ref(`financeProjects/${projectId}`).update(update);
+}
+
+export async function sendProjectsToDB(projectsJson: any) {
+  await admin.database().ref("projects").set(projectsJson);
+  console.log("Projetos enviados para o DB:", projectsJson);
+}
+
 export async function getFinancesGroupId(): Promise<string> {
   try {
     const snapshot = await admin.database().ref("/workgroups/").once("value");
@@ -144,7 +171,7 @@ export async function getRequestData(requestId: string): Promise<any> {
   }
 }
 
-export async function getAllRequests() : Promise<PaymentRequest[]> {
+export async function getAllRequests(): Promise<PaymentRequest[]> {
   console.log(`Get All Payment Requests`);
   try {
     const snapshot = await admin.database().ref("requests").once("value");

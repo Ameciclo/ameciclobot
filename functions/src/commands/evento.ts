@@ -1,4 +1,3 @@
-// src/commands/evento.ts
 import { Context, Telegraf } from "telegraf";
 import { sendChatCompletion } from "../services/azure";
 import workgroups from "../credentials/workgroupsfolders.json";
@@ -11,30 +10,42 @@ const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
 export function registerEventoCommand(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     try {
+      console.log("[evento] Iniciando comando /evento");
       const chatId = ctx.chat?.id;
+      console.log("[evento] Chat ID:", chatId);
       if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
+        console.log("[evento] Chat não autorizado.");
         await ctx.reply(
           "Este comando só pode ser usado nos grupos de trabalho da Ameciclo."
         );
         return;
       }
 
-      // Obtém o texto da mensagem (seja da mensagem respondida ou após o comando)
+      // Obtém o texto da mensagem
       let messageText: string | undefined;
       const msg = ctx.message as any;
       if (msg?.reply_to_message?.text) {
         messageText = msg.reply_to_message.text;
+        console.log("[evento] Texto obtido da mensagem respondida.");
       } else if (msg?.text) {
         messageText = msg.text.replace("/evento", "").trim();
+        console.log("[evento] Texto obtido da própria mensagem.");
       }
       if (!messageText) {
+        console.log("[evento] Texto do evento não fornecido.");
         await ctx.reply(
           "Por favor, forneça o texto descritivo do evento (ou responda a uma mensagem com esse texto)."
         );
         return;
       }
 
-      const prompt = `Hoje é dia ${new Date()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+      // Ajusta a data atual para o fuso horário GMT‑3 (acrescentando 3 horas)
+      const nowLocal = new Date(new Date().getTime() + 3 * 60 * 60 * 1000);
+      console.log(
+        "[evento] Data atual ajustada para GMT-3:",
+        nowLocal.toISOString()
+      );
+      const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
 {
   "name": "Título do Evento",
   "startDate": "ISODate",
@@ -45,7 +56,10 @@ export function registerEventoCommand(bot: Telegraf) {
 
 Texto:
 "${messageText}"`;
+      console.log("[evento] Prompt construído:", prompt);
 
+      // Envia o prompt para o Azure
+      console.log("[evento] Enviando prompt para sendChatCompletion...");
       const azureResponse = await sendChatCompletion([
         {
           role: "system",
@@ -54,9 +68,14 @@ Texto:
         },
         { role: "user", content: prompt },
       ]);
+      console.log(
+        "[evento] Resposta recebida do Azure:",
+        JSON.stringify(azureResponse)
+      );
 
       const rawContent = azureResponse.choices?.[0]?.message?.content;
       if (!rawContent) {
+        console.log("[evento] Azure não retornou conteúdo.");
         await ctx.reply(
           "Não foi possível obter a resposta formatada. Tente novamente."
         );
@@ -66,23 +85,41 @@ Texto:
       let eventObject;
       try {
         const cleanedContent = rawContent.replace(/\n/g, "").trim();
+        console.log("[evento] Conteúdo limpo:", cleanedContent);
         eventObject = JSON.parse(cleanedContent);
       } catch (parseErr) {
-        console.error("Erro ao fazer parse do JSON:", parseErr);
+        console.error("[evento] Erro ao fazer parse do JSON:", parseErr);
         await ctx.reply("Não foi possível interpretar o JSON retornado.");
         return;
       }
 
+      // Ajusta as datas para GMT‑3, somando 3 horas
+      if (eventObject.startDate) {
+        const start = new Date(eventObject.startDate);
+        start.setHours(start.getHours() + 3);
+        eventObject.startDate = start.toISOString();
+        console.log("[evento] startDate ajustada:", eventObject.startDate);
+      }
+      if (eventObject.endDate) {
+        const end = new Date(eventObject.endDate);
+        end.setHours(end.getHours() + 3);
+        eventObject.endDate = end.toISOString();
+        console.log("[evento] endDate ajustada:", eventObject.endDate);
+      }
+
       eventObject.from = ctx.from;
       eventObject.workgroup = ctx.chat.id;
+      console.log(
+        "[evento] JSON final do evento:",
+        JSON.stringify(eventObject)
+      );
 
       const jsonMessage =
         "```json\n" + JSON.stringify(eventObject, null, 2) + "\n```";
-      // Formata a mensagem do evento usando a função centralizada
       const eventMessage =
         buildEventMessage(eventObject) + "\n\n" + jsonMessage;
+      console.log("[evento] Mensagem de evento construída.");
 
-      // Constrói o teclado inline usando o índice dos calendários
       const inlineKeyboard = {
         reply_markup: {
           inline_keyboard: [
@@ -95,13 +132,13 @@ Texto:
         },
       };
 
-      // Envia a mensagem com o evento formatado e os botões
       await ctx.reply(eventMessage, {
         parse_mode: "MarkdownV2",
         ...inlineKeyboard,
       });
+      console.log("[evento] Comando /evento concluído com sucesso.");
     } catch (err) {
-      console.error("Erro no comando /evento:", err);
+      console.error("[evento] Erro no comando /evento:", err);
       await ctx.reply("Ocorreu um erro ao processar o evento.");
     }
   });

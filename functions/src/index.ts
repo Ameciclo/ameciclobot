@@ -12,10 +12,9 @@ import { handleCreateEvent } from "./handlers/createEventHandler";
 
 import { registerIniciarCommand, registerStartCommand } from "./commands/start";
 import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
-import { getCoordinators, getFinancesGroupId } from "./services/firebase";
-
-import { eventoCommand } from "./commands/evento";
-import { pagamentoCommand } from "./commands/pagamento";
+import { getCoordinators } from "./services/firebase";
+import workgroups from "./credentials/workgroupsfolders.json";
+import projectsSpreadsheet from "./credentials/projectsSpreadsheet.json";
 
 import { registerEventParticipationCallback } from "./callbacks/confirmEventParticipationCallback";
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
@@ -29,13 +28,13 @@ import { checkEvents } from "./scheduler/checkEvents";
 
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
+import { pagamentoCommand } from "./commands/pagamento";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
 
-eventoCommand.register(bot);
 pagamentoCommand.register(bot);
 
 const telegramCommands = validCommands.map((cmd) => ({
@@ -59,8 +58,11 @@ registerEventCallback(bot);
 export const sendPaymentRequest = onValueCreated(
   "/requests/{requestId}",
   async (event) => {
+    const financeiroGroup = workgroups.find(
+      (group: any) => group.label === projectsSpreadsheet.workgroup
+    );
     const coordinators = await getCoordinators();
-    const groupChatId = await getFinancesGroupId();
+    const groupChatId = financeiroGroup!.value;
     const snapshot = event.data;
     const request = snapshot.val() as PaymentRequest;
 
