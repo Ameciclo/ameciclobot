@@ -15,6 +15,8 @@ import { transcreverCommand } from "./commands/transcrever";
 import { quem_sou_euCommand } from "./commands/quem_sou_eu";
 import { eventoCommand } from "./commands/evento";
 import { atualizarPendenciasCommand } from "./commands/atualizar_pendencias";
+import { processarExtratosCcCommand } from "./commands/processar_extrato_cc";
+import { processarExtratoFiCommand } from "./commands/processar_extrato_fi";
 
 export const commandsList = [
   apresentacaoCommand,
@@ -31,6 +33,8 @@ export const commandsList = [
   pautaCommand,
   pedidoDeInformacaoCommand,
   planilhaCommand,
+  processarExtratosCcCommand,
+  processarExtratoFiCommand,
   registrarPlanilhaCommand,
   transcreverCommand,
   quem_sou_euCommand,

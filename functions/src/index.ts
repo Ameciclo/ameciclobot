@@ -27,7 +27,6 @@ import { checkEvents } from "./scheduler/checkEvents";
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
-import { processarExtratosCcCommand } from "./commands/processar_extrato_cc";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -35,7 +34,6 @@ validCommands.forEach((cmd) => {
 });
 
 pagamentoCommand.register(bot);
-processarExtratosCcCommand.register(bot);
 
 const telegramCommands = validCommands.map((cmd) => ({
   command: cmd.name(),
