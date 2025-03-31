@@ -43,6 +43,36 @@ export function getSheetsClient() {
 // ------------------------------------------------------
 // Google Drive Functions
 // ------------------------------------------------------
+
+export async function uploadCSVToDrive(
+  fileContent: string,
+  fileName: string,
+  folderId: string
+): Promise<string> {
+  try {
+    const drive = google.drive({ version: "v3", auth });
+
+    const response = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+        mimeType: "text/csv",
+      },
+      media: {
+        mimeType: "text/csv",
+        body: fileContent,
+      },
+      fields: "id, webViewLink",
+    });
+    console.log("[uploadCSVToDrive] Arquivo enviado:", response.data);
+    // Retorna o link para visualização (webViewLink)
+    return response.data.webViewLink || "";
+  } catch (error) {
+    console.error("Erro ao enviar CSV para o Drive:", error);
+    throw error;
+  }
+}
+
 export async function listModelsFromFolder(
   folderId: string
 ): Promise<{ id: string; name: string }[]> {
@@ -142,6 +172,57 @@ export async function createSheet(title: string): Promise<any> {
 // ------------------------------------------------------
 // Google Sheets Functions
 // ------------------------------------------------------
+
+// Faz o append de uma linha na planilha informada (projectsSpreadsheet.id)
+// A aba é indicada pelo campo "sheet" do account (matchedAccount)
+export async function appendExtratoRow(
+  spreadsheetId: string,
+  sheetName: string,
+  rowValues: any[]
+): Promise<void> {
+  try {
+    const range = `${sheetName}!A:D`;
+    const sheets = getSheetsClient();
+    const result = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: [rowValues] },
+    });
+    console.log(
+      "[appendExtratoRow] Linha adicionada:",
+      result.data.updates?.updatedRange
+    );
+  } catch (error) {
+    console.error("Erro ao fazer append na planilha:", error);
+    throw error;
+  }
+}
+
+export async function appendExtratoData(
+  spreadsheetId: string,
+  sheetName: string,
+  data: any[][]
+): Promise<void> {
+  const sheets = getSheetsClient();
+  // Define o range onde os dados serão inseridos; "A:Z" supõe que os dados caibam entre as colunas A e Z.
+  const range = `${sheetName}!A:Z`;
+  try {
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      requestBody: { values: data },
+    });
+    console.log(
+      "Dados detalhados adicionados:",
+      response.data.updates?.updatedRange
+    );
+  } catch (error) {
+    console.error("Erro ao fazer append dos dados detalhados:", error);
+    throw error;
+  }
+}
 
 // Retorna os dados da aba "RESUMO" de uma planilha informada
 export async function getSummaryData(spreadsheetId: string): Promise<any[][]> {
