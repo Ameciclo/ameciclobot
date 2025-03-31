@@ -14,9 +14,11 @@ import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { transcreverCommand } from "./commands/transcrever";
 import { quem_sou_euCommand } from "./commands/quem_sou_eu";
 import { eventoCommand } from "./commands/evento";
+import { atualizarPendenciasCommand } from "./commands/atualizar_pendencias";
 
 export const commandsList = [
   apresentacaoCommand,
+  atualizarPendenciasCommand,
   atualizarProjetosCommand,
   clippingCommand,
   demandaCommand,

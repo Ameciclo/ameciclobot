@@ -1,4 +1,4 @@
-// src/commands/verificarPendenciasCommand.ts
+// src/commands/atualizarPendenciasCommand.ts
 import { Context, Telegraf } from "telegraf";
 import {
   getSummaryData,
@@ -13,10 +13,10 @@ import {
   updateFinanceProject,
 } from "../services/firebase";
 
-function registerVerificarPendenciasCommand(bot: Telegraf) {
-  bot.command("verificar_pendencias", async (ctx: Context) => {
+function registerAtualizarPendenciasCommand(bot: Telegraf) {
+  bot.command("atualizar_pendencias", async (ctx: Context) => {
     try {
-      console.log("[verificar_pendencias] Iniciando comando...");
+      console.log("[atualizar_pendencias] Iniciando comando...");
 
       // Restrição: somente no grupo Financeiro
       const currentChatId = ctx.chat?.id?.toString();
@@ -24,19 +24,19 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
         (group: any) => group.label === projectsSpreadsheet.workgroup
       );
       if (!financeiroGroup) {
-        console.log("[verificar_pendencias] Grupo Financeiro não configurado.");
+        console.log("[atualizar_pendencias] Grupo Financeiro não configurado.");
         return ctx.reply("Workgroup Financeiro não configurado.");
       }
       if (currentChatId !== financeiroGroup.value) {
         console.log(
-          "[verificar_pendencias] Comando executado fora do grupo Financeiro."
+          "[atualizar_pendencias] Comando executado fora do grupo Financeiro."
         );
         return ctx.reply(
           "Este comando só pode ser executado no grupo Financeiro."
         );
       }
 
-      console.log("[verificar_pendencias] Grupo Financeiro confirmado.");
+      console.log("[atualizar_pendencias] Grupo Financeiro confirmado.");
 
       // 1. Lê a planilha RESUMO e monta a lista de projetos
       const summaryData = await getSummaryData(projectsSpreadsheet.id);
@@ -60,7 +60,7 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
         });
       }
       console.log(
-        `[verificar_pendencias] Projetos lidos do RESUMO: ${projetosResumo.length}`
+        `[atualizar_pendencias] Projetos lidos do RESUMO: ${projetosResumo.length}`
       );
 
       // 2. Obtém os projetos já salvos no Firebase (financeProjects)
@@ -80,7 +80,7 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
       }
       // Salva a estrutura mesclada no Firebase
       await saveFinanceProjects(mergedProjects);
-      console.log("[verificar_pendencias] Dados mesclados salvos no Firebase.");
+      console.log("[atualizar_pendencias] Dados mesclados salvos no Firebase.");
 
       // 4. Define a data de hoje (formato YYYY-MM-DD)
       const date = new Date();
@@ -89,19 +89,19 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
 
       // 5. Filtra os projetos que precisam ser verificados hoje:
       //    se lastVerificationDate não for hoje ou se o status já estiver como "Acesso não concedido"
-      const projetosParaVerificar = Object.keys(mergedProjects).filter(
+      const projetosParaAtualizar = Object.keys(mergedProjects).filter(
         (projectId) => {
           const proj = mergedProjects[projectId];
           return proj.lastVerificationDate !== hoje; // Se já foi verificado hoje, não refaz.
         }
       );
       console.log(
-        "[verificar_pendencias] Projetos a verificar:",
-        projetosParaVerificar.length
+        "[atualizar_pendencias] Projetos a Atualizar:",
+        projetosParaAtualizar.length
       );
 
       // 6. Para cada projeto a ser verificado, tenta ler a aba de detalhes e contar as pendências.
-      for (const projectId of projetosParaVerificar) {
+      for (const projectId of projetosParaAtualizar) {
         try {
           const countMissing = await getProjectDetailsPendencias(projectId);
           mergedProjects[projectId].pendencias = countMissing;
@@ -114,11 +114,11 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
             lastVerificationDate: hoje,
           });
           console.log(
-            `[verificar_pendencias] Projeto ${mergedProjects[projectId].name} verificado: ${countMissing} pendências.`
+            `[atualizar_pendencias] Projeto ${mergedProjects[projectId].name} verificado: ${countMissing} pendências.`
           );
         } catch (err: any) {
           console.error(
-            `[verificar_pendencias] Erro ao verificar projeto ${mergedProjects[projectId].name} (${projectId}):`,
+            `[atualizar_pendencias] Erro ao Atualizar projeto ${mergedProjects[projectId].name} (${projectId}):`,
             err
           );
           // Se o erro indicar "permission" ou "forbidden", atualiza o status e não tenta novamente hoje
@@ -130,7 +130,7 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
               lastVerificationDate: hoje,
             });
             console.log(
-              `[verificar_pendencias] Projeto ${mergedProjects[projectId].name}: Acesso não concedido.`
+              `[atualizar_pendencias] Projeto ${mergedProjects[projectId].name}: Acesso não concedido.`
             );
           }
           // Para outros erros, você pode decidir se ignora ou se para o comando.
@@ -160,20 +160,20 @@ function registerVerificarPendenciasCommand(bot: Telegraf) {
         resposta = "Projetos com pendências encontradas:\n" + linhas.join("\n");
       }
 
-      console.log("[verificar_pendencias] Comando concluído com sucesso.");
+      console.log("[atualizar_pendencias] Comando concluído com sucesso.");
       await ctx.replyWithMarkdown(resposta);
       return; // Garante retorno para evitar warning de paths
     } catch (error) {
-      console.error("[verificar_pendencias] Erro geral:", error);
-      await ctx.reply("Erro ao verificar pendências.");
+      console.error("[atualizar_pendencias] Erro geral:", error);
+      await ctx.reply("Erro ao Atualizar pendências.");
       return;
     }
   });
 }
 
-export const verificarPendenciasCommand = {
-  register: registerVerificarPendenciasCommand,
-  name: () => "/verificar_pendencias",
+export const atualizarPendenciasCommand = {
+  register: registerAtualizarPendenciasCommand,
+  name: () => "/atualizar_pendencias",
   help: () =>
     "Verifica pendências dos projetos no Firebase e atualiza o status (incluindo acesso negado).",
   description: () =>

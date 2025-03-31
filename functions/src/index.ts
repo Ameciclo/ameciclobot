@@ -28,7 +28,6 @@ import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
 import { atualizarExtratosCommand } from "./commands/atualizar_extratos";
-import { verificarPendenciasCommand } from "./commands/atualizar_pendencias";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -37,7 +36,6 @@ validCommands.forEach((cmd) => {
 
 pagamentoCommand.register(bot);
 atualizarExtratosCommand.register(bot);
-verificarPendenciasCommand.register(bot);
 
 const telegramCommands = validCommands.map((cmd) => ({
   command: cmd.name(),
