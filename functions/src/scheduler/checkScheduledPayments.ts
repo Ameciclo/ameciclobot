@@ -1,6 +1,9 @@
 import { Telegraf } from "telegraf";
 import { PaymentRequest } from "../config/types";
-import { getAllRequests, getFinancesGroupId } from "../services/firebase";
+import { getAllRequests } from "../services/firebase";
+
+import workgroups from "../credentials/workgroupsfolders.json";
+import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 
 export const checkScheduledPayments = async (bot: Telegraf) => {
   console.log("Iniciando verificação de agendamentos bancários...");
@@ -36,7 +39,10 @@ export const checkScheduledPayments = async (bot: Telegraf) => {
         message += `    📅 Data: ${payment.paymentDate}\n`;
         message += `    💲 Valor: ${payment.value || "N/A"}\n\n`;
       });
-      const groupChatId = await getFinancesGroupId();
+      const financeiroGroup = workgroups.find(
+        (group: any) => group.label === projectsSpreadsheet.workgroup
+      );
+      const groupChatId = financeiroGroup!.value;
       await bot.telegram.sendMessage(groupChatId, message, {
         parse_mode: "Markdown",
       });
