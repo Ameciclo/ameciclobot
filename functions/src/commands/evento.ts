@@ -34,7 +34,9 @@ export function registerEventoCommand(bot: Telegraf) {
         return;
       }
 
-      const prompt = `Hoje é dia ${new Date()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+      // Ajusta a data atual para o fuso horário GMT‑3 (acrescentando 3 horas)
+      const nowLocal = new Date(new Date().getTime() + 3 * 60 * 60 * 1000);
+      const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
 {
   "name": "Título do Evento",
   "startDate": "ISODate",
@@ -73,6 +75,18 @@ Texto:
         return;
       }
 
+      // Ajusta as datas para GMT‑3: se houver startDate/endDate, soma 3 horas
+      if (eventObject.startDate) {
+        let start = new Date(eventObject.startDate);
+        start.setHours(start.getHours() + 3);
+        eventObject.startDate = start.toISOString();
+      }
+      if (eventObject.endDate) {
+        let end = new Date(eventObject.endDate);
+        end.setHours(end.getHours() + 3);
+        eventObject.endDate = end.toISOString();
+      }
+
       eventObject.from = ctx.from;
       eventObject.workgroup = ctx.chat.id;
 
@@ -95,7 +109,6 @@ Texto:
         },
       };
 
-      // Envia a mensagem com o evento formatado e os botões
       await ctx.reply(eventMessage, {
         parse_mode: "MarkdownV2",
         ...inlineKeyboard,
