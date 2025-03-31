@@ -1,4 +1,5 @@
 import { apresentacaoCommand } from "./commands/apresentacao";
+import { atualizarProjetosCommand } from "./commands/atualizar_projetos";
 import { pautaCommand } from "./commands/pauta";
 import { clippingCommand } from "./commands/clipping";
 import { demandaCommand } from "./commands/demanda";
@@ -16,6 +17,7 @@ import { eventoCommand } from "./commands/evento";
 
 export const commandsList = [
   apresentacaoCommand,
+  atualizarProjetosCommand,
   clippingCommand,
   demandaCommand,
   documentoCommand,

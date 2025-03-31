@@ -186,69 +186,30 @@ export async function getProjectBudgetItems(
   }
 }
 
-// Lê os dados da aba "RESUMO" e, para cada projeto, abre a planilha de detalhes para contar
-// quantos comprovantes (na coluna K) estão ausentes (não iniciam com "http")
-export async function getPendingItems(
-  summarySpreadsheetId: string
-): Promise<
-  { planilhaLink: string; nomeProjeto: string; quantidadePendencias: number }[]
-> {
-  const sheets = getSheetsClient();
-  const summaryRange = projectsSpreadsheet.summarySheet;
+export async function getProjectDetailsPendencias(
+  spreadsheetId: string
+): Promise<number> {
   try {
-    const summaryRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: summarySpreadsheetId,
-      range: summaryRange,
+    const sheets = getSheetsClient();
+    const detailsRange = projectsSpreadsheet.detailsSheet; // ex: "DETALHAMENTO DAS DESPESAS!A:Z"
+    const detailsRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: detailsRange,
     });
-    const summaryData = summaryRes.data.values || [];
-    const headers = projectsSpreadsheet.headers;
-    const pendingItems: {
-      planilhaLink: string;
-      nomeProjeto: string;
-      quantidadePendencias: number;
-    }[] = [];
-
-    // Supondo que a primeira linha seja o cabeçalho (começamos na linha 2)
-    for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
-      const row = summaryData[rowIndex];
-      const linkPlanilha = row[headers.id.col];
-      const nomeProjeto = row[headers.name.col];
-      if (!linkPlanilha) continue;
-      const projectSpreadsheetId = getIdFromUrl(linkPlanilha);
-      const detailsRange = projectsSpreadsheet.detailsSheet;
-      try {
-        const detailsRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: projectSpreadsheetId,
-          range: detailsRange,
-        });
-        const detailsData = detailsRes.data.values || [];
-        let countMissing = 0;
-        // Considera que a primeira linha é cabeçalho
-        for (let i = 1; i < detailsData.length; i++) {
-          const rowDetails = detailsData[i];
-          const cell = rowDetails[10]; // coluna K (índice 10)
-          if (!cell || !cell.toString().startsWith("http")) {
-            countMissing++;
-          }
-        }
-        if (countMissing > 0) {
-          pendingItems.push({
-            planilhaLink: linkPlanilha,
-            nomeProjeto: nomeProjeto,
-            quantidadePendencias: countMissing,
-          });
-        }
-      } catch (error) {
-        console.error(
-          `Erro ao obter detalhes da planilha ${projectSpreadsheetId}:`,
-          error
-        );
+    const detailsData = detailsRes.data.values || [];
+    let countMissing = 0;
+    // Considera que a primeira linha é cabeçalho
+    for (let i = 1; i < detailsData.length; i++) {
+      const rowDetails = detailsData[i];
+      const cell = rowDetails[10]; // coluna K (índice 10)
+      if (!cell || !cell.toString().startsWith("http")) {
+        countMissing++;
       }
     }
-    return pendingItems;
-  } catch (error) {
-    console.error("Erro ao obter dados do resumo:", error);
-    throw error;
+    return countMissing;
+  } catch (err) {
+    console.error(`[getProjectDetailsPendencias] Erro:`, err);
+    throw err;
   }
 }
 

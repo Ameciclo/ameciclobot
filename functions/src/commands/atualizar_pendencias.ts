@@ -1,44 +1,181 @@
-// commands/verificarPendenciasCommand.ts
+// src/commands/verificarPendenciasCommand.ts
 import { Context, Telegraf } from "telegraf";
-import { savePendingItems } from "../services/firebase";
-import { getPendingItems } from "../services/google";
+import {
+  getSummaryData,
+  getIdFromUrl,
+  getProjectDetailsPendencias,
+} from "../services/google";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import workgroups from "../credentials/workgroupsfolders.json";
+import {
+  getFinanceProjects,
+  saveFinanceProjects,
+  updateFinanceProject,
+} from "../services/firebase";
 
-export function getName() {
-  return "/verificar_pendencias";
-}
-
-export function getHelp() {
-  return "Verifica pendências na planilha financeira e grava os dados no Firebase Realtime Database.";
-}
-
-export function getDescription() {
-  return "Lê a planilha financeira, identifica os projetos com comprovantes faltantes e registra (link da planilha, nome do projeto e quantidade de pendências) no Firebase.";
-}
-
-export function register(bot: Telegraf) {
+function registerVerificarPendenciasCommand(bot: Telegraf) {
   bot.command("verificar_pendencias", async (ctx: Context) => {
     try {
-      // getPendingItems deve ler as planilhas e retornar um array de objetos, ex:
-      // [{ planilhaLink: string, nomeProjeto: string, quantidadePendencias: number }, ...]
-      const pendencias = await getPendingItems(projectsSpreadsheet.id);
+      console.log("[verificar_pendencias] Iniciando comando...");
 
-      // Salva os dados no Firebase Realtime Database
-      await savePendingItems(pendencias);
-
-      ctx.reply(
-        "Pendências verificadas e registradas no Firebase com sucesso."
+      // Restrição: somente no grupo Financeiro
+      const currentChatId = ctx.chat?.id?.toString();
+      const financeiroGroup = workgroups.find(
+        (group: any) => group.label === projectsSpreadsheet.workgroup
       );
+      if (!financeiroGroup) {
+        console.log("[verificar_pendencias] Grupo Financeiro não configurado.");
+        return ctx.reply("Workgroup Financeiro não configurado.");
+      }
+      if (currentChatId !== financeiroGroup.value) {
+        console.log(
+          "[verificar_pendencias] Comando executado fora do grupo Financeiro."
+        );
+        return ctx.reply(
+          "Este comando só pode ser executado no grupo Financeiro."
+        );
+      }
+
+      console.log("[verificar_pendencias] Grupo Financeiro confirmado.");
+
+      // 1. Lê a planilha RESUMO e monta a lista de projetos
+      const summaryData = await getSummaryData(projectsSpreadsheet.id);
+      const headers = projectsSpreadsheet.headers;
+      const projetosResumo: {
+        id: string;
+        name: string;
+        spreadsheetLink: string;
+      }[] = [];
+      // Considera que a primeira linha é o cabeçalho
+      for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
+        const row = summaryData[rowIndex];
+        const linkPlanilha = row[headers.id.col];
+        if (!linkPlanilha) continue;
+        const projectSpreadsheetId = getIdFromUrl(linkPlanilha);
+        const nomeProjeto = row[headers.name.col];
+        projetosResumo.push({
+          id: projectSpreadsheetId,
+          name: nomeProjeto,
+          spreadsheetLink: linkPlanilha,
+        });
+      }
+      console.log(
+        `[verificar_pendencias] Projetos lidos do RESUMO: ${projetosResumo.length}`
+      );
+
+      // 2. Obtém os projetos já salvos no Firebase (financeProjects)
+      const financeProjectsInDb = await getFinanceProjects(); // Objeto { projectId: { ... } }
+      // 3. Mescla os dados: preserva lastVerificationDate, pendencias e status
+      const mergedProjects: Record<string, any> = {};
+      for (const p of projetosResumo) {
+        const existing = financeProjectsInDb[p.id] || {};
+        mergedProjects[p.id] = {
+          name: p.name,
+          spreadsheetLink: p.spreadsheetLink,
+          lastVerificationDate: existing.lastVerificationDate || "",
+          pendencias:
+            typeof existing.pendencias === "number" ? existing.pendencias : 0,
+          status: existing.status || "OK", // "OK" indica que o acesso está concedido
+        };
+      }
+      // Salva a estrutura mesclada no Firebase
+      await saveFinanceProjects(mergedProjects);
+      console.log("[verificar_pendencias] Dados mesclados salvos no Firebase.");
+
+      // 4. Define a data de hoje (formato YYYY-MM-DD)
+      const date = new Date();
+      const hoje =
+        date.getFullYear + "-" + date.getMonth() + "-" + date.getDate();
+
+      // 5. Filtra os projetos que precisam ser verificados hoje:
+      //    se lastVerificationDate não for hoje ou se o status já estiver como "Acesso não concedido"
+      const projetosParaVerificar = Object.keys(mergedProjects).filter(
+        (projectId) => {
+          const proj = mergedProjects[projectId];
+          return proj.lastVerificationDate !== hoje; // Se já foi verificado hoje, não refaz.
+        }
+      );
+      console.log(
+        "[verificar_pendencias] Projetos a verificar:",
+        projetosParaVerificar.length
+      );
+
+      // 6. Para cada projeto a ser verificado, tenta ler a aba de detalhes e contar as pendências.
+      for (const projectId of projetosParaVerificar) {
+        try {
+          const countMissing = await getProjectDetailsPendencias(projectId);
+          mergedProjects[projectId].pendencias = countMissing;
+          mergedProjects[projectId].status = "OK";
+          mergedProjects[projectId].lastVerificationDate = hoje;
+          // Atualiza este projeto no Firebase
+          await updateFinanceProject(projectId, {
+            pendencias: countMissing,
+            status: "OK",
+            lastVerificationDate: hoje,
+          });
+          console.log(
+            `[verificar_pendencias] Projeto ${mergedProjects[projectId].name} verificado: ${countMissing} pendências.`
+          );
+        } catch (err: any) {
+          console.error(
+            `[verificar_pendencias] Erro ao verificar projeto ${mergedProjects[projectId].name} (${projectId}):`,
+            err
+          );
+          // Se o erro indicar "permission" ou "forbidden", atualiza o status e não tenta novamente hoje
+          if (err.response && err.response.status === 403) {
+            mergedProjects[projectId].status = "Acesso não concedido";
+            mergedProjects[projectId].lastVerificationDate = hoje;
+            await updateFinanceProject(projectId, {
+              status: "Acesso não concedido",
+              lastVerificationDate: hoje,
+            });
+            console.log(
+              `[verificar_pendencias] Projeto ${mergedProjects[projectId].name}: Acesso não concedido.`
+            );
+          }
+          // Para outros erros, você pode decidir se ignora ou se para o comando.
+        }
+      }
+
+      // 7. Monta a mensagem de retorno com os projetos que possuem pendências > 0 ou status "Acesso não concedido"
+      const linhas: string[] = [];
+      for (const projectId of Object.keys(mergedProjects)) {
+        const proj = mergedProjects[projectId];
+        // Exibe apenas se houver pendências ou se o status indicar problema de acesso
+        if (proj.status === "Acesso não concedido" || proj.pendencias > 0) {
+          let linha = `• [${proj.name}](${proj.spreadsheetLink}) `;
+          if (proj.status === "Acesso não concedido") {
+            linha += "– Acesso não concedido.";
+          } else {
+            linha += `tem ${proj.pendencias} pendências.`;
+          }
+          linhas.push(linha);
+        }
+      }
+
+      let resposta = "";
+      if (linhas.length === 0) {
+        resposta = "Nenhuma pendência encontrada em nenhum projeto.";
+      } else {
+        resposta = "Projetos com pendências encontradas:\n" + linhas.join("\n");
+      }
+
+      console.log("[verificar_pendencias] Comando concluído com sucesso.");
+      await ctx.replyWithMarkdown(resposta);
+      return; // Garante retorno para evitar warning de paths
     } catch (error) {
-      console.error("Erro ao verificar pendências:", error);
-      ctx.reply("Erro ao verificar pendências.");
+      console.error("[verificar_pendencias] Erro geral:", error);
+      await ctx.reply("Erro ao verificar pendências.");
+      return;
     }
   });
 }
 
 export const verificarPendenciasCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerVerificarPendenciasCommand,
+  name: () => "/verificar_pendencias",
+  help: () =>
+    "Verifica pendências dos projetos no Firebase e atualiza o status (incluindo acesso negado).",
+  description: () =>
+    "Lê a planilha RESUMO, atualiza os projetos no Firebase, verifica pendências nos projetos que não foram verificados hoje e retorna um relatório.",
 };

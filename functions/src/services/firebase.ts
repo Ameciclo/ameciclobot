@@ -43,21 +43,26 @@ export async function getCoordinators() {
   return coordinatorEntries;
 }
 
-// Função para salvar as pendências no nó "pendingItems" do Realtime Database
-export async function savePendingItems(
-  pendingItems: {
-    planilhaLink: string;
-    nomeProjeto: string;
-    quantidadePendencias: number;
-  }[]
-): Promise<void> {
-  try {
-    await admin.database().ref("pendingItems").set(pendingItems);
-    console.log("Pendências salvas no Firebase.");
-  } catch (error) {
-    console.error("Erro ao salvar pendências no Firebase:", error);
-    throw error;
-  }
+/**
+ * Retorna todos os projetos do nó "financeProjects".
+ */
+export async function getFinanceProjects(): Promise<any> {
+  const snap = await admin.database().ref("financeProjects").once("value");
+  return snap.val() || {};
+}
+
+/**
+ * Sobrescreve (ou cria) todos os projetos no nó "financeProjects" de uma só vez.
+ */
+export async function saveFinanceProjects(projects: any) {
+  await admin.database().ref("financeProjects").set(projects);
+}
+
+/**
+ * Atualiza apenas um projeto específico no nó "financeProjects/{projectId}".
+ */
+export async function updateFinanceProject(projectId: string, update: any) {
+  await admin.database().ref(`financeProjects/${projectId}`).update(update);
 }
 
 export async function sendProjectsToDB(projectsJson: any) {
