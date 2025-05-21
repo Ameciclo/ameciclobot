@@ -17,7 +17,7 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
 
       const callbackData = callbackQuery.data as string;
       console.log("callbackData:", callbackData);
-      const requestId = callbackData.split("_")[2];
+      const requestId = callbackData.replace("cancel_payment_", "");
 
       const requestData: PaymentRequest | null = await getRequestData(
         requestId
@@ -31,7 +31,10 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
       await updatePaymentRequest(requestId, { status: "cancelled" });
 
       // Reconstrói o trecho original e acrescenta a nota de cancelamento
-      const messageText = excerptFromRequest(requestData, "❌❌❌ Solicitação CANCELADA. ❌❌❌");
+      const messageText = excerptFromRequest(
+        requestData,
+        "❌❌❌ Solicitação CANCELADA. ❌❌❌"
+      );
 
       await ctx.editMessageText(messageText);
       console.log(`Pagamento ${requestId} cancelado com sucesso.`);
