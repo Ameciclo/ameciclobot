@@ -6,7 +6,7 @@ import { formatDate } from "../utils/utils";
 // Função para sanitizar o nome do arquivo
 function sanitizeFileName(text: string, maxLength = 50): string {
   // Remove caracteres inválidos para nomes de arquivo
-  let sanitized = text
+  const sanitized = text
     .replace(/[\\/:*?"<>|]/g, "_") // Substitui caracteres inválidos por underscore
     .replace(/\r?\n|\r/g, " ") // Substitui quebras de linha por espaços
     .trim();
@@ -34,7 +34,7 @@ export async function registerArquivarComprovanteCommand(
     }
 
     // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
-    let document =
+    const document =
       ctx.message.reply_to_message && "document" in ctx.message.reply_to_message
         ? ctx.message.reply_to_message.document
         : undefined;
