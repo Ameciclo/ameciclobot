@@ -123,10 +123,12 @@ Texto:
       const inlineKeyboard = {
         reply_markup: {
           inline_keyboard: [
-            calendars.map((calendar: any, index: number) => ({
-              text: `➕ ${calendar.name}`,
-              callback_data: `add_event_${index}`,
-            })),
+            ...calendars.map((calendar: any, index: number) => [
+              {
+                text: `➕ ${calendar.name}`,
+                callback_data: `add_event_${index}`,
+              },
+            ]),
             [{ text: "❌ Não adicionar", callback_data: "add_event_skip" }],
           ],
         },
