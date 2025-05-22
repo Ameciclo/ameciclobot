@@ -77,7 +77,7 @@ export async function sendPaymentRequestHandler(
     for (const coordinator of coordinators) {
       try {
         // Mensagem simplificada conforme solicitado: tipo de transação, valor, projeto
-        const simplifiedMessage = `${request.transactionType}, ${request.value}, ${request.project.name}`;
+        const simplifiedMessage = `💰${request.transactionType}\n💵${request.value}\n🗂${request.project.name}`;
         
         // Cria o botão de confirmação para o coordenador
         const confirmButton = Markup.button.callback(

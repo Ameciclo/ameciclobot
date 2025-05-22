@@ -284,7 +284,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
               await ctx.telegram.deleteMessage(coordId, messageId);
             } else {
               // Se não assinou, atualiza a mensagem com botão
-              const updatedMessage = `Falta sua assinatura, ${requestData.transactionType}, ${requestData.value}, ${requestData.project.name}`;
+              const updatedMessage = `Assina lá!\n💰${requestData.transactionType}\n💵${requestData.value}\n🗂${requestData.project.name}`;
               
               // Cria o botão de confirmação para o coordenador
               const confirmButton = Markup.button.callback(
