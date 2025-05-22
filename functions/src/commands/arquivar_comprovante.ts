@@ -68,7 +68,7 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
       }
 
       // Verifica se o projeto tem um folderId configurado
-      const folderId = requestData.project.folderId;
+      const folderId = requestData.project.folder_id;
       if (!folderId) {
         await ctx.reply(
           `O projeto ${requestData.project.name} não tem uma pasta configurada no Google Drive.`
