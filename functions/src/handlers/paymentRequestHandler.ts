@@ -70,9 +70,12 @@ export async function sendPaymentRequestHandler(
 
     for (const coordinator of coordinators) {
       try {
+        // Mensagem simplificada conforme solicitado: tipo de transação, valor, projeto
+        const simplifiedMessage = `💰 ${request.transactionType} 💵 ${request.value} 🗂 ${request.project.name}`;
+        
         await bot.telegram.sendMessage(
           coordinator.telegram_user.id,
-          messageToGroup
+          simplifiedMessage
         );
       } catch (err) {
         console.error(
