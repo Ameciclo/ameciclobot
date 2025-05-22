@@ -1,4 +1,4 @@
-import { Context } from "telegraf";
+import { Context, Telegraf } from "telegraf";
 import { getRequestData } from "../services/firebase";
 import { uploadInvoice } from "../services/google";
 import { formatDate } from "../utils/utils";
@@ -17,113 +17,118 @@ function sanitizeFileName(text: string, maxLength = 50): string {
     : sanitized;
 }
 
-export async function registerArquivarComprovanteCommand(
-  ctx: Context
-): Promise<void> {
-  try {
-    // Verifica se é uma resposta a uma mensagem
-    if (
-      !ctx.message ||
-      !("reply_to_message" in ctx.message) ||
-      !ctx.message.reply_to_message
-    ) {
-      await ctx.reply(
-        "Este comando deve ser usado como resposta a uma mensagem com um arquivo de comprovante."
+export async function registerArquivarComprovanteCommand(bot: Telegraf) {
+  bot.command("arquivar_comprovante", async (ctx: Context) => {
+    try {
+      // Verifica se é uma resposta a uma mensagem
+      if (
+        !ctx.message ||
+        !("reply_to_message" in ctx.message) ||
+        !ctx.message.reply_to_message
+      ) {
+        await ctx.reply(
+          "Este comando deve ser usado como resposta a uma mensagem com um arquivo de comprovante."
+        );
+        return;
+      }
+
+      // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
+      const document =
+        ctx.message.reply_to_message &&
+        "document" in ctx.message.reply_to_message
+          ? ctx.message.reply_to_message.document
+          : undefined;
+
+      if (!document) {
+        await ctx.reply(
+          "Nenhum arquivo ou imagem encontrado na mensagem respondida."
+        );
+        return;
+      }
+
+      // Extrai o ID da transação do comando
+      const text = ctx.text || "";
+      const match = text.match(/\/arquivar_comprovante\s+([a-zA-Z0-9_-]+)/);
+
+      if (!match || !match[1]) {
+        await ctx.reply(
+          "Formato incorreto. Use: /arquivar_comprovante [id da transação]"
+        );
+        return;
+      }
+
+      const requestId = match[1];
+
+      // Busca os dados da solicitação no Firebase
+      const requestData = await getRequestData(requestId);
+
+      if (!requestData) {
+        await ctx.reply(`Solicitação com ID ${requestId} não encontrada.`);
+        return;
+      }
+
+      // Verifica se o projeto tem um folderId configurado
+      const folderId = requestData.project.folderId;
+      if (!folderId) {
+        await ctx.reply(
+          `O projeto ${requestData.project.name} não tem uma pasta configurada no Google Drive.`
+        );
+        return;
+      }
+
+      // Obtém o arquivo do Telegram
+      const fileId = document.file_id;
+      const file = await ctx.telegram.getFile(fileId);
+
+      if (!file.file_path) {
+        await ctx.reply("Não foi possível obter o arquivo.");
+        return;
+      }
+
+      // Obtém a URL do arquivo
+      const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+
+      // Baixa o arquivo
+      const response = await fetch(fileUrl);
+      const fileBuffer = (await response.arrayBuffer()) as Buffer;
+
+      // Prepara o nome do arquivo
+      const date = formatDate(new Date());
+      const fileName = `${date} - ${requestData.project.name} - ${
+        requestData.value
+      } - ${requestData.supplier.nickname} - ${sanitizeFileName(
+        requestData.description
+      )}`;
+
+      const uploadResponse = await uploadInvoice(
+        fileBuffer,
+        fileName,
+        folderId
       );
-      return;
-    }
 
-    // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
-    const document =
-      ctx.message.reply_to_message && "document" in ctx.message.reply_to_message
-        ? ctx.message.reply_to_message.document
-        : undefined;
+      if (uploadResponse === null || uploadResponse === undefined) {
+        await ctx.reply(
+          "Ocorreu um erro ao fazer o upload do arquivo. Por favor, tente novamente."
+        );
+      }
 
-    if (!document) {
+      // Atualiza a solicitação com o link do comprovante
+      const { updatePaymentRequest } = require("../services/firebase");
+      await updatePaymentRequest(requestId, {
+        receipt_url: uploadResponse,
+      });
+
+      // Responde com o link do arquivo
       await ctx.reply(
-        "Nenhum arquivo ou imagem encontrado na mensagem respondida."
+        `✅ Comprovante arquivado com sucesso!\n\n🔗 ${uploadResponse}`
       );
-      return;
-    }
-
-    // Extrai o ID da transação do comando
-    const text = ctx.text || "";
-    const match = text.match(/\/arquivar_comprovante\s+([a-zA-Z0-9_-]+)/);
-
-    if (!match || !match[1]) {
+    } catch (error) {
+      console.error("Erro ao arquivar comprovante:", error);
       await ctx.reply(
-        "Formato incorreto. Use: /arquivar_comprovante [id da transação]"
-      );
-      return;
-    }
-
-    const requestId = match[1];
-
-    // Busca os dados da solicitação no Firebase
-    const requestData = await getRequestData(requestId);
-
-    if (!requestData) {
-      await ctx.reply(`Solicitação com ID ${requestId} não encontrada.`);
-      return;
-    }
-
-    // Verifica se o projeto tem um folderId configurado
-    const folderId = requestData.project.folderId;
-    if (!folderId) {
-      await ctx.reply(
-        `O projeto ${requestData.project.name} não tem uma pasta configurada no Google Drive.`
-      );
-      return;
-    }
-
-    // Obtém o arquivo do Telegram
-    const fileId = document.file_id;
-    const file = await ctx.telegram.getFile(fileId);
-
-    if (!file.file_path) {
-      await ctx.reply("Não foi possível obter o arquivo.");
-      return;
-    }
-
-    // Obtém a URL do arquivo
-    const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
-
-    // Baixa o arquivo
-    const response = await fetch(fileUrl);
-    const fileBuffer = (await response.arrayBuffer()) as Buffer;
-
-    // Prepara o nome do arquivo
-    const date = formatDate(new Date());
-    const fileName = `${date} - ${requestData.project.name} - ${
-      requestData.value
-    } - ${requestData.supplier.nickname} - ${sanitizeFileName(
-      requestData.description
-    )}`;
-
-    const uploadResponse = await uploadInvoice(fileBuffer, fileName, folderId);
-
-    if (uploadResponse === null || uploadResponse === undefined) {
-      await ctx.reply(
-        "Ocorreu um erro ao fazer o upload do arquivo. Por favor, tente novamente."
+        "Ocorreu um erro ao processar o comprovante. Por favor, tente novamente."
       );
     }
-
-    // Atualiza a solicitação com o link do comprovante
-    const { updatePaymentRequest } = require("../services/firebase");
-    await updatePaymentRequest(requestId, {
-      receipt_url: uploadResponse,
-    });
-
-    // Responde com o link do arquivo
-    await ctx.reply(
-      `✅ Comprovante arquivado com sucesso!\n\n🔗 ${uploadResponse}`
-    );
-  } catch (error) {
-    console.error("Erro ao arquivar comprovante:", error);
-    await ctx.reply(
-      "Ocorreu um erro ao processar o comprovante. Por favor, tente novamente."
-    );
-  }
+  });
 }
 
 export const arquivarComprovanteCommand = {
