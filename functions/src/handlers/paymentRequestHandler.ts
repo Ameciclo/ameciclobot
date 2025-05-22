@@ -3,6 +3,7 @@ import { AmecicloUser, PaymentRequest } from "../config/types";
 import {
   updatePaymentRequestGroupMessage,
   updatePaymentRequestCoordinatorMessages,
+  getWorkgroupId,
 } from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 
@@ -109,6 +110,28 @@ export async function sendPaymentRequestHandler(
       request.id,
       coordinatorMessages
     );
+
+    // Enviar mensagem para o Grupo de Trabalho associado ao projeto
+    try {
+      // Assumindo que o nome do grupo de trabalho está no campo "responsible" do projeto
+      const workgroupName = request.project.responsible;
+      if (workgroupName) {
+        const workgroupId = await getWorkgroupId(workgroupName);
+        
+        if (workgroupId) {
+          // Enviar uma versão simplificada da mensagem para o grupo de trabalho
+          const workgroupMessage = `💰 Solicitação de ${request.transactionType}\n💵 Valor: ${request.value}\n🗂 Projeto: ${request.project.name}\n📝 Descrição: ${request.description}`;
+          
+          await bot.telegram.sendMessage(workgroupId, workgroupMessage);
+          console.log(`Mensagem enviada para o grupo de trabalho ${workgroupName} (ID: ${workgroupId})`);
+        } else {
+          console.log(`Grupo de trabalho não encontrado: ${workgroupName}`);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao enviar mensagem para o grupo de trabalho:", err);
+      // Não interrompe o fluxo principal se falhar
+    }
 
     return result;
   } catch (err) {
