@@ -16,7 +16,7 @@ const credentials = firebaseCredentials;
 // ------------------------------------------------------
 // Autenticação
 // ------------------------------------------------------
-function getJwt() {
+export function getJwt() {
   return new google.auth.JWT(
     credentials.client_email,
     undefined,
@@ -43,6 +43,33 @@ export function getSheetsClient() {
 // ------------------------------------------------------
 // Google Drive Functions
 // ------------------------------------------------------
+
+export async function uploadInvoice(
+  fileBuffer: Buffer,
+  fileName: string,
+  folderId: string
+): Promise<string | null | undefined> {
+  const drive = google.drive({ version: "v3", auth });
+
+  try {
+    const uploadResponse = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+      },
+      media: {
+        mimeType: "application/pdf",
+        body: fileBuffer,
+      },
+      fields: "id,webViewLink",
+    });
+
+    return uploadResponse.data.webViewLink;
+  } catch (error) {
+    console.error("Erro ao fazer upload do arquivo:", error);
+    throw error;
+  }
+}
 
 export async function uploadCSVToDrive(
   fileContent: string,

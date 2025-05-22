@@ -69,6 +69,7 @@ export interface ProjectInfo {
   id: string;
   name: string;
   responsible: string;
+  folder_id: string;
   spreadsheet_id?: string;
 }
 

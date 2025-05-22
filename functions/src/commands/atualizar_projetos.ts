@@ -53,6 +53,7 @@ function registerAtualizarProjetosCommand(bot: Telegraf) {
             responsible: row[headers.manager.col],
             account: row[headers.account.col],
             balance: row[headers.balance.col],
+            folder_id: getIdFromUrl(row[headers.folder.col]),
             budget_items,
             spreadsheet_id: id,
           };
