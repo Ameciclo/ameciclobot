@@ -115,6 +115,20 @@ export async function updatePaymentRequestGroupMessage(
   );
 }
 
+export async function updatePaymentRequestCoordinatorMessages(
+  requestId: string,
+  coordinatorMessages: Record<number, number>
+) {
+  // Armazena os IDs das mensagens enviadas aos coordenadores
+  await admin.database().ref(`requests/${requestId}`).update({
+    coordinator_messages: coordinatorMessages,
+  });
+
+  console.log(
+    `Coordinator messages updated for request ${requestId}`
+  );
+}
+
 export async function updatCalendarEvent(event: any, createdEvent: any) {
   await admin.database().ref(`calendar/${event.params.eventId}`).update({
     googleEventId: createdEvent.id,

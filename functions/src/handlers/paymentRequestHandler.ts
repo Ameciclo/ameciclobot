@@ -1,6 +1,9 @@
 import { Markup, Telegraf } from "telegraf";
 import { AmecicloUser, PaymentRequest } from "../config/types";
-import { updatePaymentRequestGroupMessage } from "../services/firebase";
+import {
+  updatePaymentRequestGroupMessage,
+  updatePaymentRequestCoordinatorMessages,
+} from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 
 function buildCoordinatorButtons(
@@ -68,15 +71,31 @@ export async function sendPaymentRequestHandler(
 
     await updatePaymentRequestGroupMessage(request, result.message_id);
 
+    // Objeto para armazenar os IDs das mensagens enviadas aos coordenadores
+    const coordinatorMessages: Record<number, number> = {};
+
     for (const coordinator of coordinators) {
       try {
         // Mensagem simplificada conforme solicitado: tipo de transação, valor, projeto
-        const simplifiedMessage = `💰 ${request.transactionType} 💵 ${request.value} 🗂 ${request.project.name}`;
+        const simplifiedMessage = `${request.transactionType}, ${request.value}, ${request.project.name}`;
         
-        await bot.telegram.sendMessage(
-          coordinator.telegram_user.id,
-          simplifiedMessage
+        // Cria o botão de confirmação para o coordenador
+        const confirmButton = Markup.button.callback(
+          "✅ Assinar",
+          `confirm_${coordinator.telegram_user.id}_${request.id}`
         );
+        
+        const keyboard = Markup.inlineKeyboard([[confirmButton]]);
+        
+        const sentMessage = await bot.telegram.sendMessage(
+          coordinator.telegram_user.id,
+          simplifiedMessage,
+          keyboard
+        );
+
+        // Armazena o ID da mensagem enviada para este coordenador
+        coordinatorMessages[coordinator.telegram_user.id] =
+          sentMessage.message_id;
       } catch (err) {
         console.error(
           `Erro ao enviar mensagem para coordenação (ID: ${coordinator.telegram_user.id}):`,
@@ -84,6 +103,12 @@ export async function sendPaymentRequestHandler(
         );
       }
     }
+
+    // Armazena os IDs das mensagens no Firebase
+    await updatePaymentRequestCoordinatorMessages(
+      request.id,
+      coordinatorMessages
+    );
 
     return result;
   } catch (err) {

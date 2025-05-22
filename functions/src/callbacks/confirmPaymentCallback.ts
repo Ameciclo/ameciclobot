@@ -219,6 +219,15 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       } else {
         await updatePaymentRequest(requestId, { signatures });
         await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+        
+        // Apaga a mensagem privada do coordenador que acabou de assinar
+        if (requestData.coordinator_messages && requestData.coordinator_messages[userId]) {
+          try {
+            await ctx.telegram.deleteMessage(userId, requestData.coordinator_messages[userId]);
+          } catch (err) {
+            console.error(`Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`, err);
+          }
+        }
       }
     }
 
@@ -255,6 +264,52 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
       await ctx.editMessageText(messageText, keyboard);
+
+      // Atualiza ou apaga as mensagens enviadas aos coordenadores
+      if (requestData.coordinator_messages) {
+        for (const coordinator of coordinators) {
+          const coordId = coordinator.telegram_user.id;
+          const messageId = requestData.coordinator_messages[coordId];
+          
+          if (!messageId) continue;
+
+          // Verifica se o coordenador já assinou
+          const hasSigned = Object.values(signatures).some(
+            (sig) => sig.id === coordId
+          );
+
+          try {
+            if (hasSigned) {
+              // Se já assinou, apaga a mensagem do privado
+              await ctx.telegram.deleteMessage(coordId, messageId);
+            } else {
+              // Se não assinou, atualiza a mensagem com botão
+              const updatedMessage = `Falta sua assinatura, ${requestData.transactionType}, ${requestData.value}, ${requestData.project.name}`;
+              
+              // Cria o botão de confirmação para o coordenador
+              const confirmButton = Markup.button.callback(
+                "✅ Assinar",
+                `confirm_${coordId}_${requestId}`
+              );
+              
+              const keyboard = Markup.inlineKeyboard([[confirmButton]]);
+              
+              await ctx.telegram.editMessageText(
+                coordId,
+                messageId,
+                undefined,
+                updatedMessage,
+                keyboard
+              );
+            }
+          } catch (err) {
+            console.error(
+              `Erro ao processar mensagem para coordenador (ID: ${coordId}):`,
+              err
+            );
+          }
+        }
+      }
     }
   } catch (error) {
     console.error("Erro ao confirmar pagamento:", error);

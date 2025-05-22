@@ -106,4 +106,5 @@ export interface PaymentRequest {
   status?: string;
   signatures?: { [key: number]: TelegramUserInfo };
   confirmed_by: TelegramUserInfo[] | undefined | [];
+  coordinator_messages?: { [key: number]: number }; // ID do coordenador -> ID da mensagem
 }
