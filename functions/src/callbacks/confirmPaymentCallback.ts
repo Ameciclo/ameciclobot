@@ -4,6 +4,7 @@ import {
   getRequestData,
   updatePaymentRequest,
   getCoordinators,
+  getWorkgroupId,
 } from "../services/firebase";
 import { updateSpreadsheet } from "../services/google";
 import {
@@ -219,13 +220,65 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       } else {
         await updatePaymentRequest(requestId, { signatures });
         await ctx.answerCbQuery("Sua assinatura foi adicionada.");
-        
+
         // Apaga a mensagem privada do coordenador que acabou de assinar
-        if (requestData.coordinator_messages && requestData.coordinator_messages[userId]) {
+        if (
+          requestData.coordinator_messages &&
+          requestData.coordinator_messages[userId]
+        ) {
           try {
-            await ctx.telegram.deleteMessage(userId, requestData.coordinator_messages[userId]);
+            await ctx.telegram.deleteMessage(
+              userId,
+              requestData.coordinator_messages[userId]
+            );
           } catch (err) {
-            console.error(`Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`, err);
+            console.error(
+              `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
+              err
+            );
+          }
+        }
+
+        // Atualiza a mensagem no grupo
+        if (requestData.group_message_id) {
+          try {
+            const financeGroupId = await getWorkgroupId("Financeiro");
+            const coordinators = await getCoordinators();
+            const coordinatorButtons = buildCoordinatorButtons(
+              coordinators,
+              signatures,
+              requestId
+            );
+            const viewSpreadsheetButton = Markup.button.url(
+              "📊 Ver Planilha",
+              `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+            );
+            const cancelButton = Markup.button.callback(
+              "❌ CANCELAR",
+              `cancel_payment_${requestData.id}`
+            );
+
+            const keyboard = Markup.inlineKeyboard([
+              coordinatorButtons,
+              [viewSpreadsheetButton, cancelButton],
+            ]);
+
+            const baseText = excerptFromRequest(
+              requestData,
+              `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+            );
+            const signedByText = buildSignedByText(signatures);
+            const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+
+            await ctx.telegram.editMessageText(
+              financeGroupId,
+              requestData.group_message_id,
+              undefined,
+              messageText,
+              keyboard
+            );
+          } catch (err) {
+            console.error("Erro ao atualizar mensagem no grupo:", err);
           }
         }
       }
@@ -270,7 +323,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         for (const coordinator of coordinators) {
           const coordId = coordinator.telegram_user.id;
           const messageId = requestData.coordinator_messages[coordId];
-          
+
           if (!messageId) continue;
 
           // Verifica se o coordenador já assinou
@@ -285,15 +338,15 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             } else {
               // Se não assinou, atualiza a mensagem com botão
               const updatedMessage = `Assina lá!\n💰${requestData.transactionType}\n💵${requestData.value}\n🗂${requestData.project.name}`;
-              
+
               // Cria o botão de confirmação para o coordenador
               const confirmButton = Markup.button.callback(
                 "✅ Assinar",
                 `confirm_${coordId}_${requestId}`
               );
-              
+
               const keyboard = Markup.inlineKeyboard([[confirmButton]]);
-              
+
               await ctx.telegram.editMessageText(
                 coordId,
                 messageId,
