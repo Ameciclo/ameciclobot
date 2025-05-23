@@ -46,12 +46,17 @@ export function getSheetsClient() {
 
 import { Readable } from 'stream';
 
-function bufferToStream(buffer: Buffer): Readable {
+function bufferToStream(buffer: Buffer | ArrayBuffer): Readable {
+  if (buffer instanceof ArrayBuffer) {
+    // Converte ArrayBuffer para Buffer
+    const uint8Array = new Uint8Array(buffer);
+    return Readable.from(Buffer.from(uint8Array));
+  }
   return Readable.from(buffer);
 }
 
 export async function uploadInvoice(
-  fileBuffer: Buffer,
+  fileBuffer: Buffer | ArrayBuffer,
   fileName: string,
   folderId: string
 ): Promise<string | null | undefined> {
