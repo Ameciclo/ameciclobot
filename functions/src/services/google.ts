@@ -44,6 +44,12 @@ export function getSheetsClient() {
 // Google Drive Functions
 // ------------------------------------------------------
 
+import { Readable } from 'stream';
+
+function bufferToStream(buffer: Buffer): Readable {
+  return Readable.from(buffer);
+}
+
 export async function uploadInvoice(
   fileBuffer: Buffer,
   fileName: string,
@@ -59,7 +65,7 @@ export async function uploadInvoice(
       },
       media: {
         mimeType: "application/pdf",
-        body: fileBuffer,
+        body: bufferToStream(fileBuffer)
       },
       fields: "id,webViewLink",
     });
