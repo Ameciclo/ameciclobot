@@ -120,7 +120,7 @@ export async function sendPaymentRequestHandler(
         
         if (workgroupId) {
           // Enviar uma versão simplificada da mensagem para o grupo de trabalho
-          const workgroupMessage = `💰 Solicitação de ${request.transactionType}\n💵 Valor: ${request.value}\n🗂 Projeto: ${request.project.name}\n📝 Descrição: ${request.description}`;
+          const workgroupMessage = `💰 ${request.transactionType}\n💵 Valor: ${request.value}\n🗂 Projeto: ${request.project.name}\n📝 Descrição: ${request.description}`;
           
           await bot.telegram.sendMessage(workgroupId, workgroupMessage);
           console.log(`Mensagem enviada para o grupo de trabalho ${workgroupName} (ID: ${workgroupId})`);
