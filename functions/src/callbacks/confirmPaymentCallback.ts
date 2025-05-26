@@ -95,9 +95,11 @@ async function updateGoogleSheetAndRequest(
     try {
       await ctx.editMessageText(messageText, keyboard);
     } catch (error: any) {
-      // Ignora o erro se a mensagem for idêntica
+      // Ignora o erro se a mensagem for idêntica ou não existir mais
       if (error.description && error.description.includes("message is not modified")) {
         console.log("Mensagem não modificada, conteúdo idêntico.");
+      } else if (error.description && error.description.includes("message to edit not found")) {
+        console.log("Mensagem não encontrada, pode ter sido apagada.");
       } else {
         throw error;
       }
@@ -240,11 +242,16 @@ export async function confirmPayment(ctx: Context): Promise<void> {
               userId,
               requestData.coordinator_messages[userId]
             );
-          } catch (err) {
-            console.error(
-              `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
-              err
-            );
+          } catch (err: any) {
+            // Ignora o erro específico de mensagem não encontrada
+            if (err.description && err.description.includes("message to delete not found")) {
+              console.log(`Mensagem do coordenador ${userId} já foi apagada ou não existe mais.`);
+            } else {
+              console.error(
+                `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
+                err
+              );
+            }
           }
         }
 
@@ -288,9 +295,11 @@ export async function confirmPayment(ctx: Context): Promise<void> {
                 keyboard
               );
             } catch (error: any) {
-              // Ignora o erro se a mensagem for idêntica
+              // Ignora o erro se a mensagem for idêntica ou não existir mais
               if (error.description && error.description.includes("message is not modified")) {
                 console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
+              } else if (error.description && error.description.includes("message to edit not found")) {
+                console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
               } else {
                 throw error;
               }
@@ -337,9 +346,11 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       try {
         await ctx.editMessageText(messageText, keyboard);
       } catch (error: any) {
-        // Ignora o erro se a mensagem for idêntica
+        // Ignora o erro se a mensagem for idêntica ou não existir mais
         if (error.description && error.description.includes("message is not modified")) {
           console.log("Mensagem não modificada, conteúdo idêntico.");
+        } else if (error.description && error.description.includes("message to edit not found")) {
+          console.log("Mensagem não encontrada, pode ter sido apagada.");
         } else {
           throw error;
         }
@@ -361,7 +372,16 @@ export async function confirmPayment(ctx: Context): Promise<void> {
           try {
             if (hasSigned) {
               // Se já assinou, apaga a mensagem do privado
-              await ctx.telegram.deleteMessage(coordId, messageId);
+              try {
+                await ctx.telegram.deleteMessage(coordId, messageId);
+              } catch (error: any) {
+                // Ignora o erro específico de mensagem não encontrada
+                if (error.description && error.description.includes("message to delete not found")) {
+                  console.log(`Mensagem do coordenador ${coordId} já foi apagada ou não existe mais.`);
+                } else {
+                  console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+                }
+              }
             } else {
               // Se não assinou, atualiza a mensagem com botão
               const updatedMessage = `Assina lá!\n💰${requestData.transactionType}\n💵${requestData.value}\n🗂${requestData.project.name}`;
@@ -383,9 +403,11 @@ export async function confirmPayment(ctx: Context): Promise<void> {
                   keyboard
                 );
               } catch (error: any) {
-                // Ignora o erro se a mensagem for idêntica
+                // Ignora o erro se a mensagem for idêntica ou não existir mais
                 if (error.description && error.description.includes("message is not modified")) {
                   console.log(`Mensagem para coordenador ${coordId} não modificada, conteúdo idêntico.`);
+                } else if (error.description && error.description.includes("message to edit not found")) {
+                  console.log(`Mensagem para coordenador ${coordId} não encontrada, pode ter sido apagada.`);
                 } else {
                   throw error;
                 }
