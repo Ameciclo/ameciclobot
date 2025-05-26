@@ -92,7 +92,16 @@ async function updateGoogleSheetAndRequest(
     );
     const signedByText = buildSignedByText(signatures);
     const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-    await ctx.editMessageText(messageText, keyboard);
+    try {
+      await ctx.editMessageText(messageText, keyboard);
+    } catch (error: any) {
+      // Ignora o erro se a mensagem for idêntica
+      if (error.description && error.description.includes("message is not modified")) {
+        console.log("Mensagem não modificada, conteúdo idêntico.");
+      } else {
+        throw error;
+      }
+    }
 
     console.log("Pagamento confirmado!");
     return true;
@@ -270,13 +279,22 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             const signedByText = buildSignedByText(signatures);
             const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
-            await ctx.telegram.editMessageText(
-              financeGroupId,
-              requestData.group_message_id,
-              undefined,
-              messageText,
-              keyboard
-            );
+            try {
+              await ctx.telegram.editMessageText(
+                financeGroupId,
+                requestData.group_message_id,
+                undefined,
+                messageText,
+                keyboard
+              );
+            } catch (error: any) {
+              // Ignora o erro se a mensagem for idêntica
+              if (error.description && error.description.includes("message is not modified")) {
+                console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
+              } else {
+                throw error;
+              }
+            }
           } catch (err) {
             console.error("Erro ao atualizar mensagem no grupo:", err);
           }
@@ -316,7 +334,16 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       const signedByText = buildSignedByText(signatures);
       const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
-      await ctx.editMessageText(messageText, keyboard);
+      try {
+        await ctx.editMessageText(messageText, keyboard);
+      } catch (error: any) {
+        // Ignora o erro se a mensagem for idêntica
+        if (error.description && error.description.includes("message is not modified")) {
+          console.log("Mensagem não modificada, conteúdo idêntico.");
+        } else {
+          throw error;
+        }
+      }
 
       // Atualiza ou apaga as mensagens enviadas aos coordenadores
       if (requestData.coordinator_messages) {
@@ -347,13 +374,22 @@ export async function confirmPayment(ctx: Context): Promise<void> {
 
               const keyboard = Markup.inlineKeyboard([[confirmButton]]);
 
-              await ctx.telegram.editMessageText(
-                coordId,
-                messageId,
-                undefined,
-                updatedMessage,
-                keyboard
-              );
+              try {
+                await ctx.telegram.editMessageText(
+                  coordId,
+                  messageId,
+                  undefined,
+                  updatedMessage,
+                  keyboard
+                );
+              } catch (error: any) {
+                // Ignora o erro se a mensagem for idêntica
+                if (error.description && error.description.includes("message is not modified")) {
+                  console.log(`Mensagem para coordenador ${coordId} não modificada, conteúdo idêntico.`);
+                } else {
+                  throw error;
+                }
+              }
             }
           } catch (err) {
             console.error(
