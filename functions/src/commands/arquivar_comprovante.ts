@@ -1,4 +1,4 @@
-import { Context, Telegraf } from "telegraf";
+import { Context, Markup, Telegraf } from "telegraf";
 import { getRequestData } from "../services/firebase";
 import { uploadInvoice } from "../services/google";
 import { formatDate } from "../utils/utils";
@@ -18,6 +18,7 @@ function sanitizeFileName(text: string, maxLength = 50): string {
 }
 
 export async function registerArquivarComprovanteCommand(bot: Telegraf) {
+  // Usando hears para capturar o comando com ou sem o sufixo @botname
   bot.command("arquivar_comprovante", async (ctx: Context) => {
     try {
       // Verifica se é uma resposta a uma mensagem
@@ -48,7 +49,8 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
 
       // Extrai o ID da transação do comando
       const text = ctx.text || "";
-      const match = text.match(/\/arquivar_comprovante\s+([a-zA-Z0-9_-]+)/);
+      // Regex atualizado para capturar o ID mesmo com o sufixo @botname
+      const match = text.match(/\/arquivar_comprovante(?:@\w+)?\s+([a-zA-Z0-9_-]+)/);
 
       if (!match || !match[1]) {
         await ctx.reply(
@@ -110,6 +112,7 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
         await ctx.reply(
           "Ocorreu um erro ao fazer o upload do arquivo. Por favor, tente novamente."
         );
+        return;
       }
 
       // Atualiza a solicitação com o link do comprovante
@@ -118,9 +121,17 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
         receipt_url: uploadResponse,
       });
 
-      // Responde com o link do arquivo
+      // Cria os botões para os links
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url("📄 Ver Comprovante", uploadResponse)],
+        [Markup.button.url("📁 Pasta de Comprovantes", `https://drive.google.com/drive/folders/${folderId}`)],
+        [Markup.button.url("📊 Planilha Financeira", `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`)]
+      ]);
+
+      // Responde com o nome do arquivo e os botões
       await ctx.reply(
-        `✅ Comprovante arquivado com sucesso!\n\n🔗 ${uploadResponse}`
+        `✅ Comprovante arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}`,
+        keyboard
       );
     } catch (error) {
       console.error("Erro ao arquivar comprovante:", error);
