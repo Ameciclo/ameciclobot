@@ -385,6 +385,7 @@ export async function appendSheetRowAsPromise(
 ): Promise<string> {
   const sheets = getSheetsClient();
   try {
+    console.log("Tentando adicionar linha na planilha:", { spreadsheetId, range, row });
     const result = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
@@ -392,14 +393,16 @@ export async function appendSheetRowAsPromise(
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });
+    const updatedRange = result.data.updates?.updatedRange || "";
     console.log(
       "Linha adicionada com sucesso:",
-      result.data.updates?.updatedRange
+      updatedRange
     );
-    return result.data.updates?.updatedRange || "";
+    return updatedRange;
   } catch (error) {
     console.error("Erro ao adicionar linha na planilha:", error);
-    throw error;
+    console.error("Detalhes do erro:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    return "";
   }
 }
 
