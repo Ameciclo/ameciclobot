@@ -1,6 +1,7 @@
 import { Context, Telegraf } from "telegraf";
 import { appendSheetRowAsPromise } from "../services/google";
 import urls from "../credentials/urls.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 const MIN_TOPIC_SIZE = 5;
 
@@ -119,6 +120,42 @@ export function register(bot: Telegraf) {
       );
 
       if (success) {
+        // Encontrar o ID do grupo de Comunicação
+        const comunicacaoGroup = workgroups.find((group: any) => group.label === "Comunicação");
+        
+        if (comunicacaoGroup) {
+          try {
+            // Formatar a data para exibição
+            const displayDate = dueDate ? `${dueDate}` : "Não definida";
+            
+            // Enviar mensagem para o grupo de Comunicação
+            await bot.telegram.sendMessage(
+              comunicacaoGroup.value,
+              `📢 *NOVA DEMANDA DE COMUNICAÇÃO*\n\n*DATA LIMITE:* ${displayDate}\n\n*SOLICITANTE:* ${author}\n\n*DEMANDA:*\n${text}`,
+              {
+                parse_mode: "Markdown",
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      {
+                        text: "📝 Ver planilha",
+                        url: `https://docs.google.com/spreadsheets/d/${urls.communication.id}`,
+                      },
+                    ],
+                  ],
+                },
+              }
+            );
+            
+            console.log("Mensagem enviada para o grupo de Comunicação");
+          } catch (error) {
+            console.error("Erro ao enviar mensagem para o grupo de Comunicação:", error);
+          }
+        } else {
+          console.error("Grupo de Comunicação não encontrado em workgroupsfolders.json");
+        }
+        
+        // Responder ao usuário que enviou o comando
         return ctx.reply(
           `Valeu, ${from.first_name}! Demanda de comunicação registrada com sucesso! Veja na planilha:`,
           {
