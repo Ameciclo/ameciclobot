@@ -4,6 +4,7 @@ import { atualizarProjetosCommand } from "./commands/atualizar_projetos";
 import { pautaCommand } from "./commands/pauta";
 import { clippingCommand } from "./commands/clipping";
 import { demandaCommand } from "./commands/demanda";
+import { comunicacaoCommand } from "./commands/comunicacao";
 import { documentoCommand } from "./commands/documento";
 import { encaminhamentoCommand } from "./commands/encaminhamento";
 import { eventoCommand } from "./commands/evento";
@@ -25,6 +26,7 @@ export const commandsList = [
   atualizarPendenciasCommand,
   atualizarProjetosCommand,
   clippingCommand,
+  comunicacaoCommand,
   demandaCommand,
   documentoCommand,
   encaminhamentoCommand,
