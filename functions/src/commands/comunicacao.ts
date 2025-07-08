@@ -5,6 +5,74 @@ import workgroups from "../credentials/workgroupsfolders.json";
 
 const MIN_TOPIC_SIZE = 5;
 
+// Utilitário para escape de MarkdownV2
+function escapeMarkdownV2(text: string): string {
+  return text.replace(/([_*[\]()~`>#+-=|{}.!\\])/g, '\\$1');
+}
+
+// Utilitário para validação de data flexível
+function parseDate(input: string): Date | null {
+  const formats = [
+    /^(\d{1,2})\/(\d{1,2})$/, // DD/MM ou D/M
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // DD/MM/YYYY
+    /^(\d{1,2})-(\d{1,2})$/, // DD-MM
+    /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // DD-MM-YYYY
+    /^(\d{1,2})\.(\d{1,2})$/, // DD.MM
+    /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/ // DD.MM.YYYY
+  ];
+  
+  const currentYear = new Date().getFullYear();
+  
+  for (const format of formats) {
+    const match = input.match(format);
+    if (match) {
+      const day = parseInt(match[1]);
+      const month = parseInt(match[2]);
+      const year = match[3] ? parseInt(match[3]) : currentYear;
+      
+      // Validar se é uma data válida
+      const date = new Date(year, month - 1, day);
+      if (date.getDate() === day && date.getMonth() === month - 1) {
+        return date;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Utilitário para extrair data e texto da demanda
+function parseDemand(input: string): { date: Date | null; text: string } {
+  // Tenta encontrar uma data no início da string
+  const words = input.trim().split(/\s+/);
+  
+  if (words.length === 0) {
+    return { date: null, text: "" };
+  }
+  
+  // Testa se a primeira palavra é uma data
+  const possibleDate = parseDate(words[0]);
+  
+  if (possibleDate) {
+    // Remove a primeira palavra (data) e pega o resto como texto
+    const text = words.slice(1).join(" ");
+    return { date: possibleDate, text };
+  }
+  
+  // Se não encontrou data, usa data padrão (7 dias) e todo o texto
+  const defaultDate = new Date();
+  defaultDate.setDate(defaultDate.getDate() + 7);
+  
+  return { date: defaultDate, text: input.trim() };
+}
+
+// Utilitário para formatar data como DD/MM
+function formatDateDDMM(date: Date): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
+}
+
 export function getName() {
   return "/comunicacao";
 }
@@ -12,10 +80,17 @@ export function getName() {
 export function getHelp() {
   return (
     "Use o comando `/comunicacao` para registrar uma demanda para o grupo de Comunicação\\. Os formatos aceitos são:\\n" +
-    "1\\. Com data: `/comunicacao \\[data limite\\] \\[texto da demanda\\]`\\n" +
-    "2\\. Sem data: `/comunicacao \\[texto da demanda\\]`\\n" +
-    "Exemplos:\\n`/comunicacao 22/09 Criar post para Instagram sobre mobilidade`\\n" +
-    "`/comunicacao Criar post para Instagram sobre mobilidade`"
+    "1\\. Com data: `/comunicacao [data] [texto da demanda]`\\n" +
+    "2\\. Sem data: `/comunicacao [texto da demanda]`\\n" +
+    "3\\. Em resposta: Responda uma mensagem com `/comunicacao [data opcional]`\\n" +
+    "\\n*Formatos de data aceitos:*\\n" +
+    "• `15/12` ou `15/12/2024`\\n" +
+    "• `15-12` ou `15-12-2024`\\n" +
+    "• `15.12` ou `15.12.2024`\\n" +
+    "\\n*Exemplos:*\\n" +
+    "`/comunicacao 22/09 Criar post para Instagram sobre mobilidade`\\n" +
+    "`/comunicacao Criar post para Instagram sobre mobilidade`\\n" +
+    "Ou responda uma mensagem com: `/comunicacao 15/12`"
   );
 }
 
@@ -26,139 +101,42 @@ export function getDescription() {
 export function register(bot: Telegraf) {
   bot.command("comunicacao", async (ctx: Context) => {
     try {
-      console.log("Comando /comunicacao recebido");
+      console.log("[comunicacao] Comando recebido");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
       
-      console.log("Dados do remetente:", from);
-      console.log("Dados do chat:", chat);
-
-      // Verifica se a mensagem possui texto
-      let demand: string | undefined;
-      if (ctx.message && "text" in ctx.message) {
-        demand = ctx.message.text.replace("/comunicacao", "").trim();
-        console.log("Texto da demanda extraído:", demand);
-      }
-
-      if (!from || !chat || !demand) {
-        console.log("Dados incompletos:", { from: !!from, chat: !!chat, demand: !!demand });
-        return ctx.reply(getHelp(), {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "📝 Ver demandas de comunicação",
-                  url: `https://docs.google.com/spreadsheets/d/${urls.communication.id}`,
-                },
-              ],
-            ],
-          },
+      if (!from || !chat) {
+        console.log("[comunicacao] Dados incompletos");
+        await ctx.reply("❌ Não foi possível identificar as informações da mensagem\.", {
+          parse_mode: "MarkdownV2"
         });
+        return;
       }
 
-      // Regex para validar o formato: [data opcional] [texto]
-      // Formato 1: DD/MM texto
-      // Formato 2: texto (sem data)
-      const demandRegexWithDate = /^(\d{2}\/\d{2})\s+(.+)$/;
-      const demandRegexWithoutDate = /^(.+)$/;
+      // Extrair texto da demanda (comando direto ou resposta)
+      let demandText = "";
+      let datePrefix = "";
+      const msg = ctx.message as any;
       
-      let match = demand.match(demandRegexWithDate);
-      let dueDate = "";
-      let text = "";
-      
-      console.log("Tentando validar com data:", { match: !!match, demand });
-      
-      if (match) {
-        // Formato com data
-        const [, matchedDueDate, matchedText] = match;
-        dueDate = matchedDueDate;
-        text = matchedText;
-      } else {
-        // Tentar formato sem data
-        match = demand.match(demandRegexWithoutDate);
-        console.log("Tentando validar sem data:", { match: !!match, demand });
-        
-        if (!match) {
-          console.log("Formato inválido da demanda");
-          return ctx.reply(
-            "Formato inválido! Use o formato:\n`/comunicacao \\[data limite\\] \\[texto da demanda\\]`\nOu sem data:\n`/comunicacao \\[texto da demanda\\]`\nExemplo:\n`/comunicacao 20/12/2023 Criar post para Instagram sobre mobilidade`",
-            { parse_mode: "Markdown" }
-          );
-        }
-        
-        // Formato sem data, usar data atual + 7 dias como padrão
-        const defaultDueDate = new Date();
-        defaultDueDate.setDate(defaultDueDate.getDate() + 7);
-        dueDate = `${String(defaultDueDate.getDate()).padStart(2, '0')}/${String(defaultDueDate.getMonth() + 1).padStart(2, '0')}`;
-        const [, matchedText] = match;
-        text = matchedText;
-        console.log("Usando formato sem data:", { dueDate, text });
+      if (msg?.reply_to_message?.text) {
+        // Usando em resposta a uma mensagem
+        demandText = msg.reply_to_message.text;
+        // Pegar data opcional do comando
+        datePrefix = msg.text.replace("/comunicacao", "").trim();
+        console.log("[comunicacao] Texto extraído de mensagem respondida", { datePrefix });
+      } else if (msg?.text) {
+        // Comando direto
+        demandText = msg.text.replace("/comunicacao", "").trim();
+        console.log("[comunicacao] Texto extraído do comando direto");
       }
 
-      // Validação adicional: verificar número mínimo de palavras no texto da demanda
-      console.log("Verificando tamanho do texto:", { text, palavras: text.split(" ").length });
-      if (text.split(" ").length < MIN_TOPIC_SIZE) {
-        return ctx.reply(
-          `${from.first_name}, a descrição da demanda precisa ter pelo menos ${MIN_TOPIC_SIZE} palavras. Descreva melhor e tente novamente.`
-        );
-      }
-
-      // Prepara os dados para registro
-      const date = new Date().toLocaleString();
-      const group =
-        chat.type === "group" || chat.type === "supergroup"
-          ? chat.title
-          : "Privado";
-      const author = `${from.first_name} ${from.last_name || ""}`;
-      const recipients = "Grupo Comunicação";
-
-      // Salva na planilha usando o serviço do Google Sheets
-      const success = await appendSheetRowAsPromise(
-        urls.communication.id,
-        urls.communication.range + urls.communication.offset,
-        [date, group, author, dueDate, recipients, text]
-      );
-
-      if (success) {
-        // Encontrar o ID do grupo de Comunicação
-        const comunicacaoGroup = workgroups.find((group: any) => group.label === "Comunicação");
-        
-        if (comunicacaoGroup) {
-          try {
-            // Formatar a data para exibição
-            const displayDate = dueDate ? `${dueDate}` : "Não definida";
-            
-            // Enviar mensagem para o grupo de Comunicação
-            await bot.telegram.sendMessage(
-              comunicacaoGroup.value,
-              `📢 *NOVA DEMANDA DE COMUNICAÇÃO*\n\n*DATA LIMITE:* ${displayDate}\n\n*SOLICITANTE:* ${author}\n\n*DEMANDA:*\n${text}`,
-              {
-                parse_mode: "Markdown",
-                reply_markup: {
-                  inline_keyboard: [
-                    [
-                      {
-                        text: "📝 Ver planilha",
-                        url: `https://docs.google.com/spreadsheets/d/${urls.communication.id}`,
-                      },
-                    ],
-                  ],
-                },
-              }
-            );
-            
-            console.log("Mensagem enviada para o grupo de Comunicação");
-          } catch (error) {
-            console.error("Erro ao enviar mensagem para o grupo de Comunicação:", error);
-          }
-        } else {
-          console.error("Grupo de Comunicação não encontrado em workgroupsfolders.json");
-        }
-        
-        // Responder ao usuário que enviou o comando
-        return ctx.reply(
-          `Valeu, ${from.first_name}! Demanda de comunicação registrada com sucesso! Veja na planilha:`,
+      if (!demandText) {
+        console.log("[comunicacao] Texto da demanda vazio");
+        await ctx.reply(
+          "📢 *Como usar o comando /comunicacao*\n\n" + getHelp(),
           {
+            parse_mode: "MarkdownV2",
             reply_markup: {
               inline_keyboard: [
                 [
@@ -171,16 +149,129 @@ export function register(bot: Telegraf) {
             },
           }
         );
-      } else {
-        return ctx.reply(
-          "Houve um erro ao salvar a demanda. Tente novamente mais tarde."
-        );
+        return;
       }
+
+      // Parsear data e texto
+      let { date, text } = parseDemand(demandText);
+      
+      // Se foi usado em resposta e tem data no comando, usar essa data
+      if (msg?.reply_to_message?.text && datePrefix) {
+        const prefixDate = parseDate(datePrefix);
+        if (prefixDate) {
+          date = prefixDate;
+          text = demandText; // Usar texto completo da mensagem respondida
+        }
+      }
+      
+      console.log("[comunicacao] Dados parseados:", { 
+        originalText: demandText,
+        parsedDate: date?.toISOString(),
+        parsedText: text,
+        wordCount: text.split(" ").length
+      });
+
+      // Validar tamanho mínimo do texto
+      if (text.split(" ").length < MIN_TOPIC_SIZE) {
+        await ctx.reply(
+          `❌ ${escapeMarkdownV2(from.first_name)}, a descrição da demanda precisa ter pelo menos ${MIN_TOPIC_SIZE} palavras\. Descreva melhor e tente novamente\.`,
+          { parse_mode: "MarkdownV2" }
+        );
+        return;
+      }
+
+      // Preparar dados para registro
+      const currentDate = new Date().toLocaleString();
+      const group = chat.type === "group" || chat.type === "supergroup" ? chat.title : "Privado";
+      const author = `${from.first_name} ${from.last_name || ""}`.trim();
+      const dueDate = date ? formatDateDDMM(date) : "";
+      const recipients = "Grupo Comunicação";
+
+      console.log("[comunicacao] Salvando na planilha:", {
+        spreadsheetId: urls.communication.id,
+        range: urls.communication.range + urls.communication.offset,
+        data: [currentDate, group, author, dueDate, recipients, text]
+      });
+
+      // Salvar na planilha
+      const success = await appendSheetRowAsPromise(
+        urls.communication.id,
+        urls.communication.range + urls.communication.offset,
+        [currentDate, group, author, dueDate, recipients, text]
+      );
+
+      if (!success) {
+        console.error("[comunicacao] Erro ao salvar na planilha");
+        await ctx.reply(
+          "❌ Houve um erro ao salvar a demanda\. Tente novamente mais tarde\.",
+          { parse_mode: "MarkdownV2" }
+        );
+        return;
+      }
+
+      // Encontrar grupo de Comunicação
+      const comunicacaoGroup = workgroups.find((group: any) => group.label === "Comunicação");
+      
+      if (comunicacaoGroup) {
+        try {
+          const displayDate = dueDate || "Não definida";
+          const messageText = 
+            `📢 *NOVA DEMANDA DE COMUNICAÇÃO*\n\n` +
+            `*DATA LIMITE:* ${escapeMarkdownV2(displayDate)}\n\n` +
+            `*SOLICITANTE:* ${escapeMarkdownV2(author)}\n\n` +
+            `*DEMANDA:*\n${escapeMarkdownV2(text)}`;
+
+          await bot.telegram.sendMessage(
+            comunicacaoGroup.value,
+            messageText,
+            {
+              parse_mode: "MarkdownV2",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: "📝 Ver planilha",
+                      url: `https://docs.google.com/spreadsheets/d/${urls.communication.id}`,
+                    },
+                  ],
+                ],
+              },
+            }
+          );
+          
+          console.log("[comunicacao] Mensagem enviada para o grupo de Comunicação");
+        } catch (error) {
+          console.error("[comunicacao] Erro ao enviar mensagem para o grupo:", error);
+        }
+      } else {
+        console.error("[comunicacao] Grupo de Comunicação não encontrado");
+      }
+      
+      // Resposta de sucesso
+      await ctx.reply(
+        `✅ Valeu, ${escapeMarkdownV2(from.first_name)}\! Demanda de comunicação registrada com sucesso\!`,
+        {
+          parse_mode: "MarkdownV2",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📝 Ver demandas de comunicação",
+                  url: `https://docs.google.com/spreadsheets/d/${urls.communication.id}`,
+                },
+              ],
+            ],
+          },
+        }
+      );
+
+      console.log("[comunicacao] Comando processado com sucesso");
+      
     } catch (error) {
-      console.error("Erro ao processar comando /comunicacao:", error);
-      console.error("Detalhes do erro:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      return ctx.reply(
-        "Ocorreu um erro ao registrar sua demanda de comunicação. Tente novamente mais tarde."
+      console.error("[comunicacao] Erro no comando:", error);
+      await ctx.reply(
+        "❌ Ocorreu um erro ao registrar sua demanda de comunicação\. Tente novamente mais tarde\.",
+        { parse_mode: "MarkdownV2" }
       );
     }
   });
