@@ -12,6 +12,7 @@ import { registrarPlanilhaCommand } from "../commands/registrar_planilha";
 import { clippingCommand } from "../commands/clipping";
 import { modeloCommand } from "../commands/modelo";
 import { arquivarComprovanteCommand } from "../commands/arquivar_comprovante";
+import { versaoCommand } from "../commands/versao";
 
 export const commandsList = [
   arquivarComprovanteCommand,
@@ -28,4 +29,5 @@ export const commandsList = [
   quem_sou_euCommand,
   registrarPlanilhaCommand,
   clippingCommand,
+  versaoCommand,
 ];

@@ -2,6 +2,7 @@
 import { Context, Telegraf } from "telegraf";
 import { commandsList } from "../utils/commands";
 import { escapeMarkdownV2 } from "../utils/utils";
+import { BOT_VERSION } from "../config/version";
 
 export function getStartCommandName() {
   return "/start";
@@ -31,6 +32,8 @@ async function startCommand(ctx: Context) {
   const header = `🎉 Olá, sou **@ameciclobot**\\! 🚴‍♀️🚴‍♂️
 
 Auxiliar para demandas e registros da **Associação Metropolitana de Ciclistas do Recife**\\.
+
+Versão: ${BOT_VERSION}
 
 Aqui estão os comandos disponíveis:`;
 
