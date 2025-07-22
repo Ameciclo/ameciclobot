@@ -10,6 +10,7 @@ function convertMonthToNumber(month: string): string {
     JANEIRO: "01",
     FEVEREIRO: "02",
     MARÇO: "03",
+    MARCO: "03",
     ABRIL: "04",
     MAIO: "05",
     JUNHO: "06",
