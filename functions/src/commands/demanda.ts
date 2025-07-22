@@ -4,25 +4,7 @@ import urls from "../credentials/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getName() {
-  return "/demanda";
-}
-
-export function getHelp() {
-  return (
-    "Use o comando `/demanda` para registrar uma demanda\\. Os formatos aceitos são:\n" +
-    "1\\. Com data: `/demanda \\[data limite\\] \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
-    "2\\. Sem data: `/demanda \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
-    "Exemplos:\n`/demanda 22/09 @ameciclobot Fazer um bot pro Telegram`\n" +
-    "`/demanda @ameciclobot Fazer um bot pro Telegram`"
-  );
-}
-
-export function getDescription() {
-  return "📌 Registrar uma demanda com data limite.";
-}
-
-export function register(bot: Telegraf) {
+function registerDemandaCommand(bot: Telegraf) {
   bot.command("demanda", async (ctx: Context) => {
     try {
       console.log("Comando /demanda recebido");
@@ -44,7 +26,7 @@ export function register(bot: Telegraf) {
 
       if (!from || !chat || !demand) {
         console.log("Dados incompletos:", { from: !!from, chat: !!chat, demand: !!demand });
-        return ctx.reply(getHelp(), {
+        return ctx.reply(demandaCommand.help(), {
           reply_markup: {
             inline_keyboard: [
               [
@@ -156,8 +138,13 @@ export function register(bot: Telegraf) {
 }
 
 export const demandaCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerDemandaCommand,
+  name: () => "/demanda",
+  help: () =>
+    "Use o comando `/demanda` para registrar uma demanda\\. Os formatos aceitos são:\n" +
+    "1\\. Com data: `/demanda \\[data limite\\] \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
+    "2\\. Sem data: `/demanda \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
+    "Exemplos:\n`/demanda 22/09 @ameciclobot Fazer um bot pro Telegram`\n" +
+    "`/demanda @ameciclobot Fazer um bot pro Telegram`",
+  description: () => "📌 Registrar uma demanda com data limite.",
 };

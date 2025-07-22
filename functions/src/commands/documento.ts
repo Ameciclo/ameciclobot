@@ -5,19 +5,7 @@ import workgroups from "../credentials/workgroupsfolders.json";
 
 // /commands/helpers.ts
 
-export function getName() {
-  return "/documento";
-}
-
-export function getHelp() {
-  return "Use o comando `/documento` para criar um Google Docs\\. O formato esperado é:\n`/documento \\[título do documento\\]`";
-}
-
-export function getDescription() {
-  return "🗎 Criar um Google Docs para documentos.";
-}
-
-export function register(bot: Telegraf) {
+function registerDocumentoCommand(bot: Telegraf) {
   bot.command("documento", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -114,8 +102,8 @@ export function register(bot: Telegraf) {
 }
 
 export const documentoCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerDocumentoCommand,
+  name: () => "/documento",
+  help: () => "Use o comando `/documento` para criar um Google Docs\\. O formato esperado é:\n`/documento \\[título do documento\\]`",
+  description: () => "🗎 Criar um Google Docs para documentos.",
 };

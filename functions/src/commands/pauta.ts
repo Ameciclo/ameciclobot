@@ -4,19 +4,7 @@ import urls from "../credentials/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 
-export function getName() {
-  return "/pauta";
-}
-
-export function getHelp() {
-  return "Use o comando `/pauta` para adicionar uma pauta\\. O formato esperado é:\n`/pauta \\[texto com pelo menos 5 palavras\\]`\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa\\.";
-}
-
-export function getDescription() {
-  return "📝 Adicionar uma pauta para a reunião ordinária.";
-}
-
-export function register(bot: Telegraf) {
+function registerPautaCommand(bot: Telegraf) {
   bot.command("pauta", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -32,7 +20,7 @@ export function register(bot: Telegraf) {
       }
 
       if (!from || !chat || !topic) {
-        return ctx.reply(getHelp(), {
+        return ctx.reply(pautaCommand.help(), {
           reply_markup: {
             inline_keyboard: [
               [
@@ -99,8 +87,8 @@ export function register(bot: Telegraf) {
 }
 
 export const pautaCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerPautaCommand,
+  name: () => "/pauta",
+  help: () => "Use o comando `/pauta` para adicionar uma pauta\\. O formato esperado é:\n`/pauta \\[texto com pelo menos 5 palavras\\]`\nVocê também pode dar /pauta em resposta a alguma mensagem sua ou de outra pessoa\\.",
+  description: () => "📝 Adicionar uma pauta para a reunião ordinária.",
 };

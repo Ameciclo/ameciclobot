@@ -73,32 +73,7 @@ function formatDateDDMM(date: Date): string {
   return `${day}/${month}`;
 }
 
-export function getName() {
-  return "/comunicacao";
-}
-
-export function getHelp() {
-  return (
-    "Use o comando `/comunicacao` para registrar uma demanda para o grupo de Comunicação\\. Os formatos aceitos são:\\n" +
-    "1\\. Com data: `/comunicacao [data] [texto da demanda]`\\n" +
-    "2\\. Sem data: `/comunicacao [texto da demanda]`\\n" +
-    "3\\. Em resposta: Responda uma mensagem com `/comunicacao [data opcional]`\\n" +
-    "\\n*Formatos de data aceitos:*\\n" +
-    "• `15/12` ou `15/12/2024`\\n" +
-    "• `15-12` ou `15-12-2024`\\n" +
-    "• `15.12` ou `15.12.2024`\\n" +
-    "\\n*Exemplos:*\\n" +
-    "`/comunicacao 22/09 Criar post para Instagram sobre mobilidade`\\n" +
-    "`/comunicacao Criar post para Instagram sobre mobilidade`\\n" +
-    "Ou responda uma mensagem com: `/comunicacao 15/12`"
-  );
-}
-
-export function getDescription() {
-  return "📢 Registrar uma demanda para o grupo de Comunicação.";
-}
-
-export function register(bot: Telegraf) {
+function registerComunicacaoCommand(bot: Telegraf) {
   bot.command("comunicacao", async (ctx: Context) => {
     try {
       console.log("[comunicacao] Comando recebido");
@@ -134,7 +109,7 @@ export function register(bot: Telegraf) {
       if (!demandText) {
         console.log("[comunicacao] Texto da demanda vazio");
         await ctx.reply(
-          "📢 *Como usar o comando /comunicacao*\n\n" + getHelp(),
+          "📢 *Como usar o comando /comunicacao*\n\n" + comunicacaoCommand.help(),
           {
             parse_mode: "MarkdownV2",
             reply_markup: {
@@ -278,8 +253,20 @@ export function register(bot: Telegraf) {
 }
 
 export const comunicacaoCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerComunicacaoCommand,
+  name: () => "/comunicacao",
+  help: () =>
+    "Use o comando `/comunicacao` para registrar uma demanda para o grupo de Comunicação\\. Os formatos aceitos são:\\n" +
+    "1\\. Com data: `/comunicacao [data] [texto da demanda]`\\n" +
+    "2\\. Sem data: `/comunicacao [texto da demanda]`\\n" +
+    "3\\. Em resposta: Responda uma mensagem com `/comunicacao [data opcional]`\\n" +
+    "\\n*Formatos de data aceitos:*\\n" +
+    "• `15/12` ou `15/12/2024`\\n" +
+    "• `15-12` ou `15-12-2024`\\n" +
+    "• `15.12` ou `15.12.2024`\\n" +
+    "\\n*Exemplos:*\\n" +
+    "`/comunicacao 22/09 Criar post para Instagram sobre mobilidade`\\n" +
+    "`/comunicacao Criar post para Instagram sobre mobilidade`\\n" +
+    "Ou responda uma mensagem com: `/comunicacao 15/12`",
+  description: () => "📢 Registrar uma demanda para o grupo de Comunicação.",
 };

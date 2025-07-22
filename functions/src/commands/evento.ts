@@ -7,7 +7,7 @@ import { buildEventMessage } from "../messages/eventMessages";
 // Converte a lista de workgroups para um array de IDs numéricos
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
 
-export function registerEventoCommand(bot: Telegraf) {
+function registerEventoCommand(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     try {
       console.log("[evento] Iniciando comando /evento");
