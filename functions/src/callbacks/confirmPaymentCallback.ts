@@ -4,6 +4,7 @@ import {
   getRequestData,
   updatePaymentRequest,
   getCoordinators,
+  getWorkgroupId,
 } from "../services/firebase";
 import { updateSpreadsheet } from "../services/google";
 import {
@@ -91,7 +92,18 @@ async function updateGoogleSheetAndRequest(
     );
     const signedByText = buildSignedByText(signatures);
     const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-    await ctx.editMessageText(messageText, keyboard);
+    try {
+      await ctx.editMessageText(messageText, keyboard);
+    } catch (error: any) {
+      // Ignora o erro se a mensagem for idêntica ou não existir mais
+      if (error.description && error.description.includes("message is not modified")) {
+        console.log("Mensagem não modificada, conteúdo idêntico.");
+      } else if (error.description && error.description.includes("message to edit not found")) {
+        console.log("Mensagem não encontrada, pode ter sido apagada.");
+      } else {
+        throw error;
+      }
+    }
 
     console.log("Pagamento confirmado!");
     return true;
@@ -219,6 +231,83 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       } else {
         await updatePaymentRequest(requestId, { signatures });
         await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+
+        // Apaga a mensagem privada do coordenador que acabou de assinar
+        if (
+          requestData.coordinator_messages &&
+          requestData.coordinator_messages[userId]
+        ) {
+          try {
+            await ctx.telegram.deleteMessage(
+              userId,
+              requestData.coordinator_messages[userId]
+            );
+          } catch (err: any) {
+            // Ignora o erro específico de mensagem não encontrada
+            if (err.description && err.description.includes("message to delete not found")) {
+              console.log(`Mensagem do coordenador ${userId} já foi apagada ou não existe mais.`);
+            } else {
+              console.error(
+                `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
+                err
+              );
+            }
+          }
+        }
+
+        // Atualiza a mensagem no grupo
+        if (requestData.group_message_id) {
+          try {
+            const financeGroupId = await getWorkgroupId("Financeiro");
+            const coordinators = await getCoordinators();
+            const coordinatorButtons = buildCoordinatorButtons(
+              coordinators,
+              signatures,
+              requestId
+            );
+            const viewSpreadsheetButton = Markup.button.url(
+              "📊 Ver Planilha",
+              `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+            );
+            const cancelButton = Markup.button.callback(
+              "❌ CANCELAR",
+              `cancel_payment_${requestData.id}`
+            );
+
+            const keyboard = Markup.inlineKeyboard([
+              coordinatorButtons,
+              [viewSpreadsheetButton, cancelButton],
+            ]);
+
+            const baseText = excerptFromRequest(
+              requestData,
+              `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+            );
+            const signedByText = buildSignedByText(signatures);
+            const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+
+            try {
+              await ctx.telegram.editMessageText(
+                financeGroupId,
+                requestData.group_message_id,
+                undefined,
+                messageText,
+                keyboard
+              );
+            } catch (error: any) {
+              // Ignora o erro se a mensagem for idêntica ou não existir mais
+              if (error.description && error.description.includes("message is not modified")) {
+                console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
+              } else if (error.description && error.description.includes("message to edit not found")) {
+                console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
+              } else {
+                throw error;
+              }
+            }
+          } catch (err) {
+            console.error("Erro ao atualizar mensagem no grupo:", err);
+          }
+        }
       }
     }
 
@@ -254,7 +343,84 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       const signedByText = buildSignedByText(signatures);
       const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
 
-      await ctx.editMessageText(messageText, keyboard);
+      try {
+        await ctx.editMessageText(messageText, keyboard);
+      } catch (error: any) {
+        // Ignora o erro se a mensagem for idêntica ou não existir mais
+        if (error.description && error.description.includes("message is not modified")) {
+          console.log("Mensagem não modificada, conteúdo idêntico.");
+        } else if (error.description && error.description.includes("message to edit not found")) {
+          console.log("Mensagem não encontrada, pode ter sido apagada.");
+        } else {
+          throw error;
+        }
+      }
+
+      // Atualiza ou apaga as mensagens enviadas aos coordenadores
+      if (requestData.coordinator_messages) {
+        for (const coordinator of coordinators) {
+          const coordId = coordinator.telegram_user.id;
+          const messageId = requestData.coordinator_messages[coordId];
+
+          if (!messageId) continue;
+
+          // Verifica se o coordenador já assinou
+          const hasSigned = Object.values(signatures).some(
+            (sig) => sig.id === coordId
+          );
+
+          try {
+            if (hasSigned) {
+              // Se já assinou, apaga a mensagem do privado
+              try {
+                await ctx.telegram.deleteMessage(coordId, messageId);
+              } catch (error: any) {
+                // Ignora o erro específico de mensagem não encontrada
+                if (error.description && error.description.includes("message to delete not found")) {
+                  console.log(`Mensagem do coordenador ${coordId} já foi apagada ou não existe mais.`);
+                } else {
+                  console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+                }
+              }
+            } else {
+              // Se não assinou, atualiza a mensagem com botão
+              const updatedMessage = `Assina lá!\n💰${requestData.transactionType}\n💵${requestData.value}\n🗂${requestData.project.name}`;
+
+              // Cria o botão de confirmação para o coordenador
+              const confirmButton = Markup.button.callback(
+                "✅ Assinar",
+                `confirm_${coordId}_${requestId}`
+              );
+
+              const keyboard = Markup.inlineKeyboard([[confirmButton]]);
+
+              try {
+                await ctx.telegram.editMessageText(
+                  coordId,
+                  messageId,
+                  undefined,
+                  updatedMessage,
+                  keyboard
+                );
+              } catch (error: any) {
+                // Ignora o erro se a mensagem for idêntica ou não existir mais
+                if (error.description && error.description.includes("message is not modified")) {
+                  console.log(`Mensagem para coordenador ${coordId} não modificada, conteúdo idêntico.`);
+                } else if (error.description && error.description.includes("message to edit not found")) {
+                  console.log(`Mensagem para coordenador ${coordId} não encontrada, pode ter sido apagada.`);
+                } else {
+                  throw error;
+                }
+              }
+            }
+          } catch (err) {
+            console.error(
+              `Erro ao processar mensagem para coordenador (ID: ${coordId}):`,
+              err
+            );
+          }
+        }
+      }
     }
   } catch (error) {
     console.error("Erro ao confirmar pagamento:", error);

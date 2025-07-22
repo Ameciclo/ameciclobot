@@ -16,7 +16,7 @@ const credentials = firebaseCredentials;
 // ------------------------------------------------------
 // Autenticação
 // ------------------------------------------------------
-function getJwt() {
+export function getJwt() {
   return new google.auth.JWT(
     credentials.client_email,
     undefined,
@@ -43,6 +43,44 @@ export function getSheetsClient() {
 // ------------------------------------------------------
 // Google Drive Functions
 // ------------------------------------------------------
+
+import { Readable } from 'stream';
+
+function bufferToStream(buffer: Buffer | ArrayBuffer): Readable {
+  if (buffer instanceof ArrayBuffer) {
+    // Converte ArrayBuffer para Buffer
+    const uint8Array = new Uint8Array(buffer);
+    return Readable.from(Buffer.from(uint8Array));
+  }
+  return Readable.from(buffer);
+}
+
+export async function uploadInvoice(
+  fileBuffer: Buffer | ArrayBuffer,
+  fileName: string,
+  folderId: string
+): Promise<string | null | undefined> {
+  const drive = google.drive({ version: "v3", auth });
+
+  try {
+    const uploadResponse = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+      },
+      media: {
+        mimeType: "application/pdf",
+        body: bufferToStream(fileBuffer)
+      },
+      fields: "id,webViewLink",
+    });
+
+    return uploadResponse.data.webViewLink;
+  } catch (error) {
+    console.error("Erro ao fazer upload do arquivo:", error);
+    throw error;
+  }
+}
 
 export async function uploadCSVToDrive(
   fileContent: string,
@@ -347,6 +385,7 @@ export async function appendSheetRowAsPromise(
 ): Promise<string> {
   const sheets = getSheetsClient();
   try {
+    console.log("Tentando adicionar linha na planilha:", { spreadsheetId, range, row });
     const result = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
@@ -354,14 +393,16 @@ export async function appendSheetRowAsPromise(
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [row] },
     });
+    const updatedRange = result.data.updates?.updatedRange || "";
     console.log(
       "Linha adicionada com sucesso:",
-      result.data.updates?.updatedRange
+      updatedRange
     );
-    return result.data.updates?.updatedRange || "";
+    return updatedRange;
   } catch (error) {
     console.error("Erro ao adicionar linha na planilha:", error);
-    throw error;
+    console.error("Detalhes do erro:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    return "";
   }
 }
 

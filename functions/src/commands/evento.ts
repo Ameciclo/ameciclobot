@@ -7,7 +7,7 @@ import { buildEventMessage } from "../messages/eventMessages";
 // Converte a lista de workgroups para um array de IDs numéricos
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
 
-export function registerEventoCommand(bot: Telegraf) {
+function registerEventoCommand(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     try {
       console.log("[evento] Iniciando comando /evento");
@@ -123,10 +123,12 @@ Texto:
       const inlineKeyboard = {
         reply_markup: {
           inline_keyboard: [
-            calendars.map((calendar: any, index: number) => ({
-              text: `➕ ${calendar.name}`,
-              callback_data: `add_event_${index}`,
-            })),
+            ...calendars.map((calendar: any, index: number) => [
+              {
+                text: `➕ ${calendar.name}`,
+                callback_data: `add_event_${index}`,
+              },
+            ]),
             [{ text: "❌ Não adicionar", callback_data: "add_event_skip" }],
           ],
         },

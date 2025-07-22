@@ -82,6 +82,17 @@ export async function getFinancesGroupId(): Promise<string> {
   }
 }
 
+export async function getWorkgroupId(workgroupName: string): Promise<string> {
+  try {
+    const snapshot = await admin.database().ref("/workgroups/").once("value");
+    const data = snapshot.val() || {};
+    return data[workgroupName] || "";
+  } catch (err) {
+    console.error(`Erro ao buscar ID do grupo de trabalho ${workgroupName}:`, err);
+    return "";
+  }
+}
+
 export var updatePaymentRequest = async function (
   requestId: string,
   update: Object
@@ -112,6 +123,20 @@ export async function updatePaymentRequestGroupMessage(
 
   console.log(
     `Payment-request sent successfully: ${JSON.stringify(groupMessage)}`
+  );
+}
+
+export async function updatePaymentRequestCoordinatorMessages(
+  requestId: string,
+  coordinatorMessages: Record<number, number>
+) {
+  // Armazena os IDs das mensagens enviadas aos coordenadores
+  await admin.database().ref(`requests/${requestId}`).update({
+    coordinator_messages: coordinatorMessages,
+  });
+
+  console.log(
+    `Coordinator messages updated for request ${requestId}`
   );
 }
 

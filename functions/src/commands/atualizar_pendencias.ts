@@ -18,6 +18,10 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
     try {
       console.log("[atualizar_pendencias] Iniciando comando...");
 
+      // Avalia se o comando está seguido de um Project Status, por exemplo /atualizar_pendencias Finalizado
+      const customProjectStatus =
+        ctx.text?.split(/\s+/, 2)[1]?.trim() || "Em andamento";
+
       // Restrição: somente no grupo Financeiro
       const currentChatId = ctx.chat?.id?.toString();
       const financeiroGroup = workgroups.find(
@@ -45,6 +49,7 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         id: string;
         name: string;
         spreadsheetLink: string;
+        projectStatus: string;
       }[] = [];
       // Considera que a primeira linha é o cabeçalho
       for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
@@ -53,10 +58,12 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         if (!linkPlanilha) continue;
         const projectSpreadsheetId = getIdFromUrl(linkPlanilha);
         const nomeProjeto = row[headers.name.col];
+        const statusProjeto = row[headers.status.col];
         projetosResumo.push({
           id: projectSpreadsheetId,
           name: nomeProjeto,
           spreadsheetLink: linkPlanilha,
+          projectStatus: statusProjeto,
         });
       }
       console.log(
@@ -73,6 +80,7 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
           name: p.name,
           spreadsheetLink: p.spreadsheetLink,
           lastVerificationDate: existing.lastVerificationDate || "",
+          projectStatus: p.projectStatus,
           pendencias:
             typeof existing.pendencias === "number" ? existing.pendencias : 0,
           status: existing.status || "OK", // "OK" indica que o acesso está concedido
@@ -85,20 +93,27 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
       // 4. Define a data de hoje (formato YYYY-MM-DD)
       const date = new Date();
       const hoje =
-        date.getFullYear + "-" + date.getMonth() + "-" + date.getDate();
+        date.getFullYear() + "-" + date.getMonth() + "-" + date.getDate();
 
       // 5. Filtra os projetos que precisam ser verificados hoje:
       //    se lastVerificationDate não for hoje ou se o status já estiver como "Acesso não concedido"
       const projetosParaAtualizar = Object.keys(mergedProjects).filter(
         (projectId) => {
           const proj = mergedProjects[projectId];
-          return proj.lastVerificationDate !== hoje; // Se já foi verificado hoje, não refaz.
+          return (
+            proj.lastVerificationDate !== hoje &&
+            proj.projectStatus == customProjectStatus
+          ); // Se já foi verificado hoje, não refaz.
         }
       );
       console.log(
         "[atualizar_pendencias] Projetos a Atualizar:",
         projetosParaAtualizar.length
       );
+
+      if (projetosParaAtualizar.length === 0) {
+        return ctx.reply("Nenhum projeto para atualizar.");
+      }
 
       // 6. Para cada projeto a ser verificado, tenta ler a aba de detalhes e contar as pendências.
       for (const projectId of projetosParaAtualizar) {
@@ -147,7 +162,7 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
           if (proj.status === "Acesso não concedido") {
             linha += "– Acesso não concedido.";
           } else {
-            linha += `tem ${proj.pendencias} pendências.`;
+            linha += `tem ${proj.pendencias}.`;
           }
           linhas.push(linha);
         }
@@ -175,7 +190,7 @@ export const atualizarPendenciasCommand = {
   register: registerAtualizarPendenciasCommand,
   name: () => "/atualizar_pendencias",
   help: () =>
-    "Verifica pendências dos projetos no Firebase e atualiza o status (incluindo acesso negado).",
+    "Verifica pendências do DETALHAMENTO DE GASTOS dos projetos EM ANDAMENTO e atualiza o status (incluindo acesso negado) Você pode dar o comando /atualizar_projetos [STATUS], para atualizar a lista com aquele status.",
   description: () =>
     "Lê a planilha RESUMO, atualiza os projetos no Firebase, verifica pendências nos projetos que não foram verificados hoje e retorna um relatório.",
 };

@@ -1,6 +1,10 @@
 import { Markup, Telegraf } from "telegraf";
 import { AmecicloUser, PaymentRequest } from "../config/types";
-import { updatePaymentRequestGroupMessage } from "../services/firebase";
+import {
+  updatePaymentRequestGroupMessage,
+  updatePaymentRequestCoordinatorMessages,
+  getWorkgroupId,
+} from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 
 function buildCoordinatorButtons(
@@ -68,18 +72,65 @@ export async function sendPaymentRequestHandler(
 
     await updatePaymentRequestGroupMessage(request, result.message_id);
 
+    // Objeto para armazenar os IDs das mensagens enviadas aos coordenadores
+    const coordinatorMessages: Record<number, number> = {};
+
     for (const coordinator of coordinators) {
       try {
-        await bot.telegram.sendMessage(
-          coordinator.telegram_user.id,
-          messageToGroup
+        // Mensagem simplificada conforme solicitado: tipo de transação, valor, projeto
+        const simplifiedMessage = `💰${request.transactionType}\n💵${request.value}\n🗂${request.project.name}`;
+        
+        // Cria o botão de confirmação para o coordenador
+        const confirmButton = Markup.button.callback(
+          "✅ Assinar",
+          `confirm_${coordinator.telegram_user.id}_${request.id}`
         );
+        
+        const keyboard = Markup.inlineKeyboard([[confirmButton]]);
+        
+        const sentMessage = await bot.telegram.sendMessage(
+          coordinator.telegram_user.id,
+          simplifiedMessage,
+          keyboard
+        );
+
+        // Armazena o ID da mensagem enviada para este coordenador
+        coordinatorMessages[coordinator.telegram_user.id] =
+          sentMessage.message_id;
       } catch (err) {
         console.error(
           `Erro ao enviar mensagem para coordenação (ID: ${coordinator.telegram_user.id}):`,
           err
         );
       }
+    }
+
+    // Armazena os IDs das mensagens no Firebase
+    await updatePaymentRequestCoordinatorMessages(
+      request.id,
+      coordinatorMessages
+    );
+
+    // Enviar mensagem para o Grupo de Trabalho associado ao projeto
+    try {
+      // Assumindo que o nome do grupo de trabalho está no campo "responsible" do projeto
+      const workgroupName = request.project.responsible;
+      if (workgroupName) {
+        const workgroupId = await getWorkgroupId(workgroupName);
+        
+        if (workgroupId) {
+          // Enviar uma versão simplificada da mensagem para o grupo de trabalho
+          const workgroupMessage = `💰 ${request.transactionType}\n💵 Valor: ${request.value}\n🗂 Projeto: ${request.project.name}\n📝 Descrição: ${request.description}`;
+          
+          await bot.telegram.sendMessage(workgroupId, workgroupMessage);
+          console.log(`Mensagem enviada para o grupo de trabalho ${workgroupName} (ID: ${workgroupId})`);
+        } else {
+          console.log(`Grupo de trabalho não encontrado: ${workgroupName}`);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao enviar mensagem para o grupo de trabalho:", err);
+      // Não interrompe o fluxo principal se falhar
     }
 
     return result;

@@ -38,7 +38,7 @@ export function registerEventCallback(bot: Telegraf) {
 
       if (callbackData === "add_event_skip") {
         console.log("Opção 'Não adicionar' selecionada.");
-        await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
+        await ctx.editMessageText("🚫 Ação de adição de evento cancelada! 📅❌");
         await ctx.answerCbQuery("Evento não adicionado.");
         return;
       }

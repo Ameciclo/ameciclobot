@@ -17,7 +17,7 @@ export const checkGoogleForms = async (bot: Telegraf) => {
     }
     // Para cada planilha registrada
     for (const formId in forms) {
-      const { sheetId, telegramGroupId, lastRow, responsesTabGid } =
+      const { sheetId, telegramGroupId, lastRow, responsesTabGid, formName } =
         forms[formId];
       console.log(
         `Verificando planilha ${sheetId} para o grupo ${telegramGroupId} com lastRow=${lastRow}`
@@ -43,9 +43,9 @@ export const checkGoogleForms = async (bot: Telegraf) => {
         const newLastRow = lastRow + responses.length;
         await updateRegisteredFormLastRow(newLastRow, formId);
 
-        let message = `📝 Novas respostas na planilha "${sheetId}" (aba "${tabName}"):\n`;
+        let message = `📝 Novas respostas na planilha "${formName}":\n`;
         responses.forEach((row: string[], idx: number) => {
-          message += `\nResposta ${idx + 1}: ${row[0]}\n`; // apenas a primeira coluna
+          message += `\nHorário da resposta: ${row[0]}\n`; // apenas a primeira coluna
         });
 
         // Cria um botão para ver a planilha completa

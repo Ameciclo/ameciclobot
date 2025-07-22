@@ -3,19 +3,7 @@ import { Context, Telegraf } from "telegraf";
 import { createForm, moveDocumentToFolder } from "../services/google";
 import workgroups from "../credentials/workgroupsfolders.json";
 
-export function getName() {
-  return "/formulario";
-}
-
-export function getHelp() {
-  return "Use o comando `/formulario` para criar um Google Forms\\. O formato esperado é:\n`/formulario \\[título do formulário\\]`";
-}
-
-export function getDescription() {
-  return "📝 Criar um Google Forms para formulários.";
-}
-
-export function register(bot: Telegraf) {
+function registerFormularioCommand(bot: Telegraf) {
   bot.command("formulario", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
@@ -89,8 +77,8 @@ export function register(bot: Telegraf) {
 }
 
 export const formularioCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerFormularioCommand,
+  name: () => "/formulario",
+  help: () => "Use o comando `/formulario` para criar um Google Forms\\. O formato esperado é:\n`/formulario \\[título do formulário\\]`",
+  description: () => "📝 Criar um Google Forms para formulários.",
 };

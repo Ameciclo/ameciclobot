@@ -11,8 +11,10 @@ import { apresentacaoCommand } from "../commands/apresentacao";
 import { registrarPlanilhaCommand } from "../commands/registrar_planilha";
 import { clippingCommand } from "../commands/clipping";
 import { modeloCommand } from "../commands/modelo";
+import { arquivarComprovanteCommand } from "../commands/arquivar_comprovante";
 
 export const commandsList = [
+  arquivarComprovanteCommand,
   apresentacaoCommand,
   demandaCommand,
   documentoCommand,

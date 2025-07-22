@@ -3,19 +3,7 @@ import { Context, Telegraf, Markup } from "telegraf";
 import { listModelsFromFolder } from "../services/google";
 import { getPreviewTitle } from "../utils/utils";
 
-export function getName() {
-  return "/modelo";
-}
-
-export function getHelp() {
-  return "Use o comando `/modelo Título do documento` para criar um documento a partir de um modelo\\. O bot listará os modelos disponíveis na pasta\\.";
-}
-
-export function getDescription() {
-  return "📄 Criar documento a partir de modelo disponível.";
-}
-
-export async function register(bot: Telegraf) {
+async function registerModeloCommand(bot: Telegraf) {
   bot.command("modelo", async (ctx: Context) => {
     if (!ctx.message || !("text" in ctx.message)) {
       await ctx.reply("Este comando só pode ser usado com mensagens de texto.");
@@ -60,8 +48,8 @@ export async function register(bot: Telegraf) {
 }
 
 export const modeloCommand = {
-  register,
-  name: getName,
-  help: getHelp,
-  description: getDescription,
+  register: registerModeloCommand,
+  name: () => "/modelo",
+  help: () => "Use o comando `/modelo Título do documento` para criar um documento a partir de um modelo\\. O bot listará os modelos disponíveis na pasta\\.",
+  description: () => "📄 Criar documento a partir de modelo disponível.",
 };
