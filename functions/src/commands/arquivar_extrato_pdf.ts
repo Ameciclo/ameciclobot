@@ -36,24 +36,79 @@ function convertMonthToNumber(month: string): string {
   return months[month.toUpperCase()] || "00";
 }
 
+// Função para "desgrudar" texto colado com números
+function desgruda(text: string): string {
+  return text
+    .replace(/([0-9.-])([A-Za-zÁ-Ú])/g, '$1 $2')
+    .replace(/([A-Za-zÁ-Ú])([0-9])/g, '$1 $2');
+}
+
 // Função para extrair informações do texto do PDF
 function extractInfoFromPDF(text: string): {
   conta: string | null;
   mesAno: string | null;
   isFund: boolean;
 } {
+  // Normaliza o texto e remove acentos
   const norm = text
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .replace(/\s+/g, " ");
-  const conta = norm.match(/Conta\s+([\d.-]{5,})/i)?.[1] ?? null;
-  const mesAno =
-    norm.match(
-      /m[eê]s\/?ano\s+refer[êe]ncia\s*[:\-]?\s*([A-ZÇÃ]+\/\d{4}|\d{2}\/\d{4})/i
-    )?.[1] ?? null;
+  
+  // Aplica a função desgruda para separar números e letras
+  const normFixed = desgruda(norm);
+  
+  console.log("[arquivar_extrato_pdf] Amostra do texto normalizado:", 
+    normFixed.substring(0, 200) + "...");
+  
+  // Tenta várias expressões regulares para encontrar o número da conta
+  let conta = null;
+  const contaRegexes = [
+    /Conta\s+([0-9.-]{5,})(?=[^\d-]|$)/i,
+    /Conta\s*Corrente\s*([0-9.-]{5,})(?=[^\d-]|$)/i,
+    /Conta\s*n[oº°]?\s*([0-9.-]{5,})(?=[^\d-]|$)/i
+  ];
+  
+  for (const regex of contaRegexes) {
+    const match = normFixed.match(regex);
+    if (match && match[1]) {
+      conta = match[1];
+      console.log("[arquivar_extrato_pdf] Conta encontrada:", conta);
+      break;
+    }
+  }
+  
+  // Busca o mês/ano de referência com múltiplos padrões
+  let mesAno = null;
+  const mesAnoRegexes = [
+    /m[eê]s\/?ano\s+refer[eê]ncia\s*[:\-]?\s*([A-ZÇÃ]+\/\d{4}|\d{2}\/\d{4})/i,
+    /periodo\s+do\s+extrato\s*[:\-]?\s*(\d{2})\s*\/\s*(\d{4})/i,
+    /extrato\s+(?:de\s+)?(?:conta|investimento).*?(\d{2})\s*\/\s*(\d{4})/i,
+    /data\s+(?:do\s+)?extrato\s*[:\-]?\s*(\d{2})\s*\/\s*(\d{4})/i
+  ];
+  
+  for (const regex of mesAnoRegexes) {
+    const match = normFixed.match(regex);
+    if (match) {
+      // Se tiver dois grupos capturados (mês e ano separados)
+      if (match[2]) {
+        mesAno = `${match[1]}/${match[2]}`;
+      } else if (match[1]) {
+        mesAno = match[1];
+      }
+      console.log("[arquivar_extrato_pdf] Mês/Ano encontrado com regex:", regex.toString());
+      break;
+    }
+  }
+  
+  console.log("[arquivar_extrato_pdf] Mês/Ano encontrado:", mesAno);
+  
+  // Verifica se é um extrato de fundo de investimento
   const isFund =
-    /extratos?\s*-\s*investimentos?\s+fundos?/i.test(norm) ||
-    /\b(valor da cota|saldo cotas|rentabilidade)\b/i.test(norm);
+    /extratos?\s*-\s*investimentos?\s+fundos?/i.test(normFixed) ||
+    /\b(valor da cota|saldo cotas|rentabilidade)\b/i.test(normFixed);
+  
+  console.log("[arquivar_extrato_pdf] É fundo de investimento?", isFund);
 
   return { conta, mesAno, isFund };
 }
@@ -74,32 +129,73 @@ function formatFileName(
   // Padroniza para formato YYYY.MM
   const dataFormatada = `${ano}.${mes.padStart(2, "0")}`;
   const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+  
+  // Normaliza o número da conta para o formato padrão XX.XXX-X
+  const contaFormatada = normalizarNumeroConta(conta);
 
-  return `Extrato - ${dataFormatada} - ${tipoConta} ${conta}.pdf`;
+  return `Extrato - ${dataFormatada} - ${tipoConta} ${contaFormatada}.pdf`;
+}
+
+// Função para normalizar números de conta para o formato XX.XXX-X
+function normalizarNumeroConta(conta: string): string {
+  // Remove todos os pontos, espaços e hífens
+  const apenasNumeros = conta.replace(/[\s.\-]/g, "");
+  
+  // Se tiver 6 dígitos (2 + 3 + 1), formata como XX.XXX-X
+  if (apenasNumeros.length === 6) {
+    return `${apenasNumeros.substring(0, 2)}.${apenasNumeros.substring(2, 5)}-${apenasNumeros.substring(5)}`;
+  }
+  
+  // Se tiver 5 dígitos (2 + 2 + 1), formata como XX.XX-X
+  if (apenasNumeros.length === 5) {
+    return `${apenasNumeros.substring(0, 2)}.${apenasNumeros.substring(2, 4)}-${apenasNumeros.substring(4)}`;
+  }
+  
+  // Se já tiver hífen, preserva o formato original
+  if (conta.includes("-")) {
+    const partes = conta.split("-");
+    const base = partes[0].replace(/[\s.]/g, "");
+    const digito = partes[1].replace(/\s/g, "");
+    
+    // Insere o ponto na posição correta
+    if (base.length === 5) {
+      return `${base.substring(0, 2)}.${base.substring(2)}-${digito}`;
+    }
+    if (base.length === 4) {
+      return `${base.substring(0, 2)}.${base.substring(2)}-${digito}`;
+    }
+  }
+  
+  // Se não conseguir formatar, retorna o original
+  return conta;
 }
 
 // Função para obter o ID da pasta correta no Google Drive
 function getFolderIdForAccount(conta: string, isFund: boolean): string | null {
-  const contaFormatada = conta.replace(/\s+/g, "");
+  const contaNormalizada = normalizarNumeroConta(conta);
   const tipoExtrato = isFund
     ? "Fundo de Investimento - Conta"
     : "Conta Corrente";
 
+  console.log("[arquivar_extrato_pdf] Buscando pasta para conta normalizada:", contaNormalizada);
+
   // Busca a conta no arquivo accounts.json com input_file_type "pdf"
   const matchedAccount = getAccounts.find((acc: any) => {
+    const accNumberNormalizado = normalizarNumeroConta(acc.number);
     return (
-      acc.number === contaFormatada &&
+      accNumberNormalizado === contaNormalizada &&
       acc.type === tipoExtrato &&
       acc.input_file_type === "pdf"
     );
   });
 
-  if (
-    matchedAccount &&
-    matchedAccount.folder_id &&
-    matchedAccount.folder_id.trim() !== ""
-  ) {
-    return matchedAccount.folder_id;
+  if (matchedAccount) {
+    console.log("[arquivar_extrato_pdf] Conta encontrada no accounts.json:", matchedAccount.number);
+    if (matchedAccount.folder_id && matchedAccount.folder_id.trim() !== "") {
+      return matchedAccount.folder_id;
+    }
+  } else {
+    console.log("[arquivar_extrato_pdf] Conta não encontrada no accounts.json");
   }
 
   return null;
@@ -180,6 +276,9 @@ export async function registerArquivarExtratoPdfCommand(bot: Telegraf) {
         const buffer = Buffer.from(fileBuffer);
         const data = await pdfParse(buffer);
         const text = data.text;
+        
+        console.log("[arquivar_extrato_pdf] Texto extraído do PDF (primeiros 100 caracteres):", 
+          text.substring(0, 100).replace(/\n/g, " ") + "...");
 
         // Extrai informações do texto
         const { conta, mesAno, isFund } = extractInfoFromPDF(text);
@@ -253,11 +352,12 @@ export async function registerArquivarExtratoPdfCommand(bot: Telegraf) {
         ]);
 
         // Responde com o nome do arquivo e os botões
+        const contaFormatada = normalizarNumeroConta(conta);
         await ctx.telegram.editMessageText(
           chatId,
           statusMessage.message_id,
           undefined,
-          `✅ Extrato arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}\n📊 Tipo: ${tipoConta}\n🏦 Conta: ${conta}`,
+          `✅ Extrato arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}\n📊 Tipo: ${tipoConta}\n🏦 Conta: ${contaFormatada}`,
           keyboard
         );
       } catch (error) {
