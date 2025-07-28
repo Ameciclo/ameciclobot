@@ -243,7 +243,7 @@ export async function appendExtratoData(
   // Define o range onde os dados serão inseridos; "A:Z" supõe que os dados caibam entre as colunas A e Z.
   const range = `${sheetName}!A:Z`;
   try {
-    const response = await sheets.spreadsheets.values.append({
+    await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
       valueInputOption: "USER_ENTERED",
