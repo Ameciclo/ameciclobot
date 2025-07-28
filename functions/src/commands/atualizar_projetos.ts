@@ -14,7 +14,6 @@ function registerAtualizarProjetosCommand(bot: Telegraf) {
     try {
       console.log("[atualizar_projetos] Iniciando comando...");
       const currentChatId = ctx.chat?.id?.toString();
-      console.log(`[atualizar_projetos] currentChatId: ${currentChatId}`);
 
       const financeiroGroup = workgroups.find(
         (group: any) => group.label === projectsSpreadsheet.workgroup

@@ -29,7 +29,6 @@ export const checkGoogleForms = async (bot: Telegraf) => {
       const tabName = "Respostas ao formulário 1";
       // Monta o range para obter apenas a primeira coluna (coluna A)
       const range = `${tabName}!A${lastRow + 1}:A`;
-      console.log(`Consultando range: ${range}`);
 
       const sheets = getSheetsClient();
       const response = await sheets.spreadsheets.values.get({
@@ -37,7 +36,7 @@ export const checkGoogleForms = async (bot: Telegraf) => {
         range,
       });
       const responses = response.data.values || [];
-      console.log(`Foram encontradas ${responses.length} novas respostas.`);
+      console.log(`CheckGoogleForms: Foram encontradas novas respostas.`);
 
       if (responses.length > 0) {
         const newLastRow = lastRow + responses.length;

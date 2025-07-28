@@ -159,7 +159,6 @@ export async function confirmPayment(ctx: Context): Promise<void> {
     }
 
     const callbackData = callbackQuery.data as string;
-    console.log("callbackData:", callbackData);
 
     // Extrai coordId e requestId dos dados do callback
     const parsed = parseCallbackData(callbackData);
@@ -245,10 +244,10 @@ export async function confirmPayment(ctx: Context): Promise<void> {
           } catch (err: any) {
             // Ignora o erro específico de mensagem não encontrada
             if (err.description && err.description.includes("message to delete not found")) {
-              console.log(`Mensagem do coordenador ${userId} já foi apagada ou não existe mais.`);
+              console.log(`Mensagem do coordenador já foi apagada ou não existe mais.`);
             } else {
               console.error(
-                `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
+                `Erro ao apagar mensagem do coordenador que assinou.`,
                 err
               );
             }

@@ -11,8 +11,6 @@ function registerDemandaCommand(bot: Telegraf) {
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
       
-      console.log("Dados do remetente:", from);
-      console.log("Dados do chat:", chat);
 
       // Verifica se a mensagem possui texto ou se está respondendo a uma mensagem com texto
       let demand: string | undefined;
@@ -21,7 +19,6 @@ function registerDemandaCommand(bot: Telegraf) {
           ctx.message.reply_to_message && "text" in ctx.message.reply_to_message
             ? ctx.message.reply_to_message.text
             : ctx.message.text.replace("/demanda", "").trim();
-        console.log("Texto da demanda extraído:", demand);
       }
 
       if (!from || !chat || !demand) {

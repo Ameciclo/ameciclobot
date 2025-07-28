@@ -28,13 +28,12 @@ export function registerEventCallback(bot: Telegraf) {
         !("data" in callbackQuery) ||
         typeof callbackQuery.data !== "string"
       ) {
-        console.log("Callback query inválido:", callbackQuery);
+      console.log("EVENT Callback query inválido.");
         await ctx.answerCbQuery("Ação inválida.", { show_alert: true });
         return;
       }
 
       const callbackData = callbackQuery.data;
-      console.log("Callback data recebida:", callbackData);
 
       if (callbackData === "add_event_skip") {
         console.log("Opção 'Não adicionar' selecionada.");
@@ -45,7 +44,6 @@ export function registerEventCallback(bot: Telegraf) {
 
       // Extrai o índice do calendário do callback_data (formato: add_event_{index})
       const parts = callbackData.split("_");
-      console.log("Parts do callback data:", parts);
       const index = parseInt(parts[2], 10);
       console.log("Índice extraído:", index);
 
@@ -60,7 +58,6 @@ export function registerEventCallback(bot: Telegraf) {
 
       // Extrai o JSON do evento a partir da mensagem original
       const messageText = ctx.text;
-      console.log("Texto da mensagem original:", messageText);
       if (!messageText) {
         await ctx.answerCbQuery(
           "Não foi possível recuperar os dados do evento."
@@ -71,7 +68,6 @@ export function registerEventCallback(bot: Telegraf) {
       // Supõe que o JSON esteja dentro de um bloco de código Markdown: ```json ... ```
       const jsonRegex = /(?:```json\s*)?({[\s\S]*})(?:\s*```)?/;
       const match = jsonRegex.exec(messageText);
-      console.log("Resultado da busca pelo JSON:", match);
       if (!match) {
         await ctx.answerCbQuery("Dados do evento não encontrados na mensagem.");
         return;
@@ -80,7 +76,6 @@ export function registerEventCallback(bot: Telegraf) {
       let eventData;
       try {
         eventData = JSON.parse(match[1].trim());
-        console.log("Evento parseado com sucesso:", eventData);
       } catch (parseErr) {
         console.error("Erro ao fazer parse do JSON do evento:", parseErr);
         await ctx.answerCbQuery("Erro ao interpretar os dados do evento.");
@@ -96,20 +91,12 @@ export function registerEventCallback(bot: Telegraf) {
         username: ctx.from?.username || "",
       };
       eventData.workgroup = ctx.chat?.id;
-      console.log(
-        "Dados do evento após atualização com usuário e workgroup:",
-        eventData
-      );
 
       // Se não houver endDate, assume que o evento dura 1 hora
       if (!eventData.endDate && eventData.startDate) {
         const start = new Date(eventData.startDate);
         const end = new Date(start.getTime() + 60 * 60 * 1000);
         eventData.endDate = end.toISOString();
-        console.log(
-          "endDate assumido (1 hora após startDate):",
-          eventData.endDate
-        );
       }
 
       if (!eventData.startDate) {
@@ -119,8 +106,6 @@ export function registerEventCallback(bot: Telegraf) {
 
       const eventId = generateEventId(eventData.startDate);
       eventData.id = eventId;
-      console.log("ID gerado para o evento:", eventId);
-      console.log("Evento final a ser salvo:", eventData);
 
       // Salva o evento no Firebase no endpoint "calendar"
       await admin.database().ref(`calendar/${eventId}`).set(eventData);
@@ -128,11 +113,9 @@ export function registerEventCallback(bot: Telegraf) {
 
       // Confirma a adição editando a mensagem original
       const successMessage = `Evento adicionado com sucesso ao calendário (${calendarId})!\nID do evento: ${eventId}`;
-      console.log("Mensagem de sucesso que será enviada:", successMessage);
       await ctx.editMessageText(successMessage);
       await ctx.answerCbQuery("Evento adicionado com sucesso!");
     } catch (err) {
-      console.error("Erro no callback de adicionar evento:", err);
       await ctx.answerCbQuery("Ocorreu um erro ao adicionar o evento.", {
         show_alert: true,
       });

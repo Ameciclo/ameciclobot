@@ -112,7 +112,6 @@ export const scheduledCheckEvents = onSchedule(
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {
-  console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
 

@@ -41,7 +41,6 @@ async function processExtratoTxt(fileUrl: string): Promise<{
     if (!accountRaw) {
       throw new Error("Conta não encontrada no extrato.");
     }
-    console.log("Conta extraída:", accountRaw);
 
     // Extrai a referência de mês/ano: procura a linha que contém "Mês/ano referência:"
     let reference = "";
@@ -57,7 +56,7 @@ async function processExtratoTxt(fileUrl: string): Promise<{
     if (!reference) {
       throw new Error("Referência de mês/ano não encontrada.");
     }
-    console.log("Referência extraída:", reference);
+    //console.log("Referência extraída:", reference);
     // Supondo que o formato seja "FEVEREIRO/2025", extraímos o mês numérico:
     const [refMonthName, refYear] = reference.split("/");
     const meses: { [key: string]: string } = {
@@ -179,19 +178,11 @@ function registerProcessarExtratoFiCommand(bot: Telegraf) {
       }
       const fileId = document.file_id;
       const fileLink = await ctx.telegram.getFileLink(fileId);
-      console.log("[processar_extrato_fi] URL do arquivo:", fileLink.href);
 
       const result = await processExtratoTxt(fileLink.href);
-      console.log(
-        "[processar_extrato_fi] Extrato processado para a conta:",
-        result.account
-      );
+      console.log( "[processar_extrato_fi] Extrato processado");
 
       const matchedAccount = result.matchedAccount;
-      console.log(
-        "[processar_extrato_fi] Conta para append:",
-        matchedAccount.fulltext
-      );
 
       // Gerar o nome do arquivo para upload utilizando o mês e ano extraídos
       const filename = generateExtratoFiFilename(
@@ -206,10 +197,7 @@ function registerProcessarExtratoFiCommand(bot: Telegraf) {
         filename,
         folderId
       );
-      console.log(
-        "[processar_extrato_fi] Arquivo TXT enviado. Link:",
-        uploadedFileLink
-      );
+      console.log("[processar_extrato_fi] Arquivo TXT enviado.");
 
       // Prepara a linha de resumo com as colunas:
       // MÊS/ANO, SALDO ANTERIOR, APLICAÇÕES (+), RESGATES (-), RENDIMENTO BRUTO (+), IMPOSTO DE RENDA (-), IOF (-)
@@ -228,10 +216,7 @@ function registerProcessarExtratoFiCommand(bot: Telegraf) {
         matchedAccount.sheet,
         summaryRow
       );
-      console.log(
-        "[processar_extrato_fi] Linha de resumo adicionada na aba:",
-        matchedAccount.sheet
-      );
+      console.log("[processar_extrato_fi] Linha de resumo adicionada na aba.");
 
       // Se necessário, também pode fazer o append dos dados detalhados, mas neste exemplo não iremos processá-los.
 

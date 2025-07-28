@@ -44,7 +44,7 @@ export function getSheetsClient() {
 // Google Drive Functions
 // ------------------------------------------------------
 
-import { Readable } from 'stream';
+import { Readable } from "stream";
 
 function bufferToStream(buffer: Buffer | ArrayBuffer): Readable {
   if (buffer instanceof ArrayBuffer) {
@@ -70,7 +70,7 @@ export async function uploadInvoice(
       },
       media: {
         mimeType: "application/pdf",
-        body: bufferToStream(fileBuffer)
+        body: bufferToStream(fileBuffer),
       },
       fields: "id,webViewLink",
     });
@@ -102,7 +102,7 @@ export async function uploadCSVToDrive(
       },
       fields: "id, webViewLink",
     });
-    console.log("[uploadCSVToDrive] Arquivo enviado:", response.data);
+    console.log("[uploadCSVToDrive] Arquivo enviado.");
     // Retorna o link para visualização (webViewLink)
     return response.data.webViewLink || "";
   } catch (error) {
@@ -199,7 +199,7 @@ export async function createSheet(title: string): Promise<any> {
     const response = await sheets.spreadsheets.create({
       requestBody: { properties: { title } },
     });
-    console.log("Planilha criada:", response.data);
+    console.log("Planilha criada.");
     return response.data;
   } catch (error) {
     console.error("Erro ao criar planilha:", error);
@@ -221,16 +221,13 @@ export async function appendExtratoRow(
   try {
     const range = `${sheetName}!A:D`;
     const sheets = getSheetsClient();
-    const result = await sheets.spreadsheets.values.append({
+    await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
       valueInputOption: "USER_ENTERED",
       requestBody: { values: [rowValues] },
     });
-    console.log(
-      "[appendExtratoRow] Linha adicionada:",
-      result.data.updates?.updatedRange
-    );
+    console.log("[appendExtratoRow] Linha adicionada.");
   } catch (error) {
     console.error("Erro ao fazer append na planilha:", error);
     throw error;
@@ -252,10 +249,7 @@ export async function appendExtratoData(
       valueInputOption: "USER_ENTERED",
       requestBody: { values: data },
     });
-    console.log(
-      "Dados detalhados adicionados:",
-      response.data.updates?.updatedRange
-    );
+    console.log("appendExtratoData - Dados detalhados adicionados.");
   } catch (error) {
     console.error("Erro ao fazer append dos dados detalhados:", error);
     throw error;
@@ -385,7 +379,6 @@ export async function appendSheetRowAsPromise(
 ): Promise<string> {
   const sheets = getSheetsClient();
   try {
-    console.log("Tentando adicionar linha na planilha:", { spreadsheetId, range, row });
     const result = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
@@ -394,14 +387,14 @@ export async function appendSheetRowAsPromise(
       requestBody: { values: [row] },
     });
     const updatedRange = result.data.updates?.updatedRange || "";
-    console.log(
-      "Linha adicionada com sucesso:",
-      updatedRange
-    );
+    // console.log( "Linha adicionada com sucesso:", updatedRange );
     return updatedRange;
   } catch (error) {
     console.error("Erro ao adicionar linha na planilha:", error);
-    console.error("Detalhes do erro:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    console.error(
+      "Detalhes do erro:",
+      JSON.stringify(error, Object.getOwnPropertyNames(error))
+    );
     return "";
   }
 }
@@ -490,7 +483,7 @@ export async function createEventWithMetadata(
   };
   try {
     const response = await calendar.events.insert(event);
-    console.log("Evento criado:", response.data);
+    console.log("createEventWithMetadata Evento criado");
     return response.data;
   } catch (error) {
     console.error("Erro ao criar evento:", error);
@@ -525,7 +518,7 @@ export async function createEvent(
   };
   try {
     const response = await calendar.events.insert(event);
-    console.log("Evento criado:", response.data);
+    console.log("createEvent Evento criado:");
     return response.data;
   } catch (error) {
     console.error("Erro ao criar evento:", error);
@@ -613,7 +606,7 @@ export async function createForm(title: string): Promise<any> {
       requestBody: fileMetadata,
       fields: "id",
     });
-    console.log("Formulário criado:", response.data);
+    console.log("createForm Formulário criado:");
     return response.data;
   } catch (error) {
     console.error("Erro ao criar formulário:", error);

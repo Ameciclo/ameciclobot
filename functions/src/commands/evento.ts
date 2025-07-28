@@ -12,7 +12,6 @@ function registerEventoCommand(bot: Telegraf) {
     try {
       console.log("[evento] Iniciando comando /evento");
       const chatId = ctx.chat?.id;
-      console.log("[evento] Chat ID:", chatId);
       if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
         console.log("[evento] Chat não autorizado.");
         await ctx.reply(
@@ -56,7 +55,6 @@ function registerEventoCommand(bot: Telegraf) {
 
 Texto:
 "${messageText}"`;
-      console.log("[evento] Prompt construído:", prompt);
 
       // Envia o prompt para o Azure
       console.log("[evento] Enviando prompt para sendChatCompletion...");
@@ -68,10 +66,6 @@ Texto:
         },
         { role: "user", content: prompt },
       ]);
-      console.log(
-        "[evento] Resposta recebida do Azure:",
-        JSON.stringify(azureResponse)
-      );
 
       const rawContent = azureResponse.choices?.[0]?.message?.content;
       if (!rawContent) {

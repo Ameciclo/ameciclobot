@@ -16,7 +16,6 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
       }
 
       const callbackData = callbackQuery.data as string;
-      console.log("callbackData:", callbackData);
       const requestId = callbackData.replace("cancel_payment_", "");
 
       const requestData: PaymentRequest | null = await getRequestData(

@@ -118,7 +118,6 @@ export function buildCheckEventsMessage(
   events.forEach((ev, idx) => {
     message += `**${idx + 1}\\.** ${formatCheckEvent(ev)}\n\n`;
   });
-  console.log("Check events message: " + message);
   return message;
 }
 
