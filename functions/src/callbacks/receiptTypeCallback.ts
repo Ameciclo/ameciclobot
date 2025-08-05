@@ -20,7 +20,7 @@ function sanitizeFileName(text: string, maxLength = 50): string {
 export async function registerReceiptTypeCallback(
   bot: Telegraf
 ): Promise<void> {
-  bot.action(/^rt_(.+)_([nfcro])$/, async (ctx: Context) => {
+  bot.action(/^rt_(.+)_(nf|cf|r|o)$/, async (ctx: Context) => {
     try {
       const callbackQuery = ctx.callbackQuery;
       if (!callbackQuery || !("data" in callbackQuery)) {
@@ -29,7 +29,7 @@ export async function registerReceiptTypeCallback(
       }
 
       const callbackData = callbackQuery.data as string;
-      const match = callbackData.match(/^rt_(.+)_([nfcro])$/);
+      const match = callbackData.match(/^rt_(.+)_(nf|cf|r|o)$/);
       if (!match) {
         await ctx.answerCbQuery("Dados do callback inválidos.");
         return;
