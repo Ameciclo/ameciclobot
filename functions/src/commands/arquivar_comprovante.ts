@@ -1,5 +1,5 @@
 import { Context, Markup, Telegraf } from "telegraf";
-import { getRequestData } from "../services/firebase";
+import { getRequestData, updatePaymentRequest } from "../services/firebase";
 import { uploadInvoice } from "../services/google";
 import { formatDate } from "../utils/utils";
 
@@ -50,7 +50,9 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
       // Extrai o ID da transação do comando
       const text = ctx.text || "";
       // Regex atualizado para capturar o ID mesmo com o sufixo @botname
-      const match = text.match(/\/arquivar_comprovante(?:@\w+)?\s+([a-zA-Z0-9_-]+)/);
+      const match = text.match(
+        /\/arquivar_comprovante(?:@\w+)?\s+([a-zA-Z0-9_-]+)/
+      );
 
       if (!match || !match[1]) {
         await ctx.reply(
@@ -116,21 +118,44 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
       }
 
       // Atualiza a solicitação com o link do comprovante
-      const { updatePaymentRequest } = require("../services/firebase");
       await updatePaymentRequest(requestId, {
         receipt_url: uploadResponse,
       });
 
-      // Cria os botões para os links
+      // Cria os botões para os links e seleção de tipo
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.url("📄 Ver Comprovante", uploadResponse)],
-        [Markup.button.url("📁 Pasta de Comprovantes", `https://drive.google.com/drive/folders/${folderId}`)],
-        [Markup.button.url("📊 Planilha Financeira", `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`)]
+        [
+          Markup.button.url(
+            "📁 Pasta de Comprovantes",
+            `https://drive.google.com/drive/folders/${folderId}`
+          ),
+        ],
+        [
+          Markup.button.url(
+            "📊 Planilha Financeira",
+            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+          ),
+        ],
+        [
+          Markup.button.callback(
+            "Nota fiscal",
+            `rt_${requestId}_nf`
+          ),
+          Markup.button.callback(
+            "Cupom Fiscal",
+            `rt_${requestId}_cf`
+          ),
+        ],
+        [
+          Markup.button.callback("Recibo", `rt_${requestId}_r`),
+          Markup.button.callback("Outro", `rt_${requestId}_o`),
+        ],
       ]);
 
       // Responde com o nome do arquivo e os botões
       await ctx.reply(
-        `✅ Comprovante arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}`,
+        `✅ Comprovante arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}\n\n📄 Qual o tipo de comprovante?`,
         keyboard
       );
     } catch (error) {

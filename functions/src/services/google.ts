@@ -399,6 +399,52 @@ export async function appendSheetRowAsPromise(
   }
 }
 
+export async function updateSpreadsheetCell(
+  spreadsheetId: string,
+  range: string,
+  value: string
+): Promise<void> {
+  const sheets = getSheetsClient();
+  try {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[value]],
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar célula da planilha:", error);
+    throw error;
+  }
+}
+
+export async function findRowByRequestId(
+  spreadsheetId: string,
+  requestId: string
+): Promise<number | null> {
+  const sheets = getSheetsClient();
+  const range = "DETALHAMENTO DAS DESPESAS!K:K";
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    });
+    const data = res.data.values || [];
+    for (let i = 0; i < data.length; i++) {
+      const cell = data[i][0];
+      if (cell && cell.includes(requestId)) {
+        return i + 1; // +1 porque as linhas começam em 1
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Erro ao buscar linha por ID:", error);
+    return null;
+  }
+}
+
 export async function updateSpreadsheet(request: PaymentRequest) {
   const range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
@@ -424,7 +470,7 @@ export async function updateSpreadsheet(request: PaymentRequest) {
     request.value,
     request.value,
     "⚠️PREENCHER",
-    "⚠️PREENCHER",
+    `📂 ID da Solicitação: ${request.id}`,
     date,
     comments,
   ];

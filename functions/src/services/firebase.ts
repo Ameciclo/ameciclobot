@@ -253,3 +253,21 @@ export async function getProtocolRecords(): Promise<any[]> {
     return [];
   }
 }
+
+export async function deleteGroupMessage(
+  ctx: any,
+  requestData: PaymentRequest
+): Promise<void> {
+  if (requestData.group_message_id) {
+    try {
+      const financeGroupId = await getWorkgroupId("Financeiro");
+      await ctx.telegram.deleteMessage(financeGroupId, requestData.group_message_id);
+    } catch (error: any) {
+      if (error.description && error.description.includes("message to delete not found")) {
+        console.log("Mensagem do grupo já foi apagada ou não existe mais.");
+      } else {
+        console.error("Erro ao apagar mensagem do grupo:", error);
+      }
+    }
+  }
+}
