@@ -124,30 +124,22 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
 
       // Cria os botões para os links e seleção de tipo
       const keyboard = Markup.inlineKeyboard([
-        [Markup.button.url("📄 Ver Comprovante", uploadResponse)],
+        // [Markup.button.url("📄 Ver Comprovante", uploadResponse)],
+        // [
+        //   Markup.button.url(
+        //     "📁 Pasta de Comprovantes",
+        //     `https://drive.google.com/drive/folders/${folderId}`
+        //   ),
+        // ],
+        // [
+        //   Markup.button.url(
+        //     "📊 Planilha Financeira",
+        //     `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+        //   ),
+        // ],
         [
-          Markup.button.url(
-            "📁 Pasta de Comprovantes",
-            `https://drive.google.com/drive/folders/${folderId}`
-          ),
-        ],
-        [
-          Markup.button.url(
-            "📊 Planilha Financeira",
-            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-          ),
-        ],
-        [
-          Markup.button.callback(
-            "Nota fiscal",
-            `rt_${requestId}_nf`
-          ),
-          Markup.button.callback(
-            "Cupom Fiscal",
-            `rt_${requestId}_cf`
-          ),
-        ],
-        [
+          Markup.button.callback("Nota fiscal", `rt_${requestId}_nf`),
+          Markup.button.callback("Cupom Fiscal", `rt_${requestId}_cf`),
           Markup.button.callback("Recibo", `rt_${requestId}_r`),
           Markup.button.callback("Outro", `rt_${requestId}_o`),
         ],
