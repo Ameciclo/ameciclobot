@@ -264,6 +264,9 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         }
       }
 
+      await updatePaymentRequest(requestId, { signatures });
+      await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+
       if (newSlot === 2) {
         const updated = await updateGoogleSheetAndRequest(
           requestData,
@@ -274,62 +277,58 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         if (!updated) {
           return;
         }
-      } else {
-        await updatePaymentRequest(requestId, { signatures });
-        await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+      }
 
-        // Atualiza a mensagem no grupo
-        if (requestData.group_message_id) {
+      // Atualiza a mensagem no grupo sempre que há mudança nas assinaturas
+      if (requestData.group_message_id) {
+        try {
+          const financeGroupId = await getWorkgroupId("Financeiro");
+          const coordinators = await getCoordinators();
+          const coordinatorButtons = buildCoordinatorButtons(
+            coordinators,
+            signatures,
+            requestId
+          );
+          const viewSpreadsheetButton = Markup.button.url(
+            "📊 Ver Planilha",
+            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+          );
+          const cancelButton = Markup.button.callback(
+            "❌ CANCELAR",
+            `cancel_payment_${requestData.id}`
+          );
+
+          const keyboard = Markup.inlineKeyboard([
+            coordinatorButtons,
+            [viewSpreadsheetButton, cancelButton],
+          ]);
+
+          const baseText = excerptFromRequest(
+            requestData,
+            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+          );
+          const signedByText = buildSignedByText(signatures);
+          const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+
           try {
-            const financeGroupId = await getWorkgroupId("Financeiro");
-            const coordinators = await getCoordinators();
-            const coordinatorButtons = buildCoordinatorButtons(
-              coordinators,
-              signatures,
-              requestId
+            await ctx.telegram.editMessageText(
+              financeGroupId,
+              requestData.group_message_id,
+              undefined,
+              messageText,
+              keyboard
             );
-            const viewSpreadsheetButton = Markup.button.url(
-              "📊 Ver Planilha",
-              `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-            );
-            const cancelButton = Markup.button.callback(
-              "❌ CANCELAR",
-              `cancel_payment_${requestData.id}`
-            );
-
-            const keyboard = Markup.inlineKeyboard([
-              coordinatorButtons,
-              [viewSpreadsheetButton, cancelButton],
-            ]);
-
-            const baseText = excerptFromRequest(
-              requestData,
-              `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-            );
-            const signedByText = buildSignedByText(signatures);
-            const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-
-            try {
-              await ctx.telegram.editMessageText(
-                financeGroupId,
-                requestData.group_message_id,
-                undefined,
-                messageText,
-                keyboard
-              );
-            } catch (error: any) {
-              // Ignora o erro se a mensagem for idêntica ou não existir mais
-              if (error.description && error.description.includes("message is not modified")) {
-                console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
-              } else if (error.description && error.description.includes("message to edit not found")) {
-                console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
-              } else {
-                throw error;
-              }
+          } catch (error: any) {
+            if (error.description && error.description.includes("message is not modified")) {
+              console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
+            } else if (error.description && error.description.includes("message to edit not found")) {
+              console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
+            } else {
+              throw error;
             }
-          } catch (err) {
-            console.error("Erro ao atualizar mensagem no grupo:", err);
           }
+        } catch (err) {
+          console.error("Erro ao atualizar mensagem no grupo:", err);
         }
       }
     }
