@@ -64,6 +64,28 @@ function getUserSignatureSlot(
 }
 
 /**
+ * Apaga todas as mensagens do inbox dos coordenadores quando transação é aprovada
+ */
+async function deleteAllCoordinatorMessages(
+  requestData: PaymentRequest,
+  ctx: Context
+): Promise<void> {
+  if (requestData.coordinator_messages) {
+    for (const [coordId, messageId] of Object.entries(requestData.coordinator_messages)) {
+      try {
+        await ctx.telegram.deleteMessage(parseInt(coordId), messageId);
+      } catch (error: any) {
+        if (error.description && error.description.includes("message to delete not found")) {
+          console.log(`Mensagem do coordenador ${coordId} já foi apagada.`);
+        } else {
+          console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+        }
+      }
+    }
+  }
+}
+
+/**
  * Atualiza a planilha do Google e a solicitação no Firebase.
  * Usada quando a segunda assinatura é adicionada.
  */
@@ -75,6 +97,9 @@ async function updateGoogleSheetAndRequest(
 ): Promise<boolean> {
   try {
     await updateSpreadsheet(requestData);
+
+    // Apaga todas as mensagens do inbox dos coordenadores
+    await deleteAllCoordinatorMessages(requestData, ctx);
 
     // Atualiza o status da solicitação para "confirmed" no Firebase
     await updatePaymentRequest(requestId, { status: "confirmed", signatures });
@@ -217,6 +242,28 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       const newSlot = Object.keys(signatures).length === 0 ? 1 : 2;
       signatures[newSlot] = ctx.from as TelegramUserInfo;
 
+      // Apaga a mensagem privada do coordenador que acabou de assinar
+      if (
+        requestData.coordinator_messages &&
+        requestData.coordinator_messages[userId]
+      ) {
+        try {
+          await ctx.telegram.deleteMessage(
+            userId,
+            requestData.coordinator_messages[userId]
+          );
+        } catch (err: any) {
+          if (err.description && err.description.includes("message to delete not found")) {
+            console.log(`Mensagem do coordenador já foi apagada ou não existe mais.`);
+          } else {
+            console.error(
+              `Erro ao apagar mensagem do coordenador que assinou.`,
+              err
+            );
+          }
+        }
+      }
+
       if (newSlot === 2) {
         const updated = await updateGoogleSheetAndRequest(
           requestData,
@@ -230,29 +277,6 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       } else {
         await updatePaymentRequest(requestId, { signatures });
         await ctx.answerCbQuery("Sua assinatura foi adicionada.");
-
-        // Apaga a mensagem privada do coordenador que acabou de assinar
-        if (
-          requestData.coordinator_messages &&
-          requestData.coordinator_messages[userId]
-        ) {
-          try {
-            await ctx.telegram.deleteMessage(
-              userId,
-              requestData.coordinator_messages[userId]
-            );
-          } catch (err: any) {
-            // Ignora o erro específico de mensagem não encontrada
-            if (err.description && err.description.includes("message to delete not found")) {
-              console.log(`Mensagem do coordenador já foi apagada ou não existe mais.`);
-            } else {
-              console.error(
-                `Erro ao apagar mensagem do coordenador que assinou.`,
-                err
-              );
-            }
-          }
-        }
 
         // Atualiza a mensagem no grupo
         if (requestData.group_message_id) {
