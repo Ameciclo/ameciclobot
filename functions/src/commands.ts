@@ -21,6 +21,7 @@ import { quem_sou_euCommand } from "./commands/quem_sou_eu";
 import { arquivarComprovanteCommand } from "./commands/arquivar_comprovante";
 import { arquivarExtratoPdfCommand } from "./commands/arquivar_extrato_pdf";
 import { versaoCommand } from "./commands/versao";
+import { unirPdfsCommand } from "./commands/unir_pdfs";
 
 export const commandsList = [
   arquivarComprovanteCommand,
@@ -45,5 +46,6 @@ export const commandsList = [
   registrarPlanilhaCommand,
   transcreverCommand,
   quem_sou_euCommand,
+  unirPdfsCommand,
   versaoCommand,
 ];
