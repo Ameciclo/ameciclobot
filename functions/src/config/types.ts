@@ -37,6 +37,7 @@ export interface TelegramUserInfo {
   username?: string;
   allows_write_to_pm?: boolean;
   photo_url?: string;
+  email?: string;
 }
 
 export interface CalendarEventData {

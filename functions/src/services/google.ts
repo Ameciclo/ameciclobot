@@ -604,6 +604,67 @@ export async function getEventsForPeriod(
   return events;
 }
 
+export async function addAttendeeToEvent(
+  calendarId: string,
+  eventId: string,
+  email: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  try {
+    // Busca o evento atual
+    const event = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
+
+    const currentAttendees = event.data.attendees || [];
+    
+    // Verifica se o email já está na lista
+    const alreadyInvited = currentAttendees.some(attendee => attendee.email === email);
+    if (alreadyInvited) {
+      console.log(`Email ${email} já está convidado para o evento`);
+      return true;
+    }
+
+    // Adiciona o novo convidado
+    const updatedAttendees = [...currentAttendees, { email, responseStatus: 'needsAction' }];
+
+    // Atualiza o evento
+    await calendar.events.update({
+      calendarId,
+      eventId,
+      requestBody: {
+        ...event.data,
+        attendees: updatedAttendees,
+      },
+      sendUpdates: 'all', // Envia convite por email
+    });
+
+    console.log(`Convidado ${email} adicionado ao evento ${eventId}`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao adicionar convidado ao evento:`, error);
+    return false;
+  }
+}
+
+export async function getEventDetails(
+  calendarId: string,
+  eventId: string
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  try {
+    const response = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Erro ao buscar detalhes do evento:`, error);
+    return null;
+  }
+}
+
 // ------------------------------------------------------
 // Google Docs Functions
 // ------------------------------------------------------

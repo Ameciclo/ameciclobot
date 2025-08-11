@@ -8,6 +8,19 @@ import {
   buildEventButtons,
   buildEventMessage,
 } from "../messages/eventMessages";
+import { addAttendeeToEvent } from "../services/google";
+import { admin } from "../config/firebaseInit";
+
+async function getUserEmail(userId: number): Promise<string | null> {
+  try {
+    const snapshot = await admin.database().ref(`subscribers/${userId}`).once('value');
+    const userData = snapshot.val();
+    return userData?.email || null;
+  } catch (error) {
+    console.error('Erro ao buscar email do usuário:', error);
+    return null;
+  }
+}
 
 export function registerEventParticipationCallback(bot: Telegraf) {
   bot.action(/^eu_vou_(.+)$/, async (ctx: Context) => {
@@ -60,13 +73,43 @@ export function registerEventParticipationCallback(bot: Telegraf) {
         await updateCalendarEventData(eventId, { participants });
         await ctx.answerCbQuery("Você retirou sua presença do evento.");
       } else {
-        // Caso contrário, adiciona o usuário à lista
+        // Verifica se o usuário tem email cadastrado
+        const userEmail = await getUserEmail(parseInt(userId));
+        
+        if (!userEmail) {
+          await ctx.answerCbQuery(
+            "❌ Você precisa cadastrar seu email primeiro. Use /quem_sou_eu seuemail@exemplo.com",
+            { show_alert: true }
+          );
+          return;
+        }
+
+        // Adiciona o usuário à lista
         participants[userId] = {
           id: userId,
           first_name: ctx.from?.first_name || "Usuário",
+          email: userEmail,
         };
-        await updateCalendarEventData(eventId, { participants });
-        await ctx.answerCbQuery("Presença confirmada com sucesso!");
+        
+        // Tenta adicionar como convidado no Google Calendar
+        if (eventData.calendarId && eventData.calendarEventId) {
+          const success = await addAttendeeToEvent(
+            eventData.calendarId,
+            eventData.calendarEventId,
+            userEmail
+          );
+          
+          if (success) {
+            await updateCalendarEventData(eventId, { participants });
+            await ctx.answerCbQuery("✅ Presença confirmada! Convite enviado por email.");
+          } else {
+            await updateCalendarEventData(eventId, { participants });
+            await ctx.answerCbQuery("✅ Presença confirmada! (Erro ao enviar convite por email)");
+          }
+        } else {
+          await updateCalendarEventData(eventId, { participants });
+          await ctx.answerCbQuery("✅ Presença confirmada com sucesso!");
+        }
       }
 
       // Atualiza o eventData com a lista de participantes atualizada
