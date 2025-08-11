@@ -6,15 +6,11 @@ import azureConfig from "../credentials/gpt35.json";
 export async function transcribeAudio(fileUrl: string): Promise<string> {
   try {
     console.log("[azure.transcribeAudio] Iniciando transcrição do áudio.");
-    console.log("[azure.transcribeAudio] URL do áudio:", fileUrl);
 
     const audioResponse = await axiosInstance.get(fileUrl, {
       responseType: "arraybuffer",
     });
-    console.log(
-      "[azure.transcribeAudio] Resposta de áudio recebida com status:",
-      audioResponse.status
-    );
+    console.log("[azure.transcribeAudio] Resposta de áudio recebida.");
     if (audioResponse.status !== 200) {
       throw new Error(`Erro ao baixar áudio: ${audioResponse.statusText}`);
     }
@@ -37,7 +33,7 @@ export async function transcribeAudio(fileUrl: string): Promise<string> {
         ...formData.getHeaders(),
       },
     });
-    console.log("[azure.transcribeAudio] Resposta do Whisper:", response.data);
+    //console.log("[azure.transcribeAudio] Resposta do Whisper:", response.data);
     return response.data.text || "";
   } catch (error) {
     console.error("[azure.transcribeAudio] Erro:", error);
@@ -47,10 +43,7 @@ export async function transcribeAudio(fileUrl: string): Promise<string> {
 
 export async function sendChatCompletion(messages: any[]): Promise<any> {
   try {
-    console.log(
-      "[azure.sendChatCompletion] Enviando mensagens para ChatGPT:",
-      JSON.stringify(messages, null, 2)
-    );
+    console.log("[azure.sendChatCompletion] Enviando mensagens para ChatGPT.");
     const endpoint = `${azureConfig.endpoint}${azureConfig.deployment}/chat/completions?api-version=${azureConfig.apiVersion}`;
     console.log("[azure.sendChatCompletion] Endpoint do Chat GPT:", endpoint);
 
@@ -69,10 +62,6 @@ export async function sendChatCompletion(messages: any[]): Promise<any> {
           "api-key": azureConfig.apiKey,
         },
       }
-    );
-    console.log(
-      "[azure.sendChatCompletion] Resposta do Chat GPT:",
-      response.data
     );
     return response.data;
   } catch (error) {

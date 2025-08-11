@@ -99,7 +99,6 @@ async function processExtratoCsv(fileUrl: string): Promise<{
       throw new Error("CSV sem dados suficientes.");
     }
     const rawAccount = removeLeadingZeros(csvData[1][1]);
-    console.log("Número da conta (sem zeros):", rawAccount);
 
     // Filtra os accounts do tipo "Conta Corrente"
     const accounts = getAccounts.filter(
@@ -179,20 +178,12 @@ function registerProcessarExtratosCcCommand(bot: Telegraf) {
       }
       const fileId = document.file_id;
       const fileLink = await ctx.telegram.getFileLink(fileId);
-      console.log("[processar_extrato_cc] URL do arquivo:", fileLink.href);
 
       // Processa o CSV e extrai as informações necessárias, inclusive o mês e o ano do saldo
       const result = await processExtratoCsv(fileLink.href);
-      console.log(
-        "[processar_extrato_cc] Extrato processado para a conta:",
-        result.account
-      );
+      console.log("[processar_extrato_cc] Extrato processado");
 
       const matchedAccount = result.matchedAccount;
-      console.log(
-        "[processar_extrato_cc] Conta para append:",
-        matchedAccount.fulltext
-      );
 
       // Gerar o nome do arquivo para upload utilizando o mês e o ano extraídos do CSV
       const filename = generateExtratoFilename(
@@ -207,10 +198,7 @@ function registerProcessarExtratosCcCommand(bot: Telegraf) {
         filename,
         folderId
       );
-      console.log(
-        "[processar_extrato_cc] Arquivo CSV enviado. Link:",
-        uploadedFileLink
-      );
+      console.log("[processar_extrato_cc] Arquivo CSV enviado");
 
       // Prepara a linha de resumo usando o mês e o ano extraídos do CSV
       const monthName = getMonthNamePortuguese(parseInt(result.month));
@@ -222,10 +210,7 @@ function registerProcessarExtratosCcCommand(bot: Telegraf) {
         matchedAccount.sheet,
         summaryRow
       );
-      console.log(
-        "[processar_extrato_cc] Linha de resumo adicionada na aba:",
-        matchedAccount.sheet
-      );
+      console.log("[processar_extrato_cc] Linha de resumo adicionada na aba!");
 
       // Agora, faz o append dos dados detalhados (statements) na mesma aba
       if (result.statements && result.statements.length > 0) {
@@ -235,8 +220,7 @@ function registerProcessarExtratosCcCommand(bot: Telegraf) {
           result.statements
         );
         console.log(
-          "[processar_extrato_cc] Dados detalhados adicionados na aba:",
-          matchedAccount.sheet
+          "[processar_extrato_cc] Dados detalhados adicionados na aba"
         );
       } else {
         console.log(

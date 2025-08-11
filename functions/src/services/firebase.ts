@@ -67,7 +67,7 @@ export async function updateFinanceProject(projectId: string, update: any) {
 
 export async function sendProjectsToDB(projectsJson: any) {
   await admin.database().ref("projects").set(projectsJson);
-  console.log("Projetos enviados para o DB:", projectsJson);
+  console.log("Firebase: Projetos enviados para o DB.");
 }
 
 export async function getFinancesGroupId(): Promise<string> {
@@ -88,7 +88,7 @@ export async function getWorkgroupId(workgroupName: string): Promise<string> {
     const data = snapshot.val() || {};
     return data[workgroupName] || "";
   } catch (err) {
-    console.error(`Erro ao buscar ID do grupo de trabalho ${workgroupName}:`, err);
+    console.error(`Erro ao buscar ID do grupo de trabalho`);
     return "";
   }
 }
@@ -97,7 +97,7 @@ export var updatePaymentRequest = async function (
   requestId: string,
   update: Object
 ) {
-  console.log("updatePaymentRequest: ", requestId);
+  console.log("updatePaymentRequest");
   return new Promise(function (resolve, reject) {
     admin
       .database()
@@ -135,9 +135,7 @@ export async function updatePaymentRequestCoordinatorMessages(
     coordinator_messages: coordinatorMessages,
   });
 
-  console.log(
-    `Coordinator messages updated for request ${requestId}`
-  );
+  console.log(`Coordinator messages updated for request`);
 }
 
 export async function updatCalendarEvent(event: any, createdEvent: any) {
@@ -160,9 +158,7 @@ export async function updateCalendarEventGroupMessage(
     group_message_id: groupMessageId,
   });
 
-  console.log(
-    `Calendar event group message ID updated for event ${eventId}: ${groupMessageId}`
-  );
+  console.log(`Calendar event group message ID updated for event`);
 }
 
 // Exemplo de função para buscar dados de um evento específico
@@ -177,7 +173,7 @@ export async function getCalendarEventData(eventId: string) {
 // Exemplo de função para atualizar dados de um evento
 export async function updateCalendarEventData(eventId: string, update: any) {
   await admin.database().ref(`calendar/${eventId}`).update(update);
-  console.log(`Calendar event updated for event ${eventId}:`, update);
+  console.log(`Calendar event updated for event`);
 }
 
 // Buscar dados de uma solicitação pelo `requestId`
@@ -187,11 +183,9 @@ export async function getRequestData(requestId: string): Promise<any> {
       .database()
       .ref(`/requests/${requestId}`)
       .once("value");
-    console.log("snapshot.exists():", snapshot.exists());
-    console.log("snapshot.val():", snapshot.val());
     return snapshot.val() || null;
   } catch (err) {
-    console.error(`Erro ao buscar dados da solicitação ${requestId}:`, err);
+    console.error(`Erro ao buscar dados da solicitação`);
     throw err;
   }
 }
@@ -257,5 +251,23 @@ export async function getProtocolRecords(): Promise<any[]> {
   } catch (error) {
     console.error("Error fetching protocols:", error);
     return [];
+  }
+}
+
+export async function deleteGroupMessage(
+  ctx: any,
+  requestData: PaymentRequest
+): Promise<void> {
+  if (requestData.group_message_id) {
+    try {
+      const financeGroupId = await getWorkgroupId("Financeiro");
+      await ctx.telegram.deleteMessage(financeGroupId, requestData.group_message_id);
+    } catch (error: any) {
+      if (error.description && error.description.includes("message to delete not found")) {
+        console.log("Mensagem do grupo já foi apagada ou não existe mais.");
+      } else {
+        console.error("Erro ao apagar mensagem do grupo:", error);
+      }
+    }
   }
 }

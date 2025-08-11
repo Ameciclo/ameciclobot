@@ -1,6 +1,6 @@
 // cancelPayment.ts
 import { Context, Telegraf } from "telegraf";
-import { getRequestData, updatePaymentRequest } from "../services/firebase";
+import { getRequestData, updatePaymentRequest, deleteGroupMessage } from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 import { PaymentRequest } from "../config/types";
 
@@ -16,7 +16,6 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
       }
 
       const callbackData = callbackQuery.data as string;
-      console.log("callbackData:", callbackData);
       const requestId = callbackData.replace("cancel_payment_", "");
 
       const requestData: PaymentRequest | null = await getRequestData(
@@ -29,6 +28,9 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
 
       // Atualiza a solicitação para cancelada, se necessário (opcional)
       await updatePaymentRequest(requestId, { status: "cancelled" });
+
+      // Apaga a mensagem do grupo de trabalho se existir
+      await deleteGroupMessage(ctx, requestData);
 
       // Reconstrói o trecho original e acrescenta a nota de cancelamento
       const messageText = excerptFromRequest(

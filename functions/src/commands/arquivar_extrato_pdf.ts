@@ -178,7 +178,6 @@ function getFolderIdForAccount(conta: string, isFund: boolean): string | null {
     ? "Fundo de Investimento - Conta"
     : "Conta Corrente";
 
-  console.log("[arquivar_extrato_pdf] Buscando pasta para conta normalizada:", contaNormalizada);
 
   // Busca a conta no arquivo accounts.json com input_file_type "pdf"
   const matchedAccount = getAccounts.find((acc: any) => {

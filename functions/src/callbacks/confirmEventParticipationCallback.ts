@@ -27,7 +27,6 @@ export function registerEventParticipationCallback(bot: Telegraf) {
       const callbackData = callbackQuery.data;
       const parts = callbackData.split("_");
       const eventId = parts[2];
-      console.log("eventId:", eventId);
 
       // Recupera os dados do evento (incluindo htmlLink e participantes)
       const eventData = await getCalendarEventData(eventId);

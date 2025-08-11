@@ -64,6 +64,28 @@ function getUserSignatureSlot(
 }
 
 /**
+ * Apaga todas as mensagens do inbox dos coordenadores quando transação é aprovada
+ */
+async function deleteAllCoordinatorMessages(
+  requestData: PaymentRequest,
+  ctx: Context
+): Promise<void> {
+  if (requestData.coordinator_messages) {
+    for (const [coordId, messageId] of Object.entries(requestData.coordinator_messages)) {
+      try {
+        await ctx.telegram.deleteMessage(parseInt(coordId), messageId);
+      } catch (error: any) {
+        if (error.description && error.description.includes("message to delete not found")) {
+          console.log(`Mensagem do coordenador ${coordId} já foi apagada.`);
+        } else {
+          console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+        }
+      }
+    }
+  }
+}
+
+/**
  * Atualiza a planilha do Google e a solicitação no Firebase.
  * Usada quando a segunda assinatura é adicionada.
  */
@@ -75,6 +97,9 @@ async function updateGoogleSheetAndRequest(
 ): Promise<boolean> {
   try {
     await updateSpreadsheet(requestData);
+
+    // Apaga todas as mensagens do inbox dos coordenadores
+    await deleteAllCoordinatorMessages(requestData, ctx);
 
     // Atualiza o status da solicitação para "confirmed" no Firebase
     await updatePaymentRequest(requestId, { status: "confirmed", signatures });
@@ -159,7 +184,6 @@ export async function confirmPayment(ctx: Context): Promise<void> {
     }
 
     const callbackData = callbackQuery.data as string;
-    console.log("callbackData:", callbackData);
 
     // Extrai coordId e requestId dos dados do callback
     const parsed = parseCallbackData(callbackData);
@@ -218,6 +242,31 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       const newSlot = Object.keys(signatures).length === 0 ? 1 : 2;
       signatures[newSlot] = ctx.from as TelegramUserInfo;
 
+      // Apaga a mensagem privada do coordenador que acabou de assinar
+      if (
+        requestData.coordinator_messages &&
+        requestData.coordinator_messages[userId]
+      ) {
+        try {
+          await ctx.telegram.deleteMessage(
+            userId,
+            requestData.coordinator_messages[userId]
+          );
+        } catch (err: any) {
+          if (err.description && err.description.includes("message to delete not found")) {
+            console.log(`Mensagem do coordenador já foi apagada ou não existe mais.`);
+          } else {
+            console.error(
+              `Erro ao apagar mensagem do coordenador que assinou.`,
+              err
+            );
+          }
+        }
+      }
+
+      await updatePaymentRequest(requestId, { signatures });
+      await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+
       if (newSlot === 2) {
         const updated = await updateGoogleSheetAndRequest(
           requestData,
@@ -228,85 +277,58 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         if (!updated) {
           return;
         }
-      } else {
-        await updatePaymentRequest(requestId, { signatures });
-        await ctx.answerCbQuery("Sua assinatura foi adicionada.");
+      }
 
-        // Apaga a mensagem privada do coordenador que acabou de assinar
-        if (
-          requestData.coordinator_messages &&
-          requestData.coordinator_messages[userId]
-        ) {
+      // Atualiza a mensagem no grupo sempre que há mudança nas assinaturas
+      if (requestData.group_message_id) {
+        try {
+          const financeGroupId = await getWorkgroupId("Financeiro");
+          const coordinators = await getCoordinators();
+          const coordinatorButtons = buildCoordinatorButtons(
+            coordinators,
+            signatures,
+            requestId
+          );
+          const viewSpreadsheetButton = Markup.button.url(
+            "📊 Ver Planilha",
+            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+          );
+          const cancelButton = Markup.button.callback(
+            "❌ CANCELAR",
+            `cancel_payment_${requestData.id}`
+          );
+
+          const keyboard = Markup.inlineKeyboard([
+            coordinatorButtons,
+            [viewSpreadsheetButton, cancelButton],
+          ]);
+
+          const baseText = excerptFromRequest(
+            requestData,
+            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+          );
+          const signedByText = buildSignedByText(signatures);
+          const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+
           try {
-            await ctx.telegram.deleteMessage(
-              userId,
-              requestData.coordinator_messages[userId]
+            await ctx.telegram.editMessageText(
+              financeGroupId,
+              requestData.group_message_id,
+              undefined,
+              messageText,
+              keyboard
             );
-          } catch (err: any) {
-            // Ignora o erro específico de mensagem não encontrada
-            if (err.description && err.description.includes("message to delete not found")) {
-              console.log(`Mensagem do coordenador ${userId} já foi apagada ou não existe mais.`);
+          } catch (error: any) {
+            if (error.description && error.description.includes("message is not modified")) {
+              console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
+            } else if (error.description && error.description.includes("message to edit not found")) {
+              console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
             } else {
-              console.error(
-                `Erro ao apagar mensagem do coordenador que assinou (ID: ${userId}):`,
-                err
-              );
+              throw error;
             }
           }
-        }
-
-        // Atualiza a mensagem no grupo
-        if (requestData.group_message_id) {
-          try {
-            const financeGroupId = await getWorkgroupId("Financeiro");
-            const coordinators = await getCoordinators();
-            const coordinatorButtons = buildCoordinatorButtons(
-              coordinators,
-              signatures,
-              requestId
-            );
-            const viewSpreadsheetButton = Markup.button.url(
-              "📊 Ver Planilha",
-              `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-            );
-            const cancelButton = Markup.button.callback(
-              "❌ CANCELAR",
-              `cancel_payment_${requestData.id}`
-            );
-
-            const keyboard = Markup.inlineKeyboard([
-              coordinatorButtons,
-              [viewSpreadsheetButton, cancelButton],
-            ]);
-
-            const baseText = excerptFromRequest(
-              requestData,
-              `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-            );
-            const signedByText = buildSignedByText(signatures);
-            const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-
-            try {
-              await ctx.telegram.editMessageText(
-                financeGroupId,
-                requestData.group_message_id,
-                undefined,
-                messageText,
-                keyboard
-              );
-            } catch (error: any) {
-              // Ignora o erro se a mensagem for idêntica ou não existir mais
-              if (error.description && error.description.includes("message is not modified")) {
-                console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
-              } else if (error.description && error.description.includes("message to edit not found")) {
-                console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
-              } else {
-                throw error;
-              }
-            }
-          } catch (err) {
-            console.error("Erro ao atualizar mensagem no grupo:", err);
-          }
+        } catch (err) {
+          console.error("Erro ao atualizar mensagem no grupo:", err);
         }
       }
     }

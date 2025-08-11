@@ -31,10 +31,6 @@ export async function sendEventMessage(
       parse_mode: "MarkdownV2",
       reply_markup: inlineKeyboard.reply_markup,
     });
-    console.log(
-      "Mensagem enviada para o grupo. ID da mensagem:",
-      groupMessage.message_id
-    );
 
     // Atualiza no Firebase o ID da mensagem enviada para o grupo
     await updateCalendarEventData(id, {
@@ -50,10 +46,9 @@ export async function handleCreateEvent(
   bot: Telegraf
 ): Promise<void> {
   const eventData = event.data.val() as CalendarEventData;
-  console.log("Dados recebidos para criação de evento:", eventData);
 
   if (!eventData.calendarId) {
-    console.error("calendarId ausente no evento:", eventData);
+    console.error("calendarId ausente no evento:");
     return;
   }
 

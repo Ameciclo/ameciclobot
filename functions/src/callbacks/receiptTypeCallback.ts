@@ -1,0 +1,151 @@
+import { Context, Markup, Telegraf } from "telegraf";
+import {
+  getRequestData,
+  updatePaymentRequest,
+  getWorkgroupId,
+} from "../services/firebase";
+import { findRowByRequestId, updateSpreadsheetCell } from "../services/google";
+import { formatDate } from "../utils/utils";
+
+function sanitizeFileName(text: string, maxLength = 50): string {
+  const sanitized = text
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\r?\n|\r/g, " ")
+    .trim();
+  return sanitized.length > maxLength
+    ? sanitized.substring(0, maxLength)
+    : sanitized;
+}
+
+export async function registerReceiptTypeCallback(
+  bot: Telegraf
+): Promise<void> {
+  bot.action(/^rt_(.+)_(nf|cf|r|o)$/, async (ctx: Context) => {
+    try {
+      const callbackQuery = ctx.callbackQuery;
+      if (!callbackQuery || !("data" in callbackQuery)) {
+        await ctx.answerCbQuery("Ação inválida.", { show_alert: true });
+        return;
+      }
+
+      const callbackData = callbackQuery.data as string;
+      const match = callbackData.match(/^rt_(.+)_(nf|cf|r|o)$/);
+      if (!match) {
+        await ctx.answerCbQuery("Dados do callback inválidos.");
+        return;
+      }
+
+      const requestId = match[1];
+      const typeCode = match[2];
+      const typeMap: Record<string, string> = {
+        'nf': 'Nota fiscal',
+        'cf': 'Cupom Fiscal', 
+        'r': 'Recibo',
+        'o': 'Outro'
+      };
+      const receiptType = typeMap[typeCode];
+
+      const requestData = await getRequestData(requestId);
+      if (!requestData) {
+        await ctx.answerCbQuery("Solicitação não encontrada.");
+        return;
+      }
+
+      const rowNumber = await findRowByRequestId(
+        requestData.project.spreadsheet_id,
+        requestId
+      );
+
+      if (rowNumber) {
+        await updateSpreadsheetCell(
+          requestData.project.spreadsheet_id,
+          `DETALHAMENTO DAS DESPESAS!J${rowNumber}`,
+          receiptType
+        );
+
+        if (requestData.receipt_url) {
+          await updateSpreadsheetCell(
+            requestData.project.spreadsheet_id,
+            `DETALHAMENTO DAS DESPESAS!K${rowNumber}`,
+            requestData.receipt_url
+          );
+        }
+      }
+
+      await updatePaymentRequest(requestId, {
+        receipt_type: receiptType,
+      });
+
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url("📄 Ver Comprovante", requestData.receipt_url)],
+        [
+          Markup.button.url(
+            "📁 Pasta de Comprovantes",
+            `https://drive.google.com/drive/folders/${requestData.project.folder_id}`
+          ),
+        ],
+        [
+          Markup.button.url(
+            "📊 Planilha Financeira",
+            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+          ),
+        ],
+      ]);
+
+      const fileName = `${formatDate(new Date())} - ${
+        requestData.project.name
+      } - ${requestData.value} - ${
+        requestData.supplier.nickname
+      } - ${sanitizeFileName(requestData.description)}`;
+
+      await ctx.editMessageText(
+        `✅ Comprovante arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}\n\n📄 Tipo: ${receiptType}`,
+        keyboard
+      );
+
+      if (requestData.group_message_id) {
+        try {
+          const financeGroupId = await getWorkgroupId("Financeiro");
+          const groupKeyboard = Markup.inlineKeyboard([
+            [Markup.button.url("📄 Ver Comprovante", requestData.receipt_url)],
+            [
+              Markup.button.url(
+                "📁 Pasta de Comprovantes",
+                `https://drive.google.com/drive/folders/${requestData.project.folder_id}`
+              ),
+            ],
+            [
+              Markup.button.url(
+                "📊 Planilha Financeira",
+                `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+              ),
+            ],
+          ]);
+
+          await ctx.telegram.editMessageReplyMarkup(
+            financeGroupId,
+            requestData.group_message_id,
+            undefined,
+            groupKeyboard.reply_markup
+          );
+        } catch (error: any) {
+          if (
+            error.description &&
+            error.description.includes("message to edit not found")
+          ) {
+            console.log(
+              "Mensagem do grupo não encontrada, pode ter sido apagada."
+            );
+          } else {
+            console.error("Erro ao atualizar mensagem do grupo:", error);
+          }
+        }
+      }
+
+      await ctx.answerCbQuery(`Tipo de comprovante definido: ${receiptType}`);
+    } catch (error) {
+      console.error("Erro ao processar tipo de comprovante:", error);
+      await ctx.answerCbQuery("Erro ao processar tipo de comprovante.");
+    }
+  });
+}

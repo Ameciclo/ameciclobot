@@ -29,6 +29,7 @@ import { checkEvents } from "./scheduler/checkEvents";
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
+import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -53,6 +54,7 @@ registerEventParticipationCallback(bot);
 registerCancelPaymentCallback(bot);
 registerConfirmPaymentCallback(bot);
 registerEventCallback(bot);
+registerReceiptTypeCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -112,7 +114,6 @@ export const scheduledCheckEvents = onSchedule(
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {
-  console.log(req.body);
   bot.handleUpdate(req.body, res);
 });
 

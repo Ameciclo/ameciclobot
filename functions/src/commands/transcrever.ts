@@ -9,7 +9,6 @@ export function registerTranscreverCommand(bot: Telegraf) {
     try {
       console.log("[transcrever] Comando iniciado.");
       const chatId = ctx.chat?.id;
-      console.log("[transcrever] Chat ID:", chatId);
       if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
         console.log("[transcrever] Chat não autorizado.");
         await ctx.reply(
@@ -38,16 +37,14 @@ export function registerTranscreverCommand(bot: Telegraf) {
 
       console.log("[transcrever] Obtendo link do áudio...");
       const fileLink = await ctx.telegram.getFileLink(voice.file_id);
-      console.log("[transcrever] Link do áudio:", fileLink.toString());
 
       console.log("[transcrever] Chamando transcribeAudio...");
       const transcription = await transcribeAudio(fileLink.toString());
-      console.log("[transcrever] Transcrição obtida:", transcription);
+      console.log("[transcrever] Transcrição obtida.");
 
       await ctx.reply(`Transcrição:\n${transcription}`);
       console.log("[transcrever] Comando /transcrever concluído com sucesso.");
     } catch (error) {
-      console.error("[transcrever] Erro ao transcrever áudio:", error);
       await ctx.reply("Ocorreu um erro ao transcrever o áudio.");
     }
   });
