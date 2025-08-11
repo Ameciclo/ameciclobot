@@ -271,3 +271,26 @@ export async function deleteGroupMessage(
     }
   }
 }
+
+export async function getUserData(userId: number): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`subscribers/${userId}`).once('value');
+    return snapshot.val();
+  } catch (error) {
+    console.error('Erro ao buscar dados do usuário:', error);
+    return null;
+  }
+}
+
+export async function updateUserEmail(userId: number, email: string): Promise<boolean> {
+  try {
+    await admin.database().ref(`subscribers/${userId}`).update({
+      email: email,
+      updated_at: new Date().toISOString()
+    });
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar dados do usuário:', error);
+    return false;
+  }
+}

@@ -1,5 +1,5 @@
 import { Context, Telegraf } from 'telegraf';
-import { admin } from '../config/firebaseInit';
+import { getUserData, updateUserEmail } from '../services/firebase';
 
 export function getName() {
   return "/quem_sou_eu";
@@ -13,30 +13,7 @@ export function getDescription() {
   return "🤔 Descubra suas informações no bot.";
 }
 
-async function getUserData(userId: number): Promise<any> {
-  try {
-    const snapshot = await admin.database().ref(`subscribers/${userId}`).once('value');
-    return snapshot.val();
-  } catch (error) {
-    console.error('Erro ao buscar dados do usuário:', error);
-    return null;
-  }
-}
 
-async function updateUserEmail(userId: number, email: string, userInfo: any): Promise<boolean> {
-  try {
-    const userData = {
-      ...userInfo,
-      email: email,
-      updated_at: new Date().toISOString()
-    };
-    await admin.database().ref(`subscribers/${userId}`).set(userData);
-    return true;
-  } catch (error) {
-    console.error('Erro ao atualizar email do usuário:', error);
-    return false;
-  }
-}
 
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,15 +41,7 @@ export function register(bot: Telegraf) {
         return;
       }
 
-      const userInfo = {
-        id: userId,
-        first_name: ctx.from?.first_name || '',
-        last_name: ctx.from?.last_name || '',
-        username: ctx.from?.username || '',
-        language_code: ctx.from?.language_code || ''
-      };
-
-      const success = await updateUserEmail(userId, emailArg, userInfo);
+      const success = await updateUserEmail(userId, emailArg);
       if (success) {
         await ctx.reply(`✅ Email cadastrado com sucesso: ${emailArg}`);
       } else {
