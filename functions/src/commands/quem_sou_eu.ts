@@ -22,6 +22,7 @@ function isValidEmail(email: string): boolean {
 
 export function register(bot: Telegraf) {
   bot.command('quem_sou_eu', async (ctx: Context) => {
+    console.log('Comando quem_sou_eu executado');
     const userId = ctx.from?.id;
     const chatId = ctx.chat?.id;
     
@@ -33,6 +34,7 @@ export function register(bot: Telegraf) {
     const messageText = (ctx.message as any)?.text;
     const args = messageText?.split(' ').slice(1);
     const emailArg = args?.[0];
+    console.log('Email arg:', emailArg);
 
     // Se foi fornecido um email, cadastra/atualiza
     if (emailArg) {
@@ -50,8 +52,10 @@ export function register(bot: Telegraf) {
       return;
     }
 
+    console.log('Buscando dados do usuário:', userId);
     // Busca dados do usuário
     const userData = await getUserData(userId);
+    console.log('Dados do usuário:', userData);
     
     let message = `👤 **Suas informações:**\n\n`;
     message += `🆔 **User ID:** ${userId}\n`;
@@ -77,7 +81,15 @@ export function register(bot: Telegraf) {
       message += `\n🎭 **Função:** ${userData.role}`;
     }
     
-    await ctx.reply(message, { parse_mode: 'Markdown' });
+    console.log('Enviando mensagem:', message);
+    try {
+      await ctx.reply(message, { parse_mode: 'Markdown' });
+    } catch (error) {
+      console.error('Erro ao enviar com Markdown:', error);
+      // Tenta enviar sem formatação
+      const plainMessage = message.replace(/\*\*/g, '').replace(/\n/g, '\n');
+      await ctx.reply(plainMessage);
+    }
   });
 }
 
