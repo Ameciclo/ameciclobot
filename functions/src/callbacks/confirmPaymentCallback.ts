@@ -86,6 +86,27 @@ async function deleteAllCoordinatorMessages(
 }
 
 /**
+ * Notifica o solicitante que o pagamento foi confirmado
+ */
+async function notifyPaymentRequester(
+  requestData: PaymentRequest,
+  ctx: Context
+): Promise<void> {
+  try {
+    const message = `✅ Seu pagamento foi confirmado com sucesso!\n\n` +
+      `💰 Tipo: ${requestData.transactionType}\n` +
+      `💵 Valor: R$ ${requestData.value}\n` +
+      `🗂 Projeto: ${requestData.project.name}\n` +
+      `📝 Descrição: ${requestData.description}`;
+    
+    await ctx.telegram.sendMessage(requestData.from.id, message);
+    console.log(`Notificação enviada para o solicitante (ID: ${requestData.from.id})`);
+  } catch (error: any) {
+    console.error(`Erro ao notificar solicitante:`, error);
+  }
+}
+
+/**
  * Atualiza a planilha do Google e a solicitação no Firebase.
  * Usada quando a segunda assinatura é adicionada.
  */
@@ -100,6 +121,9 @@ async function updateGoogleSheetAndRequest(
 
     // Apaga todas as mensagens do inbox dos coordenadores
     await deleteAllCoordinatorMessages(requestData, ctx);
+
+    // Notifica o solicitante
+    await notifyPaymentRequester(requestData, ctx);
 
     // Atualiza o status da solicitação para "confirmed" no Firebase
     await updatePaymentRequest(requestId, { status: "confirmed", signatures });
