@@ -109,6 +109,7 @@ change_node() {
     if [ -s "$NVM_DIR/nvm.sh" ]; then
         . "$NVM_DIR/nvm.sh"
         nvm use v22.11.0
+        export PATH="$HOME/.nvm/versions/node/v22.18.0/bin:$PATH"
     else
         echo "nvm não encontrado. Certifique-se de que o nvm está instalado."
     fi
