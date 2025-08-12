@@ -9,33 +9,31 @@ import { updatePaymentRequest } from "./firebase";
 import { CalendarConfig, PaymentRequest } from "../config/types";
 import calendars from "../credentials/calendars.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import emailalias from "../credentials/emailalias.json";
 
 const api_key = google_keys.api_key;
 const credentials = firebaseCredentials;
+const ACT_AS = emailalias.GOOGLE_SUBJECT;
 
-// ------------------------------------------------------
-// Autenticação
-// ------------------------------------------------------
-export function getJwt() {
-  return new google.auth.JWT(
-    credentials.client_email,
-    undefined,
-    credentials.private_key,
-    [
+export function getJwt(subject = ACT_AS) {
+  return new google.auth.JWT({
+    email: credentials.client_email,
+    // cuidado com \n quando vier de env
+    key: (credentials.private_key || "").replace(/\\n/g, "\n"),
+    scopes: [
+      "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/documents",
+      "https://www.googleapis.com/auth/presentations",
       "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/drive",
-    ]
-  );
+    ],
+    subject, // <- magia: impersona o bot@
+  });
 }
 
-// Reutilizamos o mesmo JWT para todas as chamadas.
+// Reutilizamos o mesmo JWT para todas as chamadas (impersonado)
 const auth = getJwt();
 
-// ------------------------------------------------------
-// CLIENTES DAS APIS – Sheets, Drive, Calendar, etc.
-// ------------------------------------------------------
 export function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
