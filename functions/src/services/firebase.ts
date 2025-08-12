@@ -227,9 +227,12 @@ export async function saveProtocolRecord(
       group: group,
       timestamp: admin.database.ServerValue.TIMESTAMP,
       date: new Date().toLocaleString(),
+      verificado: false,
+      dados_baixados: false,
+      status: 'aguardando_resposta', // aguardando_resposta, respondido, aceito, recorrencia
+      notificado: false
     };
 
-    // Create a new reference with push() to generate unique ID
     const newProtocolRef = admin.database().ref("information_requests").push();
     await newProtocolRef.set(protocolData);
 
@@ -292,5 +295,103 @@ export async function updateUserEmail(userId: number, email: string): Promise<bo
   } catch (error) {
     console.error('Erro ao atualizar dados do usuário:', error);
     return false;
+  }
+}
+
+// Pedidos de Informação
+export async function getAllInformationRequests(): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    return snapshot.val() || {};
+  } catch (error) {
+    console.error('Erro ao buscar pedidos de informação:', error);
+    return {};
+  }
+}
+
+export async function getInformationRequestByProtocol(protocolo: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    const requests = snapshot.val() || {};
+    return Object.values(requests).find((req: any) => req.protocol === protocolo);
+  } catch (error) {
+    console.error('Erro ao buscar pedido por protocolo:', error);
+    return null;
+  }
+}
+
+export async function getInformationRequestData(requestKey: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`information_requests/${requestKey}/information`).once('value');
+    return snapshot.val();
+  } catch (error) {
+    console.error('Erro ao buscar dados do pedido:', error);
+    return null;
+  }
+}
+
+export async function updateRequestStatus(requestKey: string, status: string, notificado: boolean = false): Promise<boolean> {
+  try {
+    await admin.database().ref(`information_requests/${requestKey}`).update({
+      status,
+      notificado,
+      ultimaAtualizacaoStatus: new Date().toISOString()
+    });
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    return false;
+  }
+}
+
+export async function updateInformationRequest(requestKey: string, pedidoData: any): Promise<boolean> {
+  try {
+    const totalRespostas = pedidoData.historicoRespostas?.length || 0;
+    const ultimaResposta = pedidoData.historicoRespostas?.[pedidoData.historicoRespostas.length - 1] || null;
+    
+    // Dados de controle no nó principal
+    const controlData = {
+      ultimaVerificacao: new Date().toISOString(),
+      verificado: true,
+      totalRespostas,
+      ultimaResposta
+    };
+    
+    // Dados completos do scraping no subnó information
+    const informationData = {
+      protocolo: pedidoData.protocolo,
+      recurso: pedidoData.recurso,
+      dataPedido: pedidoData.dataPedido,
+      motivo: pedidoData.motivo,
+      descricao: pedidoData.descricao,
+      historicoRespostas: pedidoData.historicoRespostas,
+      mensagemFinal: pedidoData.mensagemFinal,
+      ultimaAtualizacao: new Date().toISOString()
+    };
+    
+    await admin.database().ref(`information_requests/${requestKey}`).update(controlData);
+    await admin.database().ref(`information_requests/${requestKey}/information`).set(informationData);
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar pedido:', error);
+    return false;
+  }
+}
+
+export async function getInformationRequestKey(protocolo: string): Promise<string | null> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    const requests = snapshot.val() || {};
+    
+    for (const [key, req] of Object.entries(requests)) {
+      if ((req as any).protocol === protocolo) {
+        return key;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar chave do pedido:', error);
+    return null;
   }
 }

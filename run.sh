@@ -110,6 +110,8 @@ change_node() {
         . "$NVM_DIR/nvm.sh"
         nvm use v22.11.0
         export PATH="$HOME/.nvm/versions/node/v22.18.0/bin:$PATH"
+        echo "Instalando Firebase CLI..."
+        npm install -g firebase-tools
     else
         echo "nvm não encontrado. Certifique-se de que o nvm está instalado."
     fi

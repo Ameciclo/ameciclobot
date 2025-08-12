@@ -25,11 +25,13 @@ import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
+//import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
 
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
+import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -55,6 +57,7 @@ registerCancelPaymentCallback(bot);
 registerConfirmPaymentCallback(bot);
 registerEventCallback(bot);
 registerReceiptTypeCallback(bot);
+registerInformationRequestCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -111,6 +114,18 @@ export const scheduledCheckEvents = onSchedule(
     await checkEvents(bot);
   }
 );
+
+// Temporariamente comentado devido a erro de IAM
+// export const scheduledCheckPedidosInformacao = onSchedule(
+//   { schedule: "0 9 * * *", timeZone: "America/Recife" },
+//   async (context) => {
+//     console.log(
+//       "RUN: scheduledCheckPedidosInformacao disparado em",
+//       new Date().toISOString()
+//     );
+//     await checkPedidosInformacao(bot);
+//   }
+// );
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {
