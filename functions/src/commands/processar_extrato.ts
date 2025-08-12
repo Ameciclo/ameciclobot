@@ -12,44 +12,90 @@ import {
 import { getMonthNamePortuguese } from "../utils/utils";
 import workgroups from "../credentials/workgroupsfolders.json";
 import iconv from "iconv-lite";
+import { getAllRequests } from "../services/firebase";
+import { PaymentRequest } from "../config/types";
+import { reconcileExtract, ExtractEntry } from "../services/reconciliation";
 
 // ======= Funções para Conta Corrente (CSV) =======
 function removeLeadingZeros(str: string): string {
   return str.replace(/^0+/, "");
 }
 
-function deleteRow(arr: any[][], rowIndex: number): any[][] {
-  arr.splice(rowIndex - 1, 1);
-  return arr;
-}
 
-function convertCSVtoStatementsData(csv: any[][]): any[][] {
-  csv = deleteRow(csv, 1);
-  csv = deleteRow(csv, csv.length);
-  const data: any[][] = [];
-  for (let i = 0; i < csv.length; i++) {
-    const row = csv[i];
-    const dateStr = row[3];
-    const day = Number(dateStr.substring(0, 2));
-    const month = Number(dateStr.substring(2, 4));
-    const year = Number(dateStr.substring(4, 8));
-    const formattedDate =
-      ("0" + day).slice(-2) + "/" + ("0" + month).slice(-2) + "/" + year;
-    const value = Number(row[10]) / 100;
-    let type = "Saída";
-    const code = row[8];
-    if (code === "855" || code === "791" || code === "848") {
-      type = "Desinvestido";
-    } else if (code === "345") {
-      type = "Investido";
-    } else if (code === "900") {
-      type = "Entrada ERRO!";
-    } else if (row[11] === "C") {
-      type = "Entrada";
+
+async function convertCSVtoStatementsData(csvData: any[]): Promise<any[]> {
+  const data: any[] = [];
+  const confirmedRequests = await getConfirmedPaymentRequests();
+  
+  // Converte CSV para formato de entrada do reconciliador
+  const extractEntries: ExtractEntry[] = [];
+  
+  // Pula primeira linha (cabeçalho) e última linha (saldo final)
+  for (let i = 1; i < csvData.length - 1; i++) {
+    const row = csvData[i];
+    
+    // Pula linha de saldo anterior
+    if (row[9] && row[9].includes("Saldo Anterior")) {
+      continue;
     }
-    const info = row[8] + " " + row[9] + " " + row[12];
-    data.push([formattedDate, value, type, info]);
+    
+    // Parse da data (formato DD.MM.YYYY)
+    const dateStr: string = row[3];
+    const [day, month, year] = dateStr.split(".");
+    const postDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Parse do valor (formato com vírgula, já em centavos)
+    const valueStr = row[10].replace(",", ".");
+    const amount = parseFloat(valueStr);
+    
+    // Tipo baseado na coluna D/C
+    const type = row[11] as "D" | "C";
+    
+    // Informação original do extrato
+    const narrative = `${row[8]} ${row[9]} ${row[12]}`.trim();
+    
+    extractEntries.push({
+      postDate,
+      amount: Math.abs(amount),
+      type,
+      narrative,
+      originalData: row
+    });
   }
+  
+  // Executa reconciliação
+  const { results, summary } = reconcileExtract(extractEntries, confirmedRequests);
+  
+  console.log(`[RECONCILIATION] Resumo: ✅ ${summary.ok} ok | 🔗 ${summary.split} split | ⚠️ ${summary.ambiguous} ambíguo | ❓ ${summary.not_found} não encontrados`);
+  
+  // Converte resultados para formato da planilha
+  for (let i = 0; i < extractEntries.length; i++) {
+    const entry = extractEntries[i];
+    const result = results[i];
+    
+    const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
+    const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+    let type = entry.type === "C" ? "Entrada" : "Saída";
+    
+    // Ajusta tipo para movimentações especiais
+    if (result.comment === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+      type = entry.type === "D" ? "Investido" : "Desinvestido";
+    } else if (result.comment === "PIX DEVOLVIDO EXPLICAR") {
+      type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
+    } else if (result.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+      type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
+    }
+    
+    data.push([
+      formattedDate,
+      formattedValue,
+      type,
+      entry.narrative,
+      result.comment,
+      result.project
+    ]);
+  }
+  
   return data;
 }
 
@@ -65,13 +111,22 @@ async function processExtratoCsv(fileUrl: string) {
     trim: true,
   });
 
-  const originalCsv = csvData.slice();
-  const lastRow = originalCsv[originalCsv.length - 1];
-  const saldoDateStr: string = lastRow[3];
-  const monthStr = saldoDateStr.substring(2, 4);
-  const yearStr = saldoDateStr.substring(4, 8);
+  // Extrai mês e ano da primeira transação (não do saldo)
+  let monthStr = "";
+  let yearStr = "";
+  
+  for (let i = 1; i < csvData.length; i++) {
+    const row = csvData[i];
+    if (row[3] && !row[9]?.includes("Saldo Anterior")) {
+      const dateStr = row[3];
+      const [, month, year] = dateStr.split(".");
+      monthStr = month;
+      yearStr = year;
+      break;
+    }
+  }
 
-  const statementsData = convertCSVtoStatementsData(csvData);
+  const statementsData = await convertCSVtoStatementsData(csvData);
 
   if (csvData.length < 2) {
     throw new Error("CSV sem dados suficientes.");
@@ -300,8 +355,15 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
           );
         }
 
+        // Conta quantos pagamentos foram identificados
+        const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
+        const ambiguousCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4].startsWith("❓")).length;
+        const totalCount = result.statements.length;
+        
         await ctx.reply(
-          `Extrato de conta corrente processado com sucesso para a conta ${result.matchedAccount.number}. Dados adicionados na aba ${result.matchedAccount.sheet}.`
+          `Extrato de conta corrente processado com sucesso para a conta ${result.matchedAccount.number}. ` +
+          `Dados adicionados na aba ${result.matchedAccount.sheet}.\n\n` +
+          `📊 Reconciliação: ✅ ${identifiedCount} identificados | ❓ ${ambiguousCount} pendentes | Total: ${totalCount} lançamentos`
         );
       } else {
         // Processa extrato de fundo de investimento
@@ -343,6 +405,25 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
       await ctx.reply("Erro ao processar extrato.");
     }
   });
+}
+
+// Função para buscar requests confirmados
+async function getConfirmedPaymentRequests(): Promise<PaymentRequest[]> {
+  try {
+    const allRequests = await getAllRequests();
+    console.log("[DEBUG] Total requests encontrados:", Object.keys(allRequests || {}).length);
+    
+    const requestsArray = Object.values(allRequests).filter(
+      (request: any) => request.status === "confirmed"
+    ) as PaymentRequest[];
+    
+    console.log("[DEBUG] Requests confirmados:", requestsArray.length);
+    
+    return requestsArray;
+  } catch (error) {
+    console.error("Erro ao buscar requests confirmados:", error);
+    return [];
+  }
 }
 
 export const processarExtratoCommand = {
