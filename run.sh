@@ -139,7 +139,7 @@ continuos_start_bot() {
 #####################################
 while true; do
     echo ""
-    echo "========================================"
+    echo "============$(date '+%H:%M:%S')============================ "
     echo "Escolha uma opção:"
     echo "1. Iniciar NGROK e configurar webhook em DEVELOPMENT"
     echo "2. Configurar webhook em PRODUCTION"
