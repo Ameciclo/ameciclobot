@@ -25,7 +25,7 @@ import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
-//import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
+import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
 
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
@@ -115,17 +115,16 @@ export const scheduledCheckEvents = onSchedule(
   }
 );
 
-// Temporariamente comentado devido a erro de IAM
-// export const scheduledCheckPedidosInformacao = onSchedule(
-//   { schedule: "0 9 * * *", timeZone: "America/Recife" },
-//   async (context) => {
-//     console.log(
-//       "RUN: scheduledCheckPedidosInformacao disparado em",
-//       new Date().toISOString()
-//     );
-//     await checkPedidosInformacao(bot);
-//   }
-// );
+export const scheduledCheckPedidosInformacao = onSchedule(
+  { schedule: "0 9 * * *", timeZone: "America/Recife" },
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckPedidosInformacao disparado em",
+      new Date().toISOString()
+    );
+    await checkPedidosInformacao(bot);
+  }
+);
 
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(async (req, res) => {

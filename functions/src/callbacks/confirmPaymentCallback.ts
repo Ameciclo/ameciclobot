@@ -301,6 +301,8 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         if (!updated) {
           return;
         }
+        // Quando há 2 assinaturas, o pagamento está confirmado - não precisa atualizar mais nada
+        return;
       }
 
       // Atualiza a mensagem no grupo sempre que há mudança nas assinaturas
@@ -357,7 +359,8 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       }
     }
 
-    if (Object.keys(signatures).length !== 2) {
+    // Só atualiza a interface se não houver 2 assinaturas (pagamento não confirmado)
+    if (Object.keys(signatures).length < 2) {
       // Monta a interface atualizada mantendo o trecho original da solicitação
       const coordinators: AmecicloUser[] = await getCoordinators();
       const coordinatorButtons = buildCoordinatorButtons(
