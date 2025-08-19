@@ -287,7 +287,7 @@ export async function getUserData(userId: number): Promise<any> {
 
 export async function updateUserEmail(userId: number, email: string): Promise<boolean> {
   try {
-    await admin.database().ref(`subscribers/${userId}`).update({
+    await admin.database().ref(`subscribers/${userId}/ameciclo_register`).update({
       email: email,
       updated_at: new Date().toISOString()
     });

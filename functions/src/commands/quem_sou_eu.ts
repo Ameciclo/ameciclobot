@@ -70,8 +70,8 @@ export function register(bot: Telegraf) {
       message += `\n📱 **Username:** @${ctx.from.username}`;
     }
     
-    if (userData?.email) {
-      message += `\n📧 **Email:** ${userData.email}`;
+    if (userData?.ameciclo_register?.email) {
+      message += `\n📧 **Email:** ${userData.ameciclo_register.email}`;
     } else {
       message += `\n📧 **Email:** Não cadastrado`;
       message += `\n\n💡 Para cadastrar seu email, use:\n\`/quem_sou_eu seuemail@exemplo.com\``;
