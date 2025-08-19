@@ -116,7 +116,7 @@ export const scheduledCheckEvents = onSchedule(
 );
 
 export const scheduledCheckPedidosInformacao = onSchedule(
-  { schedule: "0 9 * * *", timeZone: "America/Recife" },
+  { schedule: "0 19 * * *", timeZone: "America/Recife" },
   async (context) => {
     console.log(
       "RUN: scheduledCheckPedidosInformacao disparado em",

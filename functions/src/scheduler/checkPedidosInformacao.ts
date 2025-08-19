@@ -1,6 +1,6 @@
 import { Telegraf } from "telegraf";
 import { verificarPedidosInformacao } from "../services/pedidosInformacao";
-import { getAllInformationRequests, getInformationRequestByProtocol, getInformationRequestKey, updateInformationRequest, updateRequestStatus, getInformationRequestData } from "../services/firebase";
+import { getAllInformationRequests, getInformationRequestByProtocol, getInformationRequestKey, updateInformationRequest, updateRequestStatus } from "../services/firebase";
 
 async function verificarEAtualizarPedido(protocolo: string, senha: string, bot: Telegraf, requestKey: string, pedidoAnterior: any) {
   console.log(`[DEBUG] Verificando protocolo ${protocolo}`);
@@ -139,7 +139,7 @@ export const verificarProtocoloEspecifico = async (protocolo: string, bot: Teleg
       
       if (dadosAtualizados && dadosAtualizados.historicoRespostas && dadosAtualizados.historicoRespostas.length > 0) {
         const ultimaResposta = dadosAtualizados.historicoRespostas[dadosAtualizados.historicoRespostas.length - 1];
-        resultado.ultimaAtualizacao = ultimaResposta;
+        return { ...resultado, ultimaAtualizacao: ultimaResposta };
       }
     }
     
