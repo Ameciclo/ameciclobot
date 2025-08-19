@@ -47,7 +47,19 @@ export function register(bot: Telegraf) {
               if (resultado.error) {
                 return ctx.reply(`❌ Erro: ${resultado.error}`);
               }
-              return ctx.reply(`✅ Protocolo ${args[1]} verificado e atualizado!`);
+              
+              let message = `✅ Protocolo ${args[1]} verificado e atualizado!`;
+              
+              if (resultado.ultimaAtualizacao) {
+                message += `\n\n📅 **Última atualização:** ${resultado.ultimaAtualizacao.situacao}\n`;
+                message += `📆 **Data:** ${resultado.ultimaAtualizacao.data}\n`;
+                if (resultado.ultimaAtualizacao.resposta) {
+                  const resposta = resultado.ultimaAtualizacao.resposta.substring(0, 200);
+                  message += `💬 **Resposta:** ${resposta}${resultado.ultimaAtualizacao.resposta.length > 200 ? '...' : ''}`;
+                }
+              }
+              
+              return ctx.reply(message);
             } catch (error) {
               console.error("Erro ao verificar protocolo:", error);
               return ctx.reply("❌ Erro ao verificar protocolo.");
