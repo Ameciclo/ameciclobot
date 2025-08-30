@@ -53,6 +53,7 @@ export interface CalendarEventData {
   htmlLink: string;
   calendarEventId?: string;
   participants?: { [key: number]: TelegramUserInfo };
+  notGoing?: { [key: number]: TelegramUserInfo };
 }
 
 // /config/types.ts (ou um arquivo similar)

@@ -43,10 +43,27 @@ function getCalendarNameById(calendarId: string) {
 
 function buildParticipantsList(participants: {
   [key: number]: TelegramUserInfo;
-}): string {
-  return Object.values(participants)
+}, notGoing: { [key: number]: TelegramUserInfo } = {}): string {
+  let result = "";
+  
+  const goingList = Object.values(participants)
     .map((p: any) => `✅ ${p.first_name}`)
     .join("\n");
+  
+  const notGoingList = Object.values(notGoing)
+    .map((p: any) => `❌ ${p.first_name}`)
+    .join("\n");
+  
+  if (goingList) {
+    result += `**Confirmados:**\n${goingList}`;
+  }
+  
+  if (notGoingList) {
+    if (result) result += "\n\n";
+    result += `**Não vão:**\n${notGoingList}`;
+  }
+  
+  return result;
 }
 
 export function buildEventMessage(data: CalendarEventData): string {
@@ -69,9 +86,11 @@ export function buildEventMessage(data: CalendarEventData): string {
   ];
 
   let message = messageParts.join("\n");
-  if (data.participants) {
-    const participantsList = buildParticipantsList(data.participants);
-    message += `\n\nParticipantes confirmados:\n${participantsList}`;
+  if (data.participants || data.notGoing) {
+    const participantsList = buildParticipantsList(data.participants || {}, data.notGoing || {});
+    if (participantsList) {
+      message += `\n\n${participantsList}`;
+    }
   }
   return message;
 }
@@ -82,8 +101,11 @@ export function buildEventButtons(eventData: CalendarEventData) {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "📅 Abrir evento", url: htmlLink },
-          { text: "🎟️ Eu vou", callback_data: `eu_vou_${id}` },
+          { text: "📅 Abrir evento", url: htmlLink }
+        ],
+        [
+          { text: "✅ Eu vou", callback_data: `eu_vou_${id}` },
+          { text: "❌ Não vou", callback_data: `nao_vou_${id}` }
         ],
       ],
     },

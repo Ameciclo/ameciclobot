@@ -15,7 +15,7 @@ async function getUserEmail(userId: number): Promise<string | null> {
   try {
     const snapshot = await admin.database().ref(`subscribers/${userId}`).once('value');
     const userData = snapshot.val();
-    return userData?.email || null;
+    return userData?.ameciclo_register?.email || userData?.email || null;
   } catch (error) {
     console.error('Erro ao buscar email do usuário:', error);
     return null;
@@ -23,6 +23,7 @@ async function getUserEmail(userId: number): Promise<string | null> {
 }
 
 export function registerEventParticipationCallback(bot: Telegraf) {
+  // Callback para "Eu vou"
   bot.action(/^eu_vou_(.+)$/, async (ctx: Context) => {
     console.log("CONFIRMAR PRESENÇA NO EVENTO!");
     try {
@@ -48,8 +49,9 @@ export function registerEventParticipationCallback(bot: Telegraf) {
         return;
       }
 
-      // Atualiza a lista de participantes
+      // Atualiza as listas de participantes
       const participants = eventData.participants || {};
+      const notGoing = eventData.notGoing || {};
       const userId = ctx.from?.id?.toString();
       if (!userId) {
         await ctx.answerCbQuery("Usuário não identificado.", {
@@ -58,19 +60,17 @@ export function registerEventParticipationCallback(bot: Telegraf) {
         return;
       }
 
-      const userAlreadyIn = Object.values(participants).some(
-        (p: any) => p.id === userId
-      );
+      // Remove da lista "não vou" se estiver lá
+      if (notGoing[userId]) {
+        delete notGoing[userId];
+      }
+
+      const userAlreadyIn = participants[userId];
 
       if (userAlreadyIn) {
         // Se o usuário já estava na lista, remove-o
-        const keyToRemove = Object.keys(participants).find(
-          (key) => participants[key].id === userId
-        );
-        if (keyToRemove) {
-          delete participants[keyToRemove];
-        }
-        await updateCalendarEventData(eventId, { participants });
+        delete participants[userId];
+        await updateCalendarEventData(eventId, { participants, notGoing });
         await ctx.answerCbQuery("Você retirou sua presença do evento.");
       } else {
         // Verifica se o usuário tem email cadastrado
@@ -100,20 +100,21 @@ export function registerEventParticipationCallback(bot: Telegraf) {
           );
           
           if (success) {
-            await updateCalendarEventData(eventId, { participants });
+            await updateCalendarEventData(eventId, { participants, notGoing });
             await ctx.answerCbQuery("✅ Presença confirmada! Convite enviado por email.");
           } else {
-            await updateCalendarEventData(eventId, { participants });
+            await updateCalendarEventData(eventId, { participants, notGoing });
             await ctx.answerCbQuery("✅ Presença confirmada! (Erro ao enviar convite por email)");
           }
         } else {
-          await updateCalendarEventData(eventId, { participants });
+          await updateCalendarEventData(eventId, { participants, notGoing });
           await ctx.answerCbQuery("✅ Presença confirmada com sucesso!");
         }
       }
 
-      // Atualiza o eventData com a lista de participantes atualizada
+      // Atualiza o eventData com as listas atualizadas
       eventData.participants = participants;
+      eventData.notGoing = notGoing;
 
       const newText = buildEventMessage(eventData);
       const inlineKeyboard = buildEventButtons(eventData);
@@ -126,6 +127,78 @@ export function registerEventParticipationCallback(bot: Telegraf) {
     } catch (err) {
       console.error("Erro ao confirmar presença no evento:", err);
       await ctx.reply("Ocorreu um erro ao processar seu pedido de presença.");
+    }
+  });
+
+  // Callback para "Não vou"
+  bot.action(/^nao_vou_(.+)$/, async (ctx: Context) => {
+    try {
+      const callbackQuery = ctx.callbackQuery;
+      if (
+        !callbackQuery ||
+        !("data" in callbackQuery) ||
+        typeof callbackQuery.data !== "string"
+      ) {
+        await ctx.answerCbQuery("Ação inválida.", { show_alert: true });
+        return;
+      }
+
+      const callbackData = callbackQuery.data;
+      const parts = callbackData.split("_");
+      const eventId = parts[2];
+
+      const eventData = await getCalendarEventData(eventId);
+      if (!eventData) {
+        await ctx.answerCbQuery("Evento não encontrado.", { show_alert: true });
+        return;
+      }
+
+      const participants = eventData.participants || {};
+      const notGoing = eventData.notGoing || {};
+      const userId = ctx.from?.id?.toString();
+      if (!userId) {
+        await ctx.answerCbQuery("Usuário não identificado.", {
+          show_alert: true,
+        });
+        return;
+      }
+
+      // Remove da lista "eu vou" se estiver lá
+      if (participants[userId]) {
+        delete participants[userId];
+      }
+
+      const userAlreadyNotGoing = notGoing[userId];
+
+      if (userAlreadyNotGoing) {
+        // Remove da lista "não vou"
+        delete notGoing[userId];
+        await updateCalendarEventData(eventId, { participants, notGoing });
+        await ctx.answerCbQuery("Você removeu sua indicação de ausência.");
+      } else {
+        // Adiciona à lista "não vou"
+        notGoing[userId] = {
+          id: userId,
+          first_name: ctx.from?.first_name || "Usuário",
+        };
+        await updateCalendarEventData(eventId, { participants, notGoing });
+        await ctx.answerCbQuery("❌ Ausência registrada.");
+      }
+
+      // Atualiza o eventData
+      eventData.participants = participants;
+      eventData.notGoing = notGoing;
+
+      const newText = buildEventMessage(eventData);
+      const inlineKeyboard = buildEventButtons(eventData);
+
+      await ctx.editMessageText(newText, {
+        parse_mode: "MarkdownV2",
+        reply_markup: inlineKeyboard.reply_markup,
+      });
+    } catch (err) {
+      console.error("Erro ao registrar ausência no evento:", err);
+      await ctx.reply("Ocorreu um erro ao processar sua indicação de ausência.");
     }
   });
 }
