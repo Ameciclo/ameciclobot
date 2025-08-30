@@ -1,20 +1,8 @@
 // src/commands/help.ts
 import { Context, Telegraf } from "telegraf";
-import { commandsList } from "../utils/commands";
+import { commandsList } from "../commands";
 import { escapeMarkdownV2 } from "../utils/utils";
 import { BOT_VERSION } from "../config/version";
-
-export function getHelpCommandName() {
-  return "/ajuda";
-}
-
-export function getHelpCommandHelp() {
-  return "Use o comando `/ajuda` para obter ajuda sobre os comandos disponíveis no bot e o bot retornará uma lista de comandos e instruções de uso.\n Outra opção é obter ajuda específica, digitando: `/ajuda [nome-do-comando]`";
-}
-
-export function getHelpCommandDescription() {
-  return "❓ Obter ajuda dos comandos.";
-}
 
 function buildCommandsMessage(header: string, footer: string): string {
   let message = header + "\n\n";
@@ -55,13 +43,13 @@ async function helpCommandSpecific(ctx: Context, command: string) {
     await ctx.reply(
       "❌ Comando " +
         command +
-        " não encontrado.\nUse `/ajuda` para ver a lista completa de comandos disponíveis.",
+        " não encontrado\\.\nUse `/ajuda` para ver a lista completa de comandos disponíveis\\.",
       { parse_mode: "MarkdownV2" }
     );
   }
 }
 
-export function registerAjudaCommand(bot: Telegraf) {
+function register(bot: Telegraf) {
   bot.command("ajuda", async (ctx: Context) => {
     if (ctx.message && "text" in ctx.message) {
       const text = ctx.message.text || "";
@@ -73,7 +61,7 @@ export function registerAjudaCommand(bot: Telegraf) {
       }
     } else {
       await ctx.reply(
-        "Não consegui processar sua mensagem. Por favor, tente novamente.",
+        "Não consegui processar sua mensagem\\. Por favor, tente novamente\\.",
         { parse_mode: "MarkdownV2" }
       );
     }
@@ -85,3 +73,11 @@ export function registerHelpCommand(bot: Telegraf) {
     await helpCommand(ctx);
   });
 }
+
+export const ajudaCommand = {
+  register,
+  name: () => "/ajuda",
+  help: () =>
+    "Use o comando `/ajuda` para obter ajuda sobre os comandos disponíveis no bot e o bot retornará uma lista de comandos e instruções de uso.\n Outra opção é obter ajuda específica, digitando: `/ajuda [nome-do-comando]`",
+  description: () => "❓ Obter ajuda dos comandos.",
+};

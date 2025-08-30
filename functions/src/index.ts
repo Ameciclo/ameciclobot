@@ -10,8 +10,8 @@ import { PaymentRequest } from "./config/types";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 
-import { registerIniciarCommand, registerStartCommand } from "./commands/start";
-import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
+import { iniciarCommand, registerStartCommand } from "./commands/start";
+import { ajudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators } from "./services/firebase";
 import workgroups from "./credentials/workgroupsfolders.json";
 import projectsSpreadsheet from "./credentials/projectsSpreadsheet.json";
@@ -38,18 +38,27 @@ validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
 
+ajudaCommand.register(bot);
+registerHelpCommand(bot);
+iniciarCommand.register(bot);
+registerStartCommand(bot);
+
 pagamentoCommand.register(bot);
 
 const telegramCommands = validCommands.map((cmd) => ({
   command: cmd.name(),
   description: cmd.description(),
 }));
-bot.telegram.setMyCommands(telegramCommands);
 
-registerAjudaCommand(bot);
-registerHelpCommand(bot);
-registerIniciarCommand(bot);
-registerStartCommand(bot);
+telegramCommands.push({
+  command: ajudaCommand.name(),
+  description: ajudaCommand.description(),
+});
+telegramCommands.push({
+  command: iniciarCommand.name(),
+  description: iniciarCommand.description(),
+});
+bot.telegram.setMyCommands(telegramCommands);
 
 registerModeloUseCallback(bot);
 registerEventParticipationCallback(bot);

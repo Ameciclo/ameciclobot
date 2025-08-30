@@ -1,20 +1,8 @@
 // src/commands/start.ts
 import { Context, Telegraf } from "telegraf";
-import { commandsList } from "../utils/commands";
+import { commandsList } from "../commands";
 import { escapeMarkdownV2 } from "../utils/utils";
 import { BOT_VERSION } from "../config/version";
-
-export function getStartCommandName() {
-  return "/start";
-}
-
-export function getStartCommandHelp() {
-  return "Use o comando `/start` para iniciar o bot e receber uma mensagem de boas-vindas\\.";
-}
-
-export function getStartCommandDescription() {
-  return "🚀 Iniciar o bot.";
-}
 
 export function buildCommandsMessage(header: string, footer: string): string {
   let message = header + "\n\n";
@@ -53,8 +41,15 @@ export function registerStartCommand(bot: Telegraf) {
   });
 }
 
-export function registerIniciarCommand(bot: Telegraf) {
+function registerIniciarCommand(bot: Telegraf) {
   bot.command("iniciar", async (ctx: Context) => {
     await startCommand(ctx);
   });
 }
+
+export const iniciarCommand = {
+  register: registerIniciarCommand,
+  name: () => "/iniciar",
+  help: () => "Use o comando `/start` para iniciar o bot e receber uma mensagem de boas-vindas\\.",
+  description: () => "🚀 Inicia o bot e exibe a lista de comandos disponíveis.",
+};
