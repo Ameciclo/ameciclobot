@@ -37,7 +37,7 @@ export function register(bot: Telegraf) {
         );
       }
       const messageText = ctx.message.text;
-      const originalTitle = messageText.replace("/apresentacao", "").trim();
+      const originalTitle = messageText.replace("/apresentacao@ameciclobot", "").replace("/apresentacao", "").trim();
       if (!originalTitle) {
         return ctx.reply(
           "Por favor, forneça um título para a apresentação.\nExemplo: `/apresentacao Nome da Apresentação`"

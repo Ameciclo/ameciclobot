@@ -36,7 +36,7 @@ export function register(bot: Telegraf) {
         );
       }
       const messageText = ctx.message.text;
-      const originalTitle = messageText.replace("/planilha", "").trim();
+      const originalTitle = messageText.replace("/planilha@ameciclobot", "").replace("/planilha", "").trim();
       if (!originalTitle) {
         return ctx.reply(
           "Por favor, forneça um título para a planilha.\nExemplo: `/planilha Nome da Planilha`"

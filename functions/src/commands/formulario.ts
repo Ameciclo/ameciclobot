@@ -24,7 +24,7 @@ function registerFormularioCommand(bot: Telegraf) {
         );
       }
       const messageText = ctx.message.text;
-      const originalTitle = messageText.replace("/formulario", "").trim();
+      const originalTitle = messageText.replace("/formulario@ameciclobot", "").replace("/formulario", "").trim();
       if (!originalTitle) {
         return ctx.reply(
           "Por favor, forneça um título para o formulário.\nExemplo: `/formulario Nome do Formulário`"

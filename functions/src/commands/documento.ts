@@ -32,7 +32,7 @@ function registerDocumentoCommand(bot: Telegraf) {
       }
 
       const messageText = ctx.message.text || "";
-      const originalTitle = messageText.replace("/documento", "").trim();
+      const originalTitle = messageText.replace("/documento@ameciclobot", "").replace("/documento", "").trim();
       if (!originalTitle) {
         return ctx.reply(
           "Por favor, forneça um título para o documento.\nExemplo: `/documento Nome do Documento`"
