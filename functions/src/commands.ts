@@ -22,6 +22,7 @@ import { arquivarExtratoPdfCommand } from "./commands/arquivar_extrato_pdf";
 import { versaoCommand } from "./commands/versao";
 import { unirPdfsCommand } from "./commands/unir_pdfs";
 import { qrcodeCommand } from "./commands/qrcode";
+import { enqueteCommand } from "./commands/enquete";
 
 export const commandsList = [
   arquivarComprovanteCommand,
@@ -34,6 +35,7 @@ export const commandsList = [
   demandaCommand,
   documentoCommand,
   encaminhamentoCommand,
+  enqueteCommand,
   eventoCommand,
   formularioCommand,
   informeCommand,

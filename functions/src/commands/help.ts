@@ -17,7 +17,7 @@ function buildCommandsMessage(header: string, footer: string): string {
 
 async function helpCommand(ctx: Context) {
   // Header e footer fixos (não escapados)
-  const header = `🤖 **@ameciclobot: Auxiliar Ameciclista** 🤝\n\nVersão: ${BOT_VERSION}\n\nAqui está a lista de comandos disponíveis:`;
+  const header = `🤖 **@ameciclobot: Auxiliar Ameciclista** 🤝\n\nVersão: ${escapeMarkdownV2(BOT_VERSION)}\n\nAqui está a lista de comandos disponíveis:`;
   const footer = `❓ Para obter ajuda específica, digite: \`/ajuda \\[comando\\]\`\n\n📩 Se tiver dúvidas, fale com @ameciclo\\_info\\.`;
   const helpMessage = buildCommandsMessage(header, footer);
   console.log("Mensagem: " + helpMessage);

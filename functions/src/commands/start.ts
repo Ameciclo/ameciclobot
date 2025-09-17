@@ -21,7 +21,7 @@ async function startCommand(ctx: Context) {
 
 Auxiliar para demandas e registros da **Associação Metropolitana de Ciclistas do Recife**\\.
 
-Versão: ${BOT_VERSION}
+Versão: ${escapeMarkdownV2(BOT_VERSION)}
 
 Aqui estão os comandos disponíveis:`;
 
