@@ -1,7 +1,35 @@
 // /commands/formulario.ts
 import { Context, Telegraf } from "telegraf";
-import { createForm, moveDocumentToFolder } from "../services/google";
+import { createForm, listFolders } from "../services/google";
+import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
 import workgroups from "../credentials/workgroupsfolders.json";
+
+function createFolderKeyboard(subfolders: any[], tempId: string) {
+  const buttons = [
+    [{ text: "📁 Pasta Raiz", callback_data: `move_doc:${tempId}:root` }]
+  ];
+
+  for (let i = 0; i < subfolders.length; i += 2) {
+    const row = [];
+    
+    row.push({
+      text: `📂 ${subfolders[i].name.substring(0, 20)}`,
+      callback_data: `move_doc:${tempId}:${i}`
+    });
+    
+    if (i + 1 < subfolders.length) {
+      row.push({
+        text: `📂 ${subfolders[i + 1].name.substring(0, 20)}`,
+        callback_data: `move_doc:${tempId}:${i + 1}`
+      });
+    }
+    
+    buttons.push(row);
+  }
+
+  buttons.push([{ text: "🔄 Atualizar Pastas", callback_data: `refresh_folders:${tempId}` }]);
+  return buttons;
+}
 
 function registerFormularioCommand(bot: Telegraf) {
   bot.command("formulario", async (ctx: Context) => {
@@ -53,19 +81,25 @@ function registerFormularioCommand(bot: Telegraf) {
         return ctx.reply("Não foi possível obter o ID do formulário criado.");
       }
 
-      await moveDocumentToFolder(formId, groupConfig.folderId);
+      const tempId = Date.now().toString(36);
+      await setTempData(tempId, {
+        documentId: formId,
+        parentFolderId: groupConfig.folderId,
+        documentType: "Formulário",
+        documentTitle: fullTitle
+      }, 300);
 
-      const formUrl = `https://docs.google.com/forms/d/${formId}/edit`;
+      let subfolders = await getCachedFolders(groupConfig.folderId);
+      if (subfolders.length === 0) {
+        subfolders = await listFolders(groupConfig.folderId);
+        await setCachedFolders(groupConfig.folderId, subfolders);
+      }
+
+      const keyboard = createFolderKeyboard(subfolders, tempId);
+      
       return ctx.reply(
-        `Formulário criado com sucesso na pasta "${groupConfig.label}" do Grupo de Trabalho.\nTítulo: ${fullTitle}`,
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "📝 Abrir Formulário", url: formUrl }],
-              [{ text: "📂 Abrir Pasta do Grupo", url: groupConfig.folderUrl }],
-            ],
-          },
-        }
+        `Formulário "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
+        { reply_markup: { inline_keyboard: keyboard } }
       );
     } catch (error) {
       console.error("Erro ao processar comando /formulario:", error);

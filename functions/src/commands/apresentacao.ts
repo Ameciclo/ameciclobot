@@ -1,8 +1,36 @@
 // /commands/apresentacao.ts
 
 import { Context, Telegraf } from "telegraf";
-import { createPresentation, moveDocumentToFolder } from "../services/google";
+import { createPresentation, listFolders } from "../services/google";
+import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
 import workgroups from "../credentials/workgroupsfolders.json";
+
+function createFolderKeyboard(subfolders: any[], tempId: string) {
+  const buttons = [
+    [{ text: "📁 Pasta Raiz", callback_data: `move_doc:${tempId}:root` }]
+  ];
+
+  for (let i = 0; i < subfolders.length; i += 2) {
+    const row = [];
+    
+    row.push({
+      text: `📂 ${subfolders[i].name.substring(0, 20)}`,
+      callback_data: `move_doc:${tempId}:${i}`
+    });
+    
+    if (i + 1 < subfolders.length) {
+      row.push({
+        text: `📂 ${subfolders[i + 1].name.substring(0, 20)}`,
+        callback_data: `move_doc:${tempId}:${i + 1}`
+      });
+    }
+    
+    buttons.push(row);
+  }
+
+  buttons.push([{ text: "🔄 Atualizar Pastas", callback_data: `refresh_folders:${tempId}` }]);
+  return buttons;
+}
 
 export function getName() {
   return "/apresentacao";
@@ -66,19 +94,25 @@ export function register(bot: Telegraf) {
         return ctx.reply("Não foi possível obter o ID da apresentação criada.");
       }
 
-      await moveDocumentToFolder(presentationId, groupConfig.folderId);
+      const tempId = Date.now().toString(36);
+      await setTempData(tempId, {
+        documentId: presentationId,
+        parentFolderId: groupConfig.folderId,
+        documentType: "Apresentação",
+        documentTitle: fullTitle
+      }, 300);
 
-      const presentationUrl = `https://docs.google.com/presentation/d/${presentationId}/edit`;
+      let subfolders = await getCachedFolders(groupConfig.folderId);
+      if (subfolders.length === 0) {
+        subfolders = await listFolders(groupConfig.folderId);
+        await setCachedFolders(groupConfig.folderId, subfolders);
+      }
+
+      const keyboard = createFolderKeyboard(subfolders, tempId);
+      
       return ctx.reply(
-        `Apresentação criada com sucesso na pasta "${groupConfig.label}" do Grupo de Trabalho.\nTítulo: ${fullTitle}`,
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "🎞️ Abrir Apresentação", url: presentationUrl }],
-              [{ text: "📂 Abrir Pasta do Grupo", url: groupConfig.folderUrl }],
-            ],
-          },
-        }
+        `Apresentação "${fullTitle}" criada com sucesso!\nEscolha onde salvá-la:`,
+        { reply_markup: { inline_keyboard: keyboard } }
       );
     } catch (error) {
       console.error("Erro ao processar comando /apresentacao:", error);
