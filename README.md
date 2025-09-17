@@ -1,4 +1,4 @@
-# 🚴♂️ Ameciclo Bot
+# 🚴 Ameciclo Bot
 
 Bot do Telegram desenvolvido para automatizar e otimizar os processos internos da Ameciclo (Associação Metropolitana de Ciclistas do Grande Recife). O bot integra múltiplos serviços Google, Azure AI e Firebase para oferecer uma solução completa de gestão organizacional através do Telegram.
 

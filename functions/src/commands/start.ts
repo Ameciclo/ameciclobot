@@ -17,7 +17,7 @@ export function buildCommandsMessage(header: string, footer: string): string {
 
 async function startCommand(ctx: Context) {
   // Header e footer fixos (já escritos em MarkdownV2)
-  const header = `🎉 Olá, sou **@ameciclobot**\\! 🚴‍♀️🚴‍♂️
+  const header = `🎉 Olá, sou **@ameciclobot**\\! 🚴‍♀️🚴‍
 
 Auxiliar para demandas e registros da **Associação Metropolitana de Ciclistas do Recife**\\.
 
