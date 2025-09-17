@@ -129,6 +129,27 @@ export async function listModelsFromFolder(
   }
 }
 
+export async function listFolders(
+  parentFolderId: string
+): Promise<{ id: string; name: string }[]> {
+  const drive = google.drive({ version: "v3", auth });
+  try {
+    const res = await drive.files.list({
+      q: `'${parentFolderId}' in parents and trashed = false and mimeType='application/vnd.google-apps.folder'`,
+      fields: "files(id, name)",
+      orderBy: "name",
+    });
+    const folders = res.data.files || [];
+    return folders.map((folder) => ({
+      id: folder.id!,
+      name: folder.name || "",
+    }));
+  } catch (error) {
+    console.error("Erro ao listar pastas:", error);
+    throw error;
+  }
+}
+
 export async function getFileMetadata(
   fileId: string
 ): Promise<{ name: string }> {
@@ -297,9 +318,20 @@ export async function getProjectBudgetItems(
   }
 }
 
-export async function getProjectDetailsPendencias(
+export async function getProjectDetailsPendenciasCount(
   spreadsheetId: string
 ): Promise<number> {
+  try {
+    const result = await getProjectDetailsPendencias(spreadsheetId);
+    return result.count;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function getProjectDetailsPendencias(
+  spreadsheetId: string
+): Promise<{ count: number; details: Array<{ fornecedor: string; descricao: string; valor: string }> }> {
   try {
     const sheets = getSheetsClient();
     const detailsRange = projectsSpreadsheet.detailsSheet; // ex: "DETALHAMENTO DAS DESPESAS!A:Z"
@@ -309,15 +341,22 @@ export async function getProjectDetailsPendencias(
     });
     const detailsData = detailsRes.data.values || [];
     let countMissing = 0;
+    const missingDetails: Array<{ fornecedor: string; descricao: string; valor: string }> = [];
+    
     // Considera que a primeira linha é cabeçalho
     for (let i = 1; i < detailsData.length; i++) {
       const rowDetails = detailsData[i];
       const cell = rowDetails[10]; // coluna K (índice 10)
       if (!cell || !cell.toString().startsWith("http")) {
         countMissing++;
+        missingDetails.push({
+          fornecedor: rowDetails[3] || "", // coluna D (índice 3)
+          descricao: rowDetails[4] || "",  // coluna E (índice 4)
+          valor: rowDetails[8] || ""       // coluna I (índice 8)
+        });
       }
     }
-    return countMissing;
+    return { count: countMissing, details: missingDetails };
   } catch (err) {
     console.error(`[getProjectDetailsPendencias] Erro:`, err);
     throw err;

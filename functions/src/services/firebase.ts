@@ -395,3 +395,54 @@ export async function getInformationRequestKey(protocolo: string): Promise<strin
     return null;
   }
 }
+
+export async function setTempData(key: string, data: any, ttlSeconds: number = 300): Promise<void> {
+  try {
+    await admin.database().ref(`temp_data/${key}`).set({
+      data,
+      expires: Date.now() + (ttlSeconds * 1000)
+    });
+  } catch (error) {
+    console.error('Erro ao salvar dados temporários:', error);
+  }
+}
+
+export async function getTempData(key: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`temp_data/${key}`).once('value');
+    const result = snapshot.val();
+    
+    if (!result) return null;
+    
+    if (Date.now() > result.expires) {
+      await admin.database().ref(`temp_data/${key}`).remove();
+      return null;
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Erro ao buscar dados temporários:', error);
+    return null;
+  }
+}
+
+export async function getCachedFolders(parentFolderId: string): Promise<any[]> {
+  try {
+    const snapshot = await admin.database().ref(`cached_folders/${parentFolderId}`).once('value');
+    return snapshot.val()?.folders || [];
+  } catch (error) {
+    console.error('Erro ao buscar pastas em cache:', error);
+    return [];
+  }
+}
+
+export async function setCachedFolders(parentFolderId: string, folders: any[]): Promise<void> {
+  try {
+    await admin.database().ref(`cached_folders/${parentFolderId}`).set({
+      folders,
+      lastUpdate: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erro ao salvar pastas em cache:', error);
+  }
+}

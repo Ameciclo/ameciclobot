@@ -172,7 +172,7 @@ export async function processProjectsByStatus(ctx: Context, projectStatus: strin
     }
 
     console.log("[atualizar_pendencias] Comando concluído com sucesso.");
-    await ctx.replyWithMarkdown(resposta);
+    await ctx.replyWithMarkdown(resposta, { link_preview_options: { is_disabled: true } });
     return; // Garante retorno para evitar warning de paths
   } catch (error) {
     console.error("[atualizar_pendencias] Erro geral:", error);
@@ -233,12 +233,12 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
     if (ctx.callbackQuery) {
       await ctx.editMessageText(
         `📄 **Projetos Em Andamento** (${projetosEmAndamento.length}):\n\nSelecione um projeto para verificar pendências:`,
-        { reply_markup: keyboard, parse_mode: 'Markdown' }
+        { reply_markup: keyboard, parse_mode: 'Markdown', link_preview_options: { is_disabled: true } }
       );
     } else {
       await ctx.replyWithMarkdown(
         `📄 **Projetos Em Andamento** (${projetosEmAndamento.length}):\n\nSelecione um projeto para verificar pendências:`,
-        { reply_markup: keyboard }
+        { reply_markup: keyboard, link_preview_options: { is_disabled: true } }
       );
     }
   } catch (error) {
@@ -298,12 +298,17 @@ export async function processProjectFromCallback(ctx: Context, projectName: stri
         resposta += "✅ Nenhuma pendência encontrada.";
       } else {
         resposta += `⚠️ ${pendenciasResult.count} pendência(s) encontrada(s):\n\n`;
-        pendenciasResult.details.forEach((item, index) => {
+        const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
+        const itemsToShow = pendenciasResult.details.slice(0, maxItems);
+        itemsToShow.forEach((item, index) => {
           resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
         });
+        if (pendenciasResult.count > maxItems) {
+          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+        }
       }
       
-      await ctx.editMessageText(resposta, { parse_mode: 'Markdown' });
+      await ctx.editMessageText(resposta, { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } });
     } catch (err: any) {
       if (err.response && err.response.status === 403) {
         await ctx.editMessageText(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
@@ -379,12 +384,17 @@ export async function processSpecificProject(ctx: Context, projectName: string):
         resposta += "✅ Nenhuma pendência encontrada.";
       } else {
         resposta += `⚠️ ${pendenciasResult.count} pendência(s) encontrada(s):\n\n`;
-        pendenciasResult.details.forEach((item, index) => {
+        const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
+        const itemsToShow = pendenciasResult.details.slice(0, maxItems);
+        itemsToShow.forEach((item, index) => {
           resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
         });
+        if (pendenciasResult.count > maxItems) {
+          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+        }
       }
       
-      await ctx.replyWithMarkdown(resposta);
+      await ctx.replyWithMarkdown(resposta, { link_preview_options: { is_disabled: true } });
     } catch (err: any) {
       if (err.response && err.response.status === 403) {
         await ctx.reply(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
@@ -451,7 +461,7 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         ]
       };
 
-      await ctx.replyWithMarkdown(message, { reply_markup: keyboard });
+      await ctx.replyWithMarkdown(message, { reply_markup: keyboard, link_preview_options: { is_disabled: true } });
       return;
     } catch (error) {
       console.error("[atualizar_pendencias] Erro geral:", error);

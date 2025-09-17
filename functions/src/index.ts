@@ -20,6 +20,7 @@ import { registerEventParticipationCallback } from "./callbacks/confirmEventPart
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
+import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 
 import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
@@ -32,6 +33,7 @@ import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
 import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
+import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -67,6 +69,8 @@ registerConfirmPaymentCallback(bot);
 registerEventCallback(bot);
 registerReceiptTypeCallback(bot);
 registerInformationRequestCallback(bot);
+registerFolderChooserCallback(bot);
+registerPendenciasCallbacks(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
