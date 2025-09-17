@@ -23,6 +23,8 @@ import { versaoCommand } from "./commands/versao";
 import { unirPdfsCommand } from "./commands/unir_pdfs";
 import { qrcodeCommand } from "./commands/qrcode";
 import { enqueteCommand } from "./commands/enquete";
+import { resumoCommand } from "./commands/resumo";
+import { complementarEventoCommand } from "./commands/complementar_evento";
 
 export const commandsList = [
   arquivarComprovanteCommand,
@@ -32,6 +34,7 @@ export const commandsList = [
   atualizarProjetosCommand,
   clippingCommand,
   comunicacaoCommand,
+  complementarEventoCommand,
   demandaCommand,
   documentoCommand,
   encaminhamentoCommand,
@@ -46,6 +49,7 @@ export const commandsList = [
   processarExtratoCommand,
   qrcodeCommand,
   registrarPlanilhaCommand,
+  resumoCommand,
   transcreverCommand,
   quem_sou_euCommand,
   unirPdfsCommand,
