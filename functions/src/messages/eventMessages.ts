@@ -83,6 +83,8 @@ export function buildEventMessage(data: CalendarEventData): string {
     `📫 Tipo: ${escapeMarkdownV2(calendarType)}`,
     ``,
     `🖌 Descrição: ${escapeMarkdownV2(data.description)};`,
+    ``,
+    `🆔 ID do Evento: \`${escapeMarkdownV2(data.id)}\``,
   ];
 
   let message = messageParts.join("\n");
@@ -149,4 +151,8 @@ export function buildWeeklyAgendaMessage(events: any[]): string {
 
 export function buildDailyAgendaMessage(events: any[]): string {
   return buildCheckEventsMessage(events, "📅 **Agenda para amanhã**");
+}
+
+export function buildUnassignedEventsMessage(events: any[]): string {
+  return buildCheckEventsMessage(events, "⚠️ **Eventos sem grupo de trabalho definido:**");
 }
