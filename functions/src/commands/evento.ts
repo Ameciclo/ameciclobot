@@ -78,12 +78,40 @@ Texto:
 
       let eventObject;
       try {
-        const cleanedContent = rawContent.replace(/\n/g, "").trim();
+        // Remove quebras de linha e limpa o conteúdo
+        let cleanedContent = rawContent.replace(/\n/g, "").trim();
+        
+        // Remove possíveis marcadores de código markdown
+        cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        
         console.log("[evento] Conteúdo limpo:", cleanedContent);
+        
+        // Tenta encontrar um JSON válido no conteúdo
+        const jsonMatch = cleanedContent.match(/\{.*\}/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[0];
+        }
+        
+        // Se o JSON estiver truncado, tenta completá-lo
+        if (!cleanedContent.endsWith('}')) {
+          // Conta as chaves abertas e fechadas
+          const openBraces = (cleanedContent.match(/\{/g) || []).length;
+          const closeBraces = (cleanedContent.match(/\}/g) || []).length;
+          
+          // Adiciona chaves fechadas se necessário
+          for (let i = 0; i < openBraces - closeBraces; i++) {
+            cleanedContent += '}';
+          }
+          
+          // Se termina com vírgula, remove
+          cleanedContent = cleanedContent.replace(/,\s*}$/, '}');
+        }
+        
         eventObject = JSON.parse(cleanedContent);
       } catch (parseErr) {
         console.error("[evento] Erro ao fazer parse do JSON:", parseErr);
-        await ctx.reply("Não foi possível interpretar o JSON retornado.");
+        console.error("[evento] Conteúdo original:", rawContent);
+        await ctx.reply("Não foi possível interpretar o JSON retornado. Tente novamente com um texto mais conciso.");
         return;
       }
 
