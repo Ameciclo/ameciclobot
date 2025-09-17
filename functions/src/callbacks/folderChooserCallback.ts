@@ -81,7 +81,7 @@ export function registerFolderChooserCallback(bot: Telegraf) {
       const folderUrl = `https://drive.google.com/drive/folders/${folderId}`;
       
       return ctx.editMessageText(
-        `${documentType} "${documentTitle}" movido para "${folderName}" com sucesso!`,
+        `${documentType} "${documentTitle}" incluído na "${folderName}" com sucesso!`,
         {
           reply_markup: {
             inline_keyboard: [
