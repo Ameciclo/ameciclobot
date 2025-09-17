@@ -1,7 +1,5 @@
 import { Telegraf } from "telegraf";
-import { processProjectsByStatus, listProjectsInProgress, processProjectFromCallback } from "../commands/atualizar_pendencias";
-import { getSummaryData, getIdFromUrl } from "../services/google";
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import { processProjectsByStatus, listProjectsInProgress, processProjectById } from "../commands/atualizar_pendencias";
 
 export function registerPendenciasCallbacks(bot: Telegraf) {
   // Callback para processar a seleção de status
@@ -32,26 +30,8 @@ export function registerPendenciasCallbacks(bot: Telegraf) {
     const projectId = ctx.match[1];
     
     try {
-      // Busca o nome do projeto pelo ID
-      const summaryData = await getSummaryData(projectsSpreadsheet.id);
-      const headers = projectsSpreadsheet.headers;
-      
-      let projectName = "";
-      for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
-        const row = summaryData[rowIndex];
-        const linkPlanilha = row[headers.id.col];
-        if (linkPlanilha && getIdFromUrl(linkPlanilha) === projectId) {
-          projectName = row[headers.name.col];
-          break;
-        }
-      }
-      
-      if (projectName) {
-        await ctx.editMessageText(`🔄 Verificando pendências do projeto: ${projectName}...`);
-        await processProjectFromCallback(ctx, projectName);
-      } else {
-        await ctx.editMessageText("❌ Projeto não encontrado.");
-      }
+      await ctx.editMessageText(`🔄 Verificando pendências do projeto...`);
+      await processProjectById(ctx, projectId);
     } catch (error) {
       console.error("Erro ao processar projeto selecionado:", error);
       await ctx.editMessageText("❌ Erro ao processar projeto.");
