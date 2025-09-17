@@ -2,6 +2,7 @@
 // Serviços para interação com as APIs do Google: Drive, Sheets, Calendar, Docs, Slides e Forms.
 
 import { google } from "googleapis";
+import * as admin from "firebase-admin";
 import google_keys from "../credentials/google.json";
 import firebaseCredentials from "../credentials/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
@@ -343,10 +344,29 @@ export async function getProjectDetailsPendencias(
     let countMissing = 0;
     const missingDetails: Array<{ fornecedor: string; descricao: string; valor: string }> = [];
     
+    // Data de hoje para filtrar pendências
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999); // Final do dia
+    
     // Considera que a primeira linha é cabeçalho
     for (let i = 1; i < detailsData.length; i++) {
       const rowDetails = detailsData[i];
-      const cell = rowDetails[10]; // coluna K (índice 10)
+      const dataPagamento = rowDetails[0]; // coluna A (índice 0) - Data do pagamento
+      const cell = rowDetails[10]; // coluna K (índice 10) - Comprovante
+      
+      // Verifica se tem data de pagamento e se é até hoje
+      if (dataPagamento) {
+        try {
+          const dataFormatada = new Date(dataPagamento);
+          if (dataFormatada > hoje) {
+            continue; // Pula pagamentos futuros
+          }
+        } catch (err) {
+          // Se não conseguir parsear a data, considera como pendência
+        }
+      }
+      
+      // Verifica se falta comprovante
       if (!cell || !cell.toString().startsWith("http")) {
         countMissing++;
         missingDetails.push({
@@ -700,6 +720,86 @@ export async function getEventDetails(
     console.error(`Erro ao buscar detalhes do evento:`, error);
     return null;
   }
+}
+
+export async function getEventById(eventId: string): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  // Primeiro tenta buscar diretamente pelo ID do Google Calendar
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      const response = await calendar.events.get({
+        calendarId: calendarConfig.id,
+        eventId,
+      });
+      return response.data;
+    } catch (error) {
+      // Continua tentando nos outros calendários
+      continue;
+    }
+  }
+  
+  // Se não encontrou, pode ser um ID do Firebase, busca no Firebase
+  try {
+    const snapshot = await admin.database().ref(`calendar/${eventId}`).once('value');
+    const eventData = snapshot.val();
+    
+    if (eventData && eventData.calendarEventId) {
+      // Tenta buscar pelo ID real do Google Calendar
+      return await getEventById(eventData.calendarEventId);
+    }
+  } catch (error) {
+    console.error(`Erro ao buscar evento no Firebase: ${error}`);
+  }
+  
+  console.error(`Evento ${eventId} não encontrado em nenhum calendário`);
+  return null;
+}
+
+export async function updateEventWorkgroup(
+  eventId: string,
+  workgroupId: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  // Primeiro tenta buscar o evento real
+  const event = await getEventById(eventId);
+  if (!event) {
+    console.error(`Evento ${eventId} não encontrado para atualizar workgroup`);
+    return false;
+  }
+  
+  // Encontra o calendário correto
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      // Atualiza com o workgroup
+      await calendar.events.update({
+        calendarId: calendarConfig.id,
+        eventId: event.id,
+        requestBody: {
+          ...event,
+          extendedProperties: {
+            ...event.extendedProperties,
+            private: {
+              ...event.extendedProperties?.private,
+              workgroup: workgroupId,
+            },
+          },
+        },
+      });
+      
+      console.log(`Evento ${event.id} atribuído ao workgroup ${workgroupId}`);
+      return true;
+    } catch (error) {
+      // Continua tentando nos outros calendários
+      continue;
+    }
+  }
+  
+  console.error(`Erro ao atualizar evento ${eventId}`);
+  return false;
 }
 
 // ------------------------------------------------------

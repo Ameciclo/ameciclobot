@@ -34,6 +34,7 @@ import { pagamentoCommand } from "./commands/pagamento";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
 import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
 import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
+import { registerAssignWorkgroupCallbacks } from "./callbacks/assignWorkgroup";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -71,6 +72,7 @@ registerReceiptTypeCallback(bot);
 registerInformationRequestCallback(bot);
 registerFolderChooserCallback(bot);
 registerPendenciasCallbacks(bot);
+registerAssignWorkgroupCallbacks(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
