@@ -219,11 +219,10 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
       return;
     }
 
-    // Cria botões para cada projeto (máximo 20 caracteres por botão)
+    // Cria botões para cada projeto (texto completo, callback_data otimizado)
     const keyboard = {
       inline_keyboard: projetosEmAndamento.slice(0, 10).map(projeto => {
-        const shortName = projeto.name.length > 20 ? projeto.name.substring(0, 17) + "..." : projeto.name;
-        return [{ text: shortName, callback_data: `pendencias_proj_${projeto.id}` }];
+        return [{ text: projeto.name, callback_data: `pendencias_proj_${projeto.id}` }];
       })
     };
     
@@ -244,6 +243,79 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
   } catch (error) {
     console.error("[atualizar_pendencias] Erro ao listar projetos:", error);
     await ctx.reply("Erro ao listar projetos.");
+  }
+}
+
+export async function processProjectById(ctx: Context, projectId: string): Promise<void> {
+  try {
+    console.log(`[atualizar_pendencias] Processando projeto pelo ID: ${projectId}`);
+
+    // Busca o projeto na planilha RESUMO pelo ID
+    const summaryData = await getSummaryData(projectsSpreadsheet.id);
+    const headers = projectsSpreadsheet.headers;
+    
+    let projetoEncontrado = null;
+    for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
+      const row = summaryData[rowIndex];
+      const linkPlanilha = row[headers.id.col];
+      if (linkPlanilha && getIdFromUrl(linkPlanilha) === projectId) {
+        projetoEncontrado = {
+          id: projectId,
+          name: row[headers.name.col],
+          spreadsheetLink: linkPlanilha,
+          projectStatus: row[headers.status.col]
+        };
+        break;
+      }
+    }
+
+    if (!projetoEncontrado) {
+      await ctx.editMessageText(`Projeto com ID "${projectId}" não encontrado.`);
+      return;
+    }
+
+    // Verifica as pendências do projeto específico
+    try {
+      const pendenciasResult = await getProjectDetailsPendencias(projetoEncontrado.id);
+      
+      // Atualiza no Firebase
+      const date = new Date();
+      const hoje = date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
+      
+      await updateFinanceProject(projetoEncontrado.id, {
+        pendencias: pendenciasResult.count,
+        status: "OK",
+        lastVerificationDate: hoje,
+      });
+
+      const dataExecucao = new Date().toLocaleDateString('pt-BR');
+      let resposta = `Projeto [${projetoEncontrado.name}](${projetoEncontrado.spreadsheetLink}):\n`;
+      if (pendenciasResult.count === 0) {
+        resposta += `✅ Nenhuma pendência encontrada até ${dataExecucao}.`;
+      } else {
+        resposta += `⚠️ ${pendenciasResult.count} pendência(s) encontrada(s) até ${dataExecucao}:\n\n`;
+        const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
+        const itemsToShow = pendenciasResult.details.slice(0, maxItems);
+        itemsToShow.forEach((item, index) => {
+          resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
+        });
+        if (pendenciasResult.count > maxItems) {
+          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+        }
+      }
+      
+      await ctx.editMessageText(resposta, { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } });
+    } catch (err: any) {
+      if (err.response && err.response.status === 403) {
+        await ctx.editMessageText(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
+      } else {
+        console.error("Erro ao verificar projeto:", err);
+        await ctx.editMessageText(`Erro ao verificar projeto "${projetoEncontrado.name}".`);
+      }
+    }
+  } catch (error) {
+    console.error("[atualizar_pendencias] Erro ao processar projeto pelo ID:", error);
+    await ctx.editMessageText("Erro ao processar projeto.");
   }
 }
 
@@ -342,11 +414,13 @@ export async function processSpecificProject(ctx: Context, projectName: string):
     const headers = projectsSpreadsheet.headers;
     
     let projetoEncontrado = null;
+    const projectNameLower = projectName.toLowerCase();
+    
+    // 1. Busca exata primeiro
     for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
       const row = summaryData[rowIndex];
       const nomeProjeto = row[headers.name.col];
-      if (nomeProjeto && (nomeProjeto.toLowerCase().includes(projectName.toLowerCase()) || 
-          projectName.toLowerCase().includes(nomeProjeto.toLowerCase()))) {
+      if (nomeProjeto && nomeProjeto.toLowerCase() === projectNameLower) {
         const linkPlanilha = row[headers.id.col];
         if (linkPlanilha) {
           projetoEncontrado = {
@@ -356,6 +430,26 @@ export async function processSpecificProject(ctx: Context, projectName: string):
             projectStatus: row[headers.status.col]
           };
           break;
+        }
+      }
+    }
+    
+    // 2. Se não encontrou exato, busca parcial
+    if (!projetoEncontrado) {
+      for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
+        const row = summaryData[rowIndex];
+        const nomeProjeto = row[headers.name.col];
+        if (nomeProjeto && nomeProjeto.toLowerCase().includes(projectNameLower)) {
+          const linkPlanilha = row[headers.id.col];
+          if (linkPlanilha) {
+            projetoEncontrado = {
+              id: getIdFromUrl(linkPlanilha),
+              name: nomeProjeto,
+              spreadsheetLink: linkPlanilha,
+              projectStatus: row[headers.status.col]
+            };
+            break;
+          }
         }
       }
     }
@@ -379,11 +473,12 @@ export async function processSpecificProject(ctx: Context, projectName: string):
         lastVerificationDate: hoje,
       });
 
+      const dataExecucao = new Date().toLocaleDateString('pt-BR');
       let resposta = `Projeto [${projetoEncontrado.name}](${projetoEncontrado.spreadsheetLink}):\n`;
       if (pendenciasResult.count === 0) {
-        resposta += "✅ Nenhuma pendência encontrada.";
+        resposta += `✅ Nenhuma pendência encontrada até ${dataExecucao}.`;
       } else {
-        resposta += `⚠️ ${pendenciasResult.count} pendência(s) encontrada(s):\n\n`;
+        resposta += `⚠️ ${pendenciasResult.count} pendência(s) encontrada(s) até ${dataExecucao}:\n\n`;
         const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
         const itemsToShow = pendenciasResult.details.slice(0, maxItems);
         itemsToShow.forEach((item, index) => {
