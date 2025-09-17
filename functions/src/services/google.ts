@@ -757,6 +757,61 @@ export async function getEventById(eventId: string): Promise<any> {
   return null;
 }
 
+export async function addEventAttachment(
+  eventId: string,
+  fileUrl: string,
+  fileName: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  const event = await getEventById(eventId);
+  if (!event) {
+    console.error(`Evento ${eventId} não encontrado para adicionar anexo`);
+    return false;
+  }
+  
+  // Detecta o tipo MIME baseado na URL do arquivo
+  let mimeType = "image/jpeg";
+  if (fileUrl.includes(".png")) {
+    mimeType = "image/png";
+  } else if (fileUrl.includes(".gif")) {
+    mimeType = "image/gif";
+  } else if (fileUrl.includes(".webp")) {
+    mimeType = "image/webp";
+  }
+  
+  const attachment = {
+    fileUrl: fileUrl,
+    title: fileName,
+    mimeType: mimeType
+  };
+  
+  const currentAttachments = event.attachments || [];
+  const updatedAttachments = [...currentAttachments, attachment];
+  
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      await calendar.events.update({
+        calendarId: calendarConfig.id,
+        eventId: event.id,
+        requestBody: {
+          ...event,
+          attachments: updatedAttachments
+        },
+        supportsAttachments: true
+      });
+      
+      console.log(`Anexo adicionado ao evento ${event.id}`);
+      return true;
+    } catch (error) {
+      continue;
+    }
+  }
+  
+  return false;
+}
+
 export async function updateEventWorkgroup(
   eventId: string,
   workgroupId: string
