@@ -1,5 +1,5 @@
 import { Context, Telegraf } from "telegraf";
-import { getEventById } from "../services/google";
+import { getEventById, addEventAttachment } from "../services/google";
 import { uploadInvoice } from "../services/google";
 import { formatDate } from "../utils/utils";
 import calendars from "../credentials/calendars.json";
@@ -162,19 +162,16 @@ export async function registerComplementarEventoCommand(bot: Telegraf) {
         return;
       }
 
-      // Atualiza a descrição do evento incluindo o link da imagem
-      const currentDescription = event.description || "";
-      const newDescription = `${currentDescription}\n\n📸 Imagem do evento: ${uploadResponse}`;
-      
-      const success = await updateEventDescription(eventId, newDescription);
+      // Adiciona a imagem como anexo do evento
+      const success = await addEventAttachment(eventId, uploadResponse, fileName);
 
       if (success) {
         await ctx.reply(
-          `✅ Imagem do evento "${event.summary}" arquivada com sucesso!\n\n📁 Arquivo: ${fileName}\n🔗 Link adicionado à descrição do evento`
+          `✅ Imagem do evento "${event.summary}" anexada com sucesso!\n\n📁 Arquivo: ${fileName}\n📎 Anexo adicionado ao evento`
         );
       } else {
         await ctx.reply(
-          `✅ Imagem arquivada, mas houve erro ao atualizar a descrição do evento.\n\n📁 Arquivo: ${fileName}\n🔗 Link: ${uploadResponse}`
+          `✅ Imagem arquivada, mas houve erro ao anexar ao evento.\n\n📁 Arquivo: ${fileName}\n🔗 Link: ${uploadResponse}`
         );
       }
 
