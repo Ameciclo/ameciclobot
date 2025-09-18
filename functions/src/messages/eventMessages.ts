@@ -129,10 +129,11 @@ function formatCheckEvent(ev: any): string {
   }
 
   const link = ev.htmlLink || "";
+  const eventId = ev.id || "";
 
   return `*${escapeMarkdownV2(title)}*\n   📅 ${escapeMarkdownV2(
     date
-  )}\n   📍 ${escapeMarkdownV2(location)}\n   🔗 ${escapeMarkdownV2(link)}`;
+  )}\n   📍 ${escapeMarkdownV2(location)}\n   🔗 ${escapeMarkdownV2(link)}\n   🆔 \`${escapeMarkdownV2(eventId)}\``;
 }
 export function buildCheckEventsMessage(
   events: CalendarEventData[],

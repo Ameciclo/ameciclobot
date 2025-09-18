@@ -25,11 +25,13 @@ import { qrcodeCommand } from "./commands/qrcode";
 import { enqueteCommand } from "./commands/enquete";
 import { resumoCommand } from "./commands/resumo";
 import { complementarEventoCommand } from "./commands/complementar_evento";
+import { atribuirEventoCommand } from "./commands/atribuirEvento";
 
 export const commandsList = [
   arquivarComprovanteCommand,
   arquivarExtratoPdfCommand,
   apresentacaoCommand,
+  atribuirEventoCommand,
   atualizarPendenciasCommand,
   atualizarProjetosCommand,
   clippingCommand,

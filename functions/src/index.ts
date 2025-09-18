@@ -26,6 +26,7 @@ import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
+import { checkUpcomingEvents } from "./scheduler/checkUpcomingEvents";
 import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
 
 import { commandsList } from "./commands";
@@ -138,6 +139,17 @@ export const scheduledCheckPedidosInformacao = onSchedule(
       new Date().toISOString()
     );
     await checkPedidosInformacao(bot);
+  }
+);
+
+export const scheduledCheckUpcomingEvents = onSchedule(
+  "every 30 minutes",
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckUpcomingEvents disparado em",
+      new Date().toISOString()
+    );
+    await checkUpcomingEvents(bot);
   }
 );
 

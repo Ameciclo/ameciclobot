@@ -661,6 +661,15 @@ export async function getEventsForPeriod(
   return events;
 }
 
+export async function getThisMonthGoogleEventIds(): Promise<string[]> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  
+  const events = await getEventsForPeriod(startOfMonth, endOfMonth);
+  return events.map(event => event.id);
+}
+
 export async function addAttendeeToEvent(
   calendarId: string,
   eventId: string,

@@ -309,6 +309,17 @@ export async function getAllInformationRequests(): Promise<any> {
   }
 }
 
+export async function getAllCalendarEventIds(): Promise<string[]> {
+  try {
+    const snapshot = await admin.database().ref('calendar').once('value');
+    const events = snapshot.val() || {};
+    return Object.keys(events);
+  } catch (error) {
+    console.error('Erro ao buscar IDs de eventos:', error);
+    return [];
+  }
+}
+
 export async function getInformationRequestByProtocol(protocolo: string): Promise<any> {
   try {
     const snapshot = await admin.database().ref('information_requests').once('value');
