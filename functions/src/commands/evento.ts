@@ -2,7 +2,7 @@ import { Context, Telegraf } from "telegraf";
 import { sendChatCompletion } from "../services/azure";
 import workgroups from "../credentials/workgroupsfolders.json";
 import calendars from "../credentials/calendars.json";
-import { buildEventMessage } from "../messages/eventMessages";
+
 
 // Converte a lista de workgroups para um array de IDs numéricos
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
@@ -26,14 +26,20 @@ function registerEventoCommand(bot: Telegraf) {
       if (msg?.reply_to_message?.text) {
         messageText = msg.reply_to_message.text;
         console.log("[evento] Texto obtido da mensagem respondida.");
+      } else if (msg?.reply_to_message?.caption) {
+        messageText = msg.reply_to_message.caption;
+        console.log("[evento] Texto obtido da legenda da imagem respondida.");
       } else if (msg?.text) {
-        messageText = msg.text.replace("/evento", "").trim();
+        messageText = msg.text.replace("/evento", "").replace(/@\w+/, "").trim();
         console.log("[evento] Texto obtido da própria mensagem.");
+      } else if (msg?.caption) {
+        messageText = msg.caption.replace("/evento", "").replace(/@\w+/, "").trim();
+        console.log("[evento] Texto obtido da legenda da imagem.");
       }
-      if (!messageText) {
+      if (!messageText || messageText.length === 0) {
         console.log("[evento] Texto do evento não fornecido.");
         await ctx.reply(
-          "Por favor, forneça o texto descritivo do evento (ou responda a uma mensagem com esse texto)."
+          "Por favor, forneça o texto descritivo do evento (ou responda a uma mensagem/imagem com esse texto)."
         );
         return;
       }
@@ -44,7 +50,7 @@ function registerEventoCommand(bot: Telegraf) {
         "[evento] Data atual ajustada para GMT-3:",
         nowLocal.toISOString()
       );
-      const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+      const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto. O texto pode ser de uma legenda de imagem ou cabeçalho, então seja flexível na interpretação. Retorne APENAS um JSON no formato:
 {
   "name": "Título do Evento",
   "startDate": "ISODate",
@@ -75,15 +81,65 @@ Texto:
         );
         return;
       }
+      
+      console.log("[evento] Resposta bruta do Azure:", rawContent);
 
       let eventObject;
+      let cleanedContent = "";
       try {
-        const cleanedContent = rawContent.replace(/\n/g, "").trim();
+        // Remove quebras de linha e limpa o conteúdo
+        cleanedContent = rawContent.replace(/\n/g, "").trim();
+        
+        // Remove possíveis marcadores de código markdown
+        cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        
         console.log("[evento] Conteúdo limpo:", cleanedContent);
+        
+        // Tenta encontrar um JSON válido no conteúdo
+        const jsonMatch = cleanedContent.match(/\{.*\}/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[0];
+        }
+        
+        // Se o JSON estiver truncado, tenta completá-lo
+        if (!cleanedContent.endsWith('}')) {
+          console.log("[evento] JSON parece truncado, tentando corrigir...");
+          
+          // Verifica se a última propriedade (description) está incompleta
+          const lastQuoteIndex = cleanedContent.lastIndexOf('"');
+          const afterLastQuote = cleanedContent.substring(lastQuoteIndex + 1);
+          
+          // Se não termina com aspas e tem conteúdo após a última aspa, fecha a string
+          if (!cleanedContent.endsWith('"') && afterLastQuote.trim() && !afterLastQuote.includes('"')) {
+            console.log("[evento] Fechando string description truncada");
+            cleanedContent += '"';
+          }
+          
+          // Remove vírgula no final se existir
+          cleanedContent = cleanedContent.replace(/,\s*$/, '');
+          
+          // Conta as chaves abertas e fechadas
+          const openBraces = (cleanedContent.match(/\{/g) || []).length;
+          const closeBraces = (cleanedContent.match(/\}/g) || []).length;
+          
+          console.log(`[evento] Chaves abertas: ${openBraces}, fechadas: ${closeBraces}`);
+          
+          // Adiciona chaves fechadas se necessário
+          for (let i = 0; i < openBraces - closeBraces; i++) {
+            cleanedContent += '}';
+          }
+          
+          console.log("[evento] JSON corrigido:", cleanedContent.substring(cleanedContent.length - 100));
+        }
+        
+        console.log("[evento] Tentando fazer parse do JSON...");
         eventObject = JSON.parse(cleanedContent);
+        console.log("[evento] Parse bem-sucedido!");
       } catch (parseErr) {
         console.error("[evento] Erro ao fazer parse do JSON:", parseErr);
-        await ctx.reply("Não foi possível interpretar o JSON retornado.");
+        console.error("[evento] Conteúdo original:", rawContent);
+        console.error("[evento] Conteúdo limpo:", cleanedContent);
+        await ctx.reply(`Erro ao processar resposta da IA. Conteúdo recebido: ${rawContent.substring(0, 200)}...`);
         return;
       }
 
@@ -108,11 +164,41 @@ Texto:
         JSON.stringify(eventObject)
       );
 
-      const jsonMessage =
-        "```json\n" + JSON.stringify(eventObject, null, 2) + "\n```";
-      const eventMessage =
-        buildEventMessage(eventObject) + "\n\n" + jsonMessage;
+      // Formata o evento de forma amigável
+      const formatEventDetails = (event: any) => {
+        const { escapeMarkdownV2 } = require('../utils/utils');
+        const startDate = new Date(event.startDate);
+        const endDate = new Date(event.endDate);
+        
+        const formatDate = (date: Date) => {
+          return date.toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+        
+        return `📅 **${escapeMarkdownV2(event.name)}**\n\n` +
+               `🗓️ **Início:** ${escapeMarkdownV2(formatDate(startDate))}\n` +
+               `🏁 **Fim:** ${escapeMarkdownV2(formatDate(endDate))}\n` +
+               `📍 **Local:** ${escapeMarkdownV2(event.location || 'Não informado')}\n` +
+               `📝 **Descrição:** ${escapeMarkdownV2(event.description || 'Não informada')}`;
+      };
+      
+      const eventMessage = formatEventDetails(eventObject);
       console.log("[evento] Mensagem de evento construída.");
+
+      // Gera um ID temporário para o evento
+      const tempEventId = Math.random().toString(36).substring(2, 8);
+      
+      // Armazena temporariamente os dados do evento no Firebase
+      const { admin } = require('../config/firebaseInit');
+      console.log(`[evento] Salvando evento temporário com ID: ${tempEventId}`);
+      await admin.database().ref(`temp_events/${tempEventId}`).set(eventObject);
+      console.log("[evento] Evento temporário salvo no Firebase");
 
       const inlineKeyboard = {
         reply_markup: {
@@ -120,7 +206,7 @@ Texto:
             ...calendars.map((calendar: any, index: number) => [
               {
                 text: `➕ ${calendar.name}`,
-                callback_data: `add_event_${index}`,
+                callback_data: `add_event_${index}_${tempEventId}`,
               },
             ]),
             [{ text: "❌ Não adicionar", callback_data: "add_event_skip" }],
@@ -144,6 +230,6 @@ export const eventoCommand = {
   register: registerEventoCommand,
   name: () => "/evento",
   help: () =>
-    "Use o comando `/evento` em resposta a uma mensagem de texto descritiva, ou digitando `/evento [texto descritivo]` para gerar um evento formatado em JSON.",
+    "Use o comando `/evento` em resposta a uma mensagem de texto ou imagem com legenda, ou digitando `/evento [texto descritivo]` para gerar um evento formatado.",
   description: () => "📅 Criar evento a partir de descrição.",
 };

@@ -1,7 +1,9 @@
 // src/commands/modelo.ts
 import { Context, Telegraf, Markup } from "telegraf";
 import { listModelsFromFolder } from "../services/google";
+import { setTempData } from "../services/firebase";
 import { getPreviewTitle } from "../utils/utils";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 async function registerModeloCommand(bot: Telegraf) {
   bot.command("modelo", async (ctx: Context) => {
@@ -29,12 +31,33 @@ async function registerModeloCommand(bot: Telegraf) {
         return;
       }
 
-      // Gera os botões para cada modelo; cada callback_data tem o formato:model.name modelo_<templateId>_<newTitleProvidedEncoded>
+      // Identifica o grupo de trabalho
+      const chat = ctx.message?.chat;
+      if (!chat || (chat.type !== "group" && chat.type !== "supergroup")) {
+        return ctx.reply("O comando /modelo deve ser usado em um grupo de trabalho.");
+      }
+      
+      const groupConfig = workgroups.find(
+        (group: any) => group.value === String(chat.id)
+      );
+      if (!groupConfig) {
+        return ctx.reply("Este grupo não possui uma pasta configurada.");
+      }
+
+      // Cria ID temporário e salva dados
+      const tempId = Date.now().toString(36);
+      await setTempData(tempId, {
+        newTitle: newTitleProvided,
+        parentFolderId: groupConfig.folderId,
+        documentType: "Documento"
+      }, 300);
+
+      // Gera os botões para cada modelo
       const buttons = models.map((model) => {
         return [
           {
             text: getPreviewTitle(model.name, newTitleProvided),
-            callback_data: `modelo_${model.id}`,
+            callback_data: `modelo_${model.id}_${tempId}`,
           },
         ];
       });

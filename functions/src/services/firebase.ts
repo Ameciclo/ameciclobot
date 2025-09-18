@@ -227,9 +227,12 @@ export async function saveProtocolRecord(
       group: group,
       timestamp: admin.database.ServerValue.TIMESTAMP,
       date: new Date().toLocaleString(),
+      verificado: false,
+      dados_baixados: false,
+      status: 'aguardando_resposta', // aguardando_resposta, respondido, aceito, recorrencia
+      notificado: false
     };
 
-    // Create a new reference with push() to generate unique ID
     const newProtocolRef = admin.database().ref("information_requests").push();
     await newProtocolRef.set(protocolData);
 
@@ -269,5 +272,188 @@ export async function deleteGroupMessage(
         console.error("Erro ao apagar mensagem do grupo:", error);
       }
     }
+  }
+}
+
+export async function getUserData(userId: number): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`subscribers/${userId}`).once('value');
+    return snapshot.val();
+  } catch (error) {
+    console.error('Erro ao buscar dados do usuário:', error);
+    return null;
+  }
+}
+
+export async function updateUserEmail(userId: number, email: string): Promise<boolean> {
+  try {
+    await admin.database().ref(`subscribers/${userId}/ameciclo_register`).update({
+      email: email,
+      updated_at: new Date().toISOString()
+    });
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar dados do usuário:', error);
+    return false;
+  }
+}
+
+// Pedidos de Informação
+export async function getAllInformationRequests(): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    return snapshot.val() || {};
+  } catch (error) {
+    console.error('Erro ao buscar pedidos de informação:', error);
+    return {};
+  }
+}
+
+export async function getAllCalendarEventIds(): Promise<string[]> {
+  try {
+    const snapshot = await admin.database().ref('calendar').once('value');
+    const events = snapshot.val() || {};
+    return Object.keys(events);
+  } catch (error) {
+    console.error('Erro ao buscar IDs de eventos:', error);
+    return [];
+  }
+}
+
+export async function getInformationRequestByProtocol(protocolo: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    const requests = snapshot.val() || {};
+    return Object.values(requests).find((req: any) => req.protocol === protocolo);
+  } catch (error) {
+    console.error('Erro ao buscar pedido por protocolo:', error);
+    return null;
+  }
+}
+
+export async function getInformationRequestData(requestKey: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`information_requests/${requestKey}/information`).once('value');
+    return snapshot.val();
+  } catch (error) {
+    console.error('Erro ao buscar dados do pedido:', error);
+    return null;
+  }
+}
+
+export async function updateRequestStatus(requestKey: string, status: string, notificado: boolean = false): Promise<boolean> {
+  try {
+    await admin.database().ref(`information_requests/${requestKey}`).update({
+      status,
+      notificado,
+      ultimaAtualizacaoStatus: new Date().toISOString()
+    });
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    return false;
+  }
+}
+
+export async function updateInformationRequest(requestKey: string, pedidoData: any): Promise<boolean> {
+  try {
+    const totalRespostas = pedidoData.historicoRespostas?.length || 0;
+    const ultimaResposta = pedidoData.historicoRespostas?.[pedidoData.historicoRespostas.length - 1] || null;
+    
+    // Dados de controle no nó principal
+    const controlData = {
+      ultimaVerificacao: new Date().toISOString(),
+      verificado: true,
+      totalRespostas,
+      ultimaResposta
+    };
+    
+    // Dados completos do scraping no subnó information
+    const informationData = {
+      protocolo: pedidoData.protocolo,
+      recurso: pedidoData.recurso,
+      dataPedido: pedidoData.dataPedido,
+      motivo: pedidoData.motivo,
+      descricao: pedidoData.descricao,
+      historicoRespostas: pedidoData.historicoRespostas,
+      mensagemFinal: pedidoData.mensagemFinal,
+      ultimaAtualizacao: new Date().toISOString()
+    };
+    
+    await admin.database().ref(`information_requests/${requestKey}`).update(controlData);
+    await admin.database().ref(`information_requests/${requestKey}/information`).set(informationData);
+    
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar pedido:', error);
+    return false;
+  }
+}
+
+export async function getInformationRequestKey(protocolo: string): Promise<string | null> {
+  try {
+    const snapshot = await admin.database().ref('information_requests').once('value');
+    const requests = snapshot.val() || {};
+    
+    for (const [key, req] of Object.entries(requests)) {
+      if ((req as any).protocol === protocolo) {
+        return key;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar chave do pedido:', error);
+    return null;
+  }
+}
+
+export async function setTempData(key: string, data: any, ttlSeconds: number = 300): Promise<void> {
+  try {
+    await admin.database().ref(`temp_data/${key}`).set({
+      data,
+      expires: Date.now() + (ttlSeconds * 1000)
+    });
+  } catch (error) {
+    console.error('Erro ao salvar dados temporários:', error);
+  }
+}
+
+export async function getTempData(key: string): Promise<any> {
+  try {
+    const snapshot = await admin.database().ref(`temp_data/${key}`).once('value');
+    const result = snapshot.val();
+    
+    if (!result) return null;
+    
+    if (Date.now() > result.expires) {
+      await admin.database().ref(`temp_data/${key}`).remove();
+      return null;
+    }
+    
+    return result.data;
+  } catch (error) {
+    console.error('Erro ao buscar dados temporários:', error);
+    return null;
+  }
+}
+
+export async function getCachedFolders(parentFolderId: string): Promise<any[]> {
+  try {
+    const snapshot = await admin.database().ref(`cached_folders/${parentFolderId}`).once('value');
+    return snapshot.val()?.folders || [];
+  } catch (error) {
+    console.error('Erro ao buscar pastas em cache:', error);
+    return [];
+  }
+}
+
+export async function setCachedFolders(parentFolderId: string, folders: any[]): Promise<void> {
+  try {
+    await admin.database().ref(`cached_folders/${parentFolderId}`).set({
+      folders,
+      lastUpdate: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erro ao salvar pastas em cache:', error);
   }
 }

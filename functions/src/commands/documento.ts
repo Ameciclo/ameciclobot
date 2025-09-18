@@ -1,7 +1,35 @@
 import { Context, Telegraf } from "telegraf";
-import { createDocument, moveDocumentToFolder } from "../services/google";
+import { createDocument, listFolders } from "../services/google";
+import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
 // Importa a lista de grupos a partir do arquivo de configuração
 import workgroups from "../credentials/workgroupsfolders.json";
+
+function createFolderKeyboard(subfolders: any[], tempId: string) {
+  const buttons = [
+    [{ text: "📁 Pasta Raiz", callback_data: `move_doc:${tempId}:root` }]
+  ];
+
+  for (let i = 0; i < subfolders.length; i += 2) {
+    const row = [];
+    
+    row.push({
+      text: `📂 ${subfolders[i].name.substring(0, 20)}`,
+      callback_data: `move_doc:${tempId}:${i}`
+    });
+    
+    if (i + 1 < subfolders.length) {
+      row.push({
+        text: `📂 ${subfolders[i + 1].name.substring(0, 20)}`,
+        callback_data: `move_doc:${tempId}:${i + 1}`
+      });
+    }
+    
+    buttons.push(row);
+  }
+
+  buttons.push([{ text: "🔄 Atualizar Pastas", callback_data: `refresh_folders:${tempId}` }]);
+  return buttons;
+}
 
 // /commands/helpers.ts
 
@@ -32,7 +60,7 @@ function registerDocumentoCommand(bot: Telegraf) {
       }
 
       const messageText = ctx.message.text || "";
-      const originalTitle = messageText.replace("/documento", "").trim();
+      const originalTitle = messageText.replace("/documento@ameciclobot", "").replace("/documento", "").trim();
       if (!originalTitle) {
         return ctx.reply(
           "Por favor, forneça um título para o documento.\nExemplo: `/documento Nome do Documento`"
@@ -64,33 +92,27 @@ function registerDocumentoCommand(bot: Telegraf) {
         return ctx.reply("Não foi possível obter o ID do documento criado.");
       }
 
-      // Move o documento para a pasta configurada do grupo
-      await moveDocumentToFolder(documentId, groupConfig.folderId);
+      // Cria ID temporário curto
+      const tempId = Date.now().toString(36);
+      await setTempData(tempId, {
+        documentId,
+        parentFolderId: groupConfig.folderId,
+        documentType: "Documento",
+        documentTitle: fullTitle
+      }, 300);
 
-      // Monta a URL para acessar o documento
-      const documentUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+      // Busca pastas em cache ou do Google Drive
+      let subfolders = await getCachedFolders(groupConfig.folderId);
+      if (subfolders.length === 0) {
+        subfolders = await listFolders(groupConfig.folderId);
+        await setCachedFolders(groupConfig.folderId, subfolders);
+      }
 
-      // Envia mensagem de sucesso com botões inline para abrir o documento e a pasta do grupo
+      const keyboard = createFolderKeyboard(subfolders, tempId);
+      
       return ctx.reply(
-        `Documento criado com sucesso na pasta "${groupConfig.label}" do Grupo de Trabalho.\nTítulo: ${fullTitle}`,
-        {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "🗎 Abrir Documento",
-                  url: documentUrl,
-                },
-              ],
-              [
-                {
-                  text: "📂 Abrir Pasta do Grupo",
-                  url: groupConfig.folderUrl,
-                },
-              ],
-            ],
-          },
-        }
+        `Documento "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
+        { reply_markup: { inline_keyboard: keyboard } }
       );
     } catch (error) {
       console.error("Erro ao processar comando /documento:", error);

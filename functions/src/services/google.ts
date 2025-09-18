@@ -2,6 +2,7 @@
 // Serviços para interação com as APIs do Google: Drive, Sheets, Calendar, Docs, Slides e Forms.
 
 import { google } from "googleapis";
+import * as admin from "firebase-admin";
 import google_keys from "../credentials/google.json";
 import firebaseCredentials from "../credentials/firebaseServiceKey.json";
 import { toDays } from "../utils/utils";
@@ -9,33 +10,31 @@ import { updatePaymentRequest } from "./firebase";
 import { CalendarConfig, PaymentRequest } from "../config/types";
 import calendars from "../credentials/calendars.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import emailalias from "../credentials/emailalias.json";
 
 const api_key = google_keys.api_key;
 const credentials = firebaseCredentials;
+const ACT_AS = emailalias.GOOGLE_SUBJECT;
 
-// ------------------------------------------------------
-// Autenticação
-// ------------------------------------------------------
-export function getJwt() {
-  return new google.auth.JWT(
-    credentials.client_email,
-    undefined,
-    credentials.private_key,
-    [
+export function getJwt(subject = ACT_AS) {
+  return new google.auth.JWT({
+    email: credentials.client_email,
+    // cuidado com \n quando vier de env
+    key: (credentials.private_key || "").replace(/\\n/g, "\n"),
+    scopes: [
+      "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/documents",
+      "https://www.googleapis.com/auth/presentations",
       "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/drive",
-    ]
-  );
+    ],
+    subject, // <- magia: impersona o bot@
+  });
 }
 
-// Reutilizamos o mesmo JWT para todas as chamadas.
+// Reutilizamos o mesmo JWT para todas as chamadas (impersonado)
 const auth = getJwt();
 
-// ------------------------------------------------------
-// CLIENTES DAS APIS – Sheets, Drive, Calendar, etc.
-// ------------------------------------------------------
 export function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
@@ -127,6 +126,27 @@ export async function listModelsFromFolder(
     }));
   } catch (error) {
     console.error("Erro ao listar modelos:", error);
+    throw error;
+  }
+}
+
+export async function listFolders(
+  parentFolderId: string
+): Promise<{ id: string; name: string }[]> {
+  const drive = google.drive({ version: "v3", auth });
+  try {
+    const res = await drive.files.list({
+      q: `'${parentFolderId}' in parents and trashed = false and mimeType='application/vnd.google-apps.folder'`,
+      fields: "files(id, name)",
+      orderBy: "name",
+    });
+    const folders = res.data.files || [];
+    return folders.map((folder) => ({
+      id: folder.id!,
+      name: folder.name || "",
+    }));
+  } catch (error) {
+    console.error("Erro ao listar pastas:", error);
     throw error;
   }
 }
@@ -299,9 +319,20 @@ export async function getProjectBudgetItems(
   }
 }
 
-export async function getProjectDetailsPendencias(
+export async function getProjectDetailsPendenciasCount(
   spreadsheetId: string
 ): Promise<number> {
+  try {
+    const result = await getProjectDetailsPendencias(spreadsheetId);
+    return result.count;
+  } catch (err) {
+    throw err;
+  }
+}
+
+export async function getProjectDetailsPendencias(
+  spreadsheetId: string
+): Promise<{ count: number; details: Array<{ fornecedor: string; descricao: string; valor: string }> }> {
   try {
     const sheets = getSheetsClient();
     const detailsRange = projectsSpreadsheet.detailsSheet; // ex: "DETALHAMENTO DAS DESPESAS!A:Z"
@@ -311,15 +342,41 @@ export async function getProjectDetailsPendencias(
     });
     const detailsData = detailsRes.data.values || [];
     let countMissing = 0;
+    const missingDetails: Array<{ fornecedor: string; descricao: string; valor: string }> = [];
+    
+    // Data de hoje para filtrar pendências
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999); // Final do dia
+    
     // Considera que a primeira linha é cabeçalho
     for (let i = 1; i < detailsData.length; i++) {
       const rowDetails = detailsData[i];
-      const cell = rowDetails[10]; // coluna K (índice 10)
+      const dataPagamento = rowDetails[0]; // coluna A (índice 0) - Data do pagamento
+      const cell = rowDetails[10]; // coluna K (índice 10) - Comprovante
+      
+      // Verifica se tem data de pagamento e se é até hoje
+      if (dataPagamento) {
+        try {
+          const dataFormatada = new Date(dataPagamento);
+          if (dataFormatada > hoje) {
+            continue; // Pula pagamentos futuros
+          }
+        } catch (err) {
+          // Se não conseguir parsear a data, considera como pendência
+        }
+      }
+      
+      // Verifica se falta comprovante
       if (!cell || !cell.toString().startsWith("http")) {
         countMissing++;
+        missingDetails.push({
+          fornecedor: rowDetails[3] || "", // coluna D (índice 3)
+          descricao: rowDetails[4] || "",  // coluna E (índice 4)
+          valor: rowDetails[8] || ""       // coluna I (índice 8)
+        });
       }
     }
-    return countMissing;
+    return { count: countMissing, details: missingDetails };
   } catch (err) {
     console.error(`[getProjectDetailsPendencias] Erro:`, err);
     throw err;
@@ -602,6 +659,211 @@ export async function getEventsForPeriod(
     }
   }
   return events;
+}
+
+export async function getThisMonthGoogleEventIds(): Promise<string[]> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  
+  const events = await getEventsForPeriod(startOfMonth, endOfMonth);
+  return events.map(event => event.id);
+}
+
+export async function addAttendeeToEvent(
+  calendarId: string,
+  eventId: string,
+  email: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  try {
+    // Busca o evento atual
+    const event = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
+
+    const currentAttendees = event.data.attendees || [];
+    
+    // Verifica se o email já está na lista
+    const alreadyInvited = currentAttendees.some(attendee => attendee.email === email);
+    if (alreadyInvited) {
+      console.log(`Email ${email} já está convidado para o evento`);
+      return true;
+    }
+
+    // Adiciona o novo convidado
+    const updatedAttendees = [...currentAttendees, { email, responseStatus: 'needsAction' }];
+
+    // Atualiza o evento
+    await calendar.events.update({
+      calendarId,
+      eventId,
+      requestBody: {
+        ...event.data,
+        attendees: updatedAttendees,
+      },
+      sendUpdates: 'all', // Envia convite por email
+    });
+
+    console.log(`Convidado ${email} adicionado ao evento ${eventId}`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao adicionar convidado ao evento:`, error);
+    return false;
+  }
+}
+
+export async function getEventDetails(
+  calendarId: string,
+  eventId: string
+): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  try {
+    const response = await calendar.events.get({
+      calendarId,
+      eventId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Erro ao buscar detalhes do evento:`, error);
+    return null;
+  }
+}
+
+export async function getEventById(eventId: string): Promise<any> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  // Primeiro tenta buscar diretamente pelo ID do Google Calendar
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      const response = await calendar.events.get({
+        calendarId: calendarConfig.id,
+        eventId,
+      });
+      return response.data;
+    } catch (error) {
+      // Continua tentando nos outros calendários
+      continue;
+    }
+  }
+  
+  // Se não encontrou, pode ser um ID do Firebase, busca no Firebase
+  try {
+    const snapshot = await admin.database().ref(`calendar/${eventId}`).once('value');
+    const eventData = snapshot.val();
+    
+    if (eventData && eventData.calendarEventId) {
+      // Tenta buscar pelo ID real do Google Calendar
+      return await getEventById(eventData.calendarEventId);
+    }
+  } catch (error) {
+    console.error(`Erro ao buscar evento no Firebase: ${error}`);
+  }
+  
+  console.error(`Evento ${eventId} não encontrado em nenhum calendário`);
+  return null;
+}
+
+export async function addEventAttachment(
+  eventId: string,
+  fileUrl: string,
+  fileName: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  const event = await getEventById(eventId);
+  if (!event) {
+    console.error(`Evento ${eventId} não encontrado para adicionar anexo`);
+    return false;
+  }
+  
+  // Detecta o tipo MIME baseado na URL do arquivo
+  let mimeType = "image/jpeg";
+  if (fileUrl.includes(".png")) {
+    mimeType = "image/png";
+  } else if (fileUrl.includes(".gif")) {
+    mimeType = "image/gif";
+  } else if (fileUrl.includes(".webp")) {
+    mimeType = "image/webp";
+  }
+  
+  const attachment = {
+    fileUrl: fileUrl,
+    title: fileName,
+    mimeType: mimeType
+  };
+  
+  const currentAttachments = event.attachments || [];
+  const updatedAttachments = [...currentAttachments, attachment];
+  
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      await calendar.events.update({
+        calendarId: calendarConfig.id,
+        eventId: event.id,
+        requestBody: {
+          ...event,
+          attachments: updatedAttachments
+        },
+        supportsAttachments: true
+      });
+      
+      console.log(`Anexo adicionado ao evento ${event.id}`);
+      return true;
+    } catch (error) {
+      continue;
+    }
+  }
+  
+  return false;
+}
+
+export async function updateEventWorkgroup(
+  eventId: string,
+  workgroupId: string
+): Promise<boolean> {
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarConfigs = calendars as CalendarConfig[];
+  
+  // Primeiro tenta buscar o evento real
+  const event = await getEventById(eventId);
+  if (!event) {
+    console.error(`Evento ${eventId} não encontrado para atualizar workgroup`);
+    return false;
+  }
+  
+  // Encontra o calendário correto
+  for (const calendarConfig of calendarConfigs) {
+    try {
+      // Atualiza com o workgroup
+      await calendar.events.update({
+        calendarId: calendarConfig.id,
+        eventId: event.id,
+        requestBody: {
+          ...event,
+          extendedProperties: {
+            ...event.extendedProperties,
+            private: {
+              ...event.extendedProperties?.private,
+              workgroup: workgroupId,
+            },
+          },
+        },
+      });
+      
+      console.log(`Evento ${event.id} atribuído ao workgroup ${workgroupId}`);
+      return true;
+    } catch (error) {
+      // Continua tentando nos outros calendários
+      continue;
+    }
+  }
+  
+  console.error(`Erro ao atualizar evento ${eventId}`);
+  return false;
 }
 
 // ------------------------------------------------------

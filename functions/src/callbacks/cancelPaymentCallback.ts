@@ -29,6 +29,21 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
       // Atualiza a solicitação para cancelada, se necessário (opcional)
       await updatePaymentRequest(requestId, { status: "cancelled" });
 
+      // Apaga as mensagens dos coordenadores
+      if (requestData.coordinator_messages) {
+        for (const [coordId, messageId] of Object.entries(requestData.coordinator_messages)) {
+          try {
+            await ctx.telegram.deleteMessage(parseInt(coordId), messageId);
+          } catch (error: any) {
+            if (error.description && error.description.includes("message to delete not found")) {
+              console.log(`Mensagem do coordenador ${coordId} já foi apagada.`);
+            } else {
+              console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+            }
+          }
+        }
+      }
+
       // Apaga a mensagem do grupo de trabalho se existir
       await deleteGroupMessage(ctx, requestData);
 

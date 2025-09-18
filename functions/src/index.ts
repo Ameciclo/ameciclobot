@@ -10,8 +10,8 @@ import { PaymentRequest } from "./config/types";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 
-import { registerIniciarCommand, registerStartCommand } from "./commands/start";
-import { registerAjudaCommand, registerHelpCommand } from "./commands/help";
+import { iniciarCommand, registerStartCommand } from "./commands/start";
+import { ajudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators } from "./services/firebase";
 import workgroups from "./credentials/workgroupsfolders.json";
 import projectsSpreadsheet from "./credentials/projectsSpreadsheet.json";
@@ -20,21 +20,32 @@ import { registerEventParticipationCallback } from "./callbacks/confirmEventPart
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
+import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 
 import { onSchedule } from "firebase-functions/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
+import { checkUpcomingEvents } from "./scheduler/checkUpcomingEvents";
+import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
 
 import { commandsList } from "./commands";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { pagamentoCommand } from "./commands/pagamento";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
+import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
+import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
+import { registerAssignWorkgroupCallbacks } from "./callbacks/assignWorkgroup";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
   cmd.register(bot);
 });
+
+ajudaCommand.register(bot);
+registerHelpCommand(bot);
+iniciarCommand.register(bot);
+registerStartCommand(bot);
 
 pagamentoCommand.register(bot);
 
@@ -42,12 +53,16 @@ const telegramCommands = validCommands.map((cmd) => ({
   command: cmd.name(),
   description: cmd.description(),
 }));
-bot.telegram.setMyCommands(telegramCommands);
 
-registerAjudaCommand(bot);
-registerHelpCommand(bot);
-registerIniciarCommand(bot);
-registerStartCommand(bot);
+telegramCommands.push({
+  command: ajudaCommand.name(),
+  description: ajudaCommand.description(),
+});
+telegramCommands.push({
+  command: iniciarCommand.name(),
+  description: iniciarCommand.description(),
+});
+bot.telegram.setMyCommands(telegramCommands);
 
 registerModeloUseCallback(bot);
 registerEventParticipationCallback(bot);
@@ -55,6 +70,10 @@ registerCancelPaymentCallback(bot);
 registerConfirmPaymentCallback(bot);
 registerEventCallback(bot);
 registerReceiptTypeCallback(bot);
+registerInformationRequestCallback(bot);
+registerFolderChooserCallback(bot);
+registerPendenciasCallbacks(bot);
+registerAssignWorkgroupCallbacks(bot);
 
 // Função disparada ao criar um novo request no Realtime Database
 export const sendPaymentRequest = onValueCreated(
@@ -109,6 +128,28 @@ export const scheduledCheckEvents = onSchedule(
       new Date().toISOString()
     );
     await checkEvents(bot);
+  }
+);
+
+export const scheduledCheckPedidosInformacao = onSchedule(
+  { schedule: "0 19 * * *", timeZone: "America/Recife" },
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckPedidosInformacao disparado em",
+      new Date().toISOString()
+    );
+    await checkPedidosInformacao(bot);
+  }
+);
+
+export const scheduledCheckUpcomingEvents = onSchedule(
+  "every 30 minutes",
+  async (context) => {
+    console.log(
+      "RUN: scheduledCheckUpcomingEvents disparado em",
+      new Date().toISOString()
+    );
+    await checkUpcomingEvents(bot);
   }
 );
 

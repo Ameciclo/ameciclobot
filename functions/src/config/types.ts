@@ -37,6 +37,7 @@ export interface TelegramUserInfo {
   username?: string;
   allows_write_to_pm?: boolean;
   photo_url?: string;
+  email?: string;
 }
 
 export interface CalendarEventData {
@@ -52,6 +53,7 @@ export interface CalendarEventData {
   htmlLink: string;
   calendarEventId?: string;
   participants?: { [key: number]: TelegramUserInfo };
+  notGoing?: { [key: number]: TelegramUserInfo };
 }
 
 // /config/types.ts (ou um arquivo similar)

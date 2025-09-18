@@ -109,6 +109,9 @@ change_node() {
     if [ -s "$NVM_DIR/nvm.sh" ]; then
         . "$NVM_DIR/nvm.sh"
         nvm use v22.11.0
+        export PATH="$HOME/.nvm/versions/node/v22.18.0/bin:$PATH"
+        #echo "Instalando Firebase CLI..."
+        #npm install -g firebase-tools
     else
         echo "nvm não encontrado. Certifique-se de que o nvm está instalado."
     fi
@@ -139,7 +142,7 @@ continuos_start_bot() {
 #####################################
 while true; do
     echo ""
-    echo "========================================"
+    echo "============$(date '+%H:%M:%S')============================ "
     echo "Escolha uma opção:"
     echo "1. Iniciar NGROK e configurar webhook em DEVELOPMENT"
     echo "2. Configurar webhook em PRODUCTION"

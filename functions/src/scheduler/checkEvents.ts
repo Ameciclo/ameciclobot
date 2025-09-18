@@ -5,7 +5,9 @@ import { Telegraf } from "telegraf";
 import {
   buildWeeklyAgendaMessage,
   buildDailyAgendaMessage,
+  buildUnassignedEventsMessage,
 } from "../messages/eventMessages";
+import { Markup } from "telegraf";
 
 export const checkEvents = async (bot: Telegraf) => {
   console.log("Iniciando checkWorkgroupEvents...");
@@ -39,25 +41,43 @@ export const checkEvents = async (bot: Telegraf) => {
 
       // Para cada grupo, filtra os eventos correspondentes
       for (const group of workgroups) {
-        const filteredEvents = events.filter((ev) => {
+        const assignedEvents = events.filter((ev) => {
           const props = ev.extendedProperties?.private;
-          if (props && props.workgroup) {
-            return props.workgroup === group.value.toString();
-          } else {
-            // Se não tiver workgroup designado, envia para "Secretaria"
-            return group.label === "Secretaria";
-          }
+          return props && props.workgroup && props.workgroup === group.value.toString();
         });
 
-        if (filteredEvents.length > 0) {
-          const message = buildWeeklyAgendaMessage(filteredEvents);
+        const unassignedEvents = events.filter((ev) => {
+          const props = ev.extendedProperties?.private;
+          return !props || !props.workgroup;
+        });
+
+        // Enviar eventos atribuídos normalmente
+        if (assignedEvents.length > 0) {
+          const message = buildWeeklyAgendaMessage(assignedEvents);
           console.log(
-            `Enviando agenda semanal para o grupo ${group.label} (ID: ${group.value}) com ${filteredEvents.length} eventos.`
+            `Enviando agenda semanal para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
           );
           await bot.telegram.sendMessage(group.value, message, {
             parse_mode: "MarkdownV2",
-          });
-        } else {
+            disable_web_page_preview: true,
+          } as any);
+        }
+
+        // Para Secretaria, enviar também eventos não atribuídos com botões
+        if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+          const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
+          const keyboard = buildEventAssignmentKeyboard(unassignedEvents);
+          console.log(
+            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria com botões de atribuição.`
+          );
+          await bot.telegram.sendMessage(group.value, unassignedMessage, {
+            parse_mode: "MarkdownV2",
+            reply_markup: keyboard.reply_markup,
+            disable_web_page_preview: true,
+          } as any);
+        }
+
+        if (assignedEvents.length === 0 && (group.label !== "Secretaria" || unassignedEvents.length === 0)) {
           console.log(`Nenhum evento para a semana no grupo ${group.label}.`);
         }
       }
@@ -84,25 +104,43 @@ export const checkEvents = async (bot: Telegraf) => {
 
       // Para cada grupo, filtra os eventos correspondentes
       for (const group of workgroups) {
-        const filteredEvents = events.filter((ev) => {
+        const assignedEvents = events.filter((ev) => {
           const props = ev.extendedProperties?.private;
-          if (props && props.workgroup) {
-            return props.workgroup === group.value.toString();
-          } else {
-            // Se não tiver workgroup designado, envia para "Secretaria"
-            return group.label === "Secretaria";
-          }
+          return props && props.workgroup && props.workgroup === group.value.toString();
         });
 
-        if (filteredEvents.length > 0) {
-          const message = buildDailyAgendaMessage(filteredEvents);
+        const unassignedEvents = events.filter((ev) => {
+          const props = ev.extendedProperties?.private;
+          return !props || !props.workgroup;
+        });
+
+        // Enviar eventos atribuídos normalmente
+        if (assignedEvents.length > 0) {
+          const message = buildDailyAgendaMessage(assignedEvents);
           console.log(
-            `Enviando agenda de amanhã para o grupo ${group.label} (ID: ${group.value}) com ${filteredEvents.length} eventos.`
+            `Enviando agenda de amanhã para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
           );
           await bot.telegram.sendMessage(group.value, message, {
             parse_mode: "MarkdownV2",
-          });
-        } else {
+            disable_web_page_preview: true,
+          } as any);
+        }
+
+        // Para Secretaria, enviar também eventos não atribuídos com botões
+        if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+          const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
+          const keyboard = buildEventAssignmentKeyboard(unassignedEvents);
+          console.log(
+            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria com botões de atribuição.`
+          );
+          await bot.telegram.sendMessage(group.value, unassignedMessage, {
+            parse_mode: "MarkdownV2",
+            reply_markup: keyboard.reply_markup,
+            disable_web_page_preview: true,
+          } as any);
+        }
+
+        if (assignedEvents.length === 0 && (group.label !== "Secretaria" || unassignedEvents.length === 0)) {
           console.log(`Nenhum evento para amanhã no grupo ${group.label}.`);
         }
       }
@@ -111,3 +149,14 @@ export const checkEvents = async (bot: Telegraf) => {
     console.error("Erro geral em checkWorkgroupEvents:", error);
   }
 };
+
+function buildEventAssignmentKeyboard(unassignedEvents: any[]) {
+  const buttons = unassignedEvents.map(event => 
+    Markup.button.callback(
+      `📝 Atribuir: ${event.summary || 'Evento sem título'}`,
+      `assign_event_${event.id}`
+    )
+  );
+  
+  return Markup.inlineKeyboard(buttons, { columns: 1 });
+}

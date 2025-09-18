@@ -29,7 +29,13 @@ export function excerptFromRequest(
   request: PaymentRequest,
   title?: string | undefined
 ): string {
-  let supplierText = `Pagar com ${request.supplier.payment_methods[0].type} ➡️ ${request.supplier.payment_methods[0].value}\n\n`;
+  const paymentMethod = request.supplier.payment_methods[0];
+  let supplierText = `Pagar com ${paymentMethod.type} ➡️ ${paymentMethod.value}\n\n`;
+  
+  // Se for PIX, adiciona a chave em formato clicável
+  if (paymentMethod.type.toLowerCase() === 'pix') {
+    supplierText = `Pagar com ${paymentMethod.type} ➡️ \`${paymentMethod.value}\`\n\n`;
+  }
   if (
     request.isRefund &&
     request.refundSupplier &&

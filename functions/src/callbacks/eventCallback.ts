@@ -42,10 +42,11 @@ export function registerEventCallback(bot: Telegraf) {
         return;
       }
 
-      // Extrai o índice do calendário do callback_data (formato: add_event_{index})
+      // Extrai o índice do calendário e ID temporário do callback_data (formato: add_event_{index}_{tempId})
       const parts = callbackData.split("_");
       const index = parseInt(parts[2], 10);
-      console.log("Índice extraído:", index);
+      const tempEventId = parts[3];
+      console.log("Índice extraído:", index, "ID temporário:", tempEventId);
 
       if (isNaN(index) || index < 0 || index >= calendars.length) {
         console.log("Índice de calendário inválido. Calendars:", calendars);
@@ -53,34 +54,26 @@ export function registerEventCallback(bot: Telegraf) {
         return;
       }
 
+      if (!tempEventId) {
+        await ctx.answerCbQuery("ID do evento não encontrado.", { show_alert: true });
+        return;
+      }
+
       const calendarId = calendars[index].id;
       console.log("calendarId selecionado:", calendarId);
 
-      // Extrai o JSON do evento a partir da mensagem original
-      const messageText = ctx.text;
-      if (!messageText) {
-        await ctx.answerCbQuery(
-          "Não foi possível recuperar os dados do evento."
-        );
+      // Recupera os dados do evento do Firebase
+      const tempEventRef = admin.database().ref(`temp_events/${tempEventId}`);
+      const snapshot = await tempEventRef.once('value');
+      const eventData = snapshot.val();
+      
+      if (!eventData) {
+        await ctx.answerCbQuery("Dados do evento não encontrados.", { show_alert: true });
         return;
       }
-
-      // Supõe que o JSON esteja dentro de um bloco de código Markdown: ```json ... ```
-      const jsonRegex = /(?:```json\s*)?({[\s\S]*})(?:\s*```)?/;
-      const match = jsonRegex.exec(messageText);
-      if (!match) {
-        await ctx.answerCbQuery("Dados do evento não encontrados na mensagem.");
-        return;
-      }
-
-      let eventData;
-      try {
-        eventData = JSON.parse(match[1].trim());
-      } catch (parseErr) {
-        console.error("Erro ao fazer parse do JSON do evento:", parseErr);
-        await ctx.answerCbQuery("Erro ao interpretar os dados do evento.");
-        return;
-      }
+      
+      // Remove os dados temporários
+      await tempEventRef.remove();
 
       // Atualiza os dados do evento
       eventData.calendarId = calendarId;
@@ -111,10 +104,11 @@ export function registerEventCallback(bot: Telegraf) {
       await admin.database().ref(`calendar/${eventId}`).set(eventData);
       console.log("Evento salvo no Firebase com sucesso.");
 
-      // Confirma a adição editando a mensagem original
-      const successMessage = `Evento adicionado com sucesso ao calendário (${calendarId})!\nID do evento: ${eventId}`;
-      await ctx.editMessageText(successMessage);
+      // Apenas confirma via callback query, a mensagem será enviada pelo handler
       await ctx.answerCbQuery("Evento adicionado com sucesso!");
+      
+      // Deleta a mensagem original
+      await ctx.deleteMessage();
     } catch (err) {
       await ctx.answerCbQuery("Ocorreu um erro ao adicionar o evento.", {
         show_alert: true,
