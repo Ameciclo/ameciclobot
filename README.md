@@ -8,7 +8,7 @@ A Ameciclo é uma organização da sociedade civil que promove o uso da biciclet
 
 ## 🚀 Funcionalidades Principais
 
-O bot oferece mais de 25 comandos organizados em categorias funcionais:
+O bot oferece **28 comandos ativos** organizados em categorias funcionais:
 
 ### 📄 Gestão de Documentos
 - `/unir_pdfs` - Une múltiplos arquivos PDF em um único documento usando PDF-lib
@@ -16,35 +16,41 @@ O bot oferece mais de 25 comandos organizados em categorias funcionais:
 - `/documento` - Cria Google Docs automaticamente em pastas organizadas por grupo de trabalho
 - `/arquivar_comprovante` - Arquiva comprovantes de pagamento no Google Drive com categorização automática
 - `/arquivar_extrato_pdf` - Processa e arquiva extratos bancários em PDF com OCR
+- `/apresentacao` - Cria Google Slides com templates organizacionais
+- `/modelo` - Biblioteca de modelos de documentos com sistema de cópia inteligente
 
 ### 💰 Gestão Financeira
-- `/pagamento` - Fluxo completo de solicitação de pagamentos com aprovação em múltiplas etapas
 - `/processar_extrato_cc` - Processa extratos de conta corrente com reconciliação automática
 - `/processar_extrato_fi` - Analisa extratos de fundos de investimento e gera relatórios
+- `/processar_extrato` - Processamento geral de extratos bancários
 - `/atualizar_pendencias` - Monitora e atualiza pendências financeiras em planilhas Google Sheets
+- `/atualizar_projetos` - Monitoramento e atualização de status de projetos em tempo real
 - **Sistema de Aprovação**: Workflow automatizado com notificações para coordenadores
+- **Central Ameciclista**: Interface web para solicitações de pagamento
 
 ### 📅 Eventos e Comunicação
 - `/evento` - Cria eventos no Google Calendar com IA para extração de dados de texto natural
+- `/atribuir_evento` - Atribui eventos a grupos de trabalho específicos
+- `/complementar_evento` - Adiciona informações complementares a eventos existentes
 - `/comunicacao` - Ferramentas para comunicação interna e externa
 - `/informe` - Sistema de criação e distribuição de informes organizacionais
 - `/clipping` - Gestão de clipping de notícias e mídia
-- **Agenda Automática**: Envio diário e semanal de agenda para grupos de trabalho
+- **Agenda Automática**: Envio diário (16:20) e semanal (domingos) de agenda para grupos de trabalho
 
 ### 📊 Gestão Organizacional
 - `/planilha` - Integração completa com Google Sheets para análise de dados
 - `/registrar_planilha` - Sistema de registro e catalogação de planilhas organizacionais
 - `/pauta` - Criação e gestão de pautas de reuniões com templates automáticos
 - `/demanda` - Sistema de gestão de demandas internas com rastreamento
-- `/atualizar_projetos` - Monitoramento e atualização de status de projetos em tempo real
+- `/encaminhamento` - Workflow de encaminhamentos internos com rastreamento
+- `/pedido_de_informacao` - Sistema completo de gestão de pedidos de informação pública
+- `/resumo` - Gera resumos executivos de atividades
 
 ### 🔧 Utilitários e Ferramentas
 - `/formulario` - Cria Google Forms automaticamente com monitoramento de respostas
-- `/modelo` - Biblioteca de modelos de documentos com sistema de cópia inteligente
-- `/pedido_de_informacao` - Sistema completo de gestão de pedidos de informação pública
-- `/encaminhamento` - Workflow de encaminhamentos internos com rastreamento
-- `/apresentacao` - Cria Google Slides com templates organizacionais
-- `/help` - Sistema de ajuda contextual e lista de comandos
+- `/enquete` - Cria enquetes interativas no Telegram
+- `/qrcode` - Gera códigos QR para links e textos
+- `/ajuda` - Sistema de ajuda contextual e lista de comandos
 - `/versao` - Controle de versão e changelog do bot
 - `/quem_sou_eu` - Perfil do usuário e permissões no sistema
 
@@ -52,13 +58,15 @@ O bot oferece mais de 25 comandos organizados em categorias funcionais:
 
 ### Core
 - **Node.js 22** - Runtime JavaScript com suporte às últimas funcionalidades
-- **TypeScript** - Linguagem tipada para maior robustez e manutenibilidade
+- **TypeScript 5.7** - Linguagem tipada para maior robustez e manutenibilidade
 - **Telegraf.js 4.10** - Framework moderno para bots do Telegram
+- **ESLint + Google Config** - Padronização de código
 
 ### Cloud & Serverless
 - **Firebase Functions** - Computação serverless para escalabilidade automática
-- **Firebase Admin SDK** - Gerenciamento de dados e autenticação
+- **Firebase Admin SDK 13.0** - Gerenciamento de dados e autenticação
 - **Firebase Realtime Database** - Banco de dados em tempo real para workflows
+- **Google Cloud Run** - Hospedagem de funções serverless
 
 ### Integrações Google
 - **Google Drive API** - Armazenamento e organização de arquivos
@@ -67,18 +75,22 @@ O bot oferece mais de 25 comandos organizados em categorias funcionais:
 - **Google Docs API** - Criação e edição de documentos
 - **Google Slides API** - Apresentações automatizadas
 - **Google Forms API** - Formulários dinâmicos
+- **Google APIs Client 144.0** - Cliente unificado para APIs Google
 
 ### Integrações Azure AI
 - **Azure OpenAI (GPT-3.5)** - Processamento de linguagem natural
 - **Azure Whisper** - Transcrição de áudio e vídeo
+- **Azure Cognitive Services** - Serviços de IA
 
 ### Bibliotecas Especializadas
-- **PDF-lib** - Manipulação avançada de PDFs
-- **pdf-parse** - Extração de texto de PDFs
-- **csv-parse** - Processamento de arquivos CSV
-- **cheerio** - Web scraping e parsing HTML
-- **axios** - Cliente HTTP robusto
-- **form-data** - Upload de arquivos multipart
+- **PDF-lib 1.17** - Manipulação avançada de PDFs
+- **pdf-parse 1.1** - Extração de texto de PDFs
+- **csv-parse 5.6** - Processamento de arquivos CSV
+- **cheerio 1.1** - Web scraping e parsing HTML
+- **axios 1.8** - Cliente HTTP robusto
+- **form-data 4.0** - Upload de arquivos multipart
+- **qrcode 1.5** - Geração de códigos QR
+- **dotenv 16.4** - Gerenciamento de variáveis de ambiente
 
 ## 🏗️ Arquitetura do Sistema
 
@@ -114,35 +126,120 @@ Upload → Processamento → Categorização → Google Drive → Notificação
 ```
 
 ### Tarefas Agendadas (Schedulers)
-- **Formulários**: Verifica respostas a cada 2 horas
-- **Pagamentos**: Monitora pagamentos agendados (seg/qua/sex às 8h)
-- **Eventos**: Envia agenda diária (16:20) e semanal (domingos)
-- **Pedidos de Informação**: Verifica prazos diariamente (19h)
+- **Formulários**: Verifica respostas a cada 2 horas (checkForms)
+- **Pagamentos**: Monitora pagamentos agendados (seg/qua/sex às 8h) (checkScheduledPayments)
+- **Eventos**: Envia agenda diária (16:20) e semanal (domingos) (checkEvents)
+- **Pedidos de Informação**: Verifica prazos diariamente (19h) (checkPedidosInformacao)
+- **Eventos Próximos**: Notifica sobre eventos do dia seguinte (checkUpcomingEvents)
 
 ## 📦 Instalação e Configuração
 
-1. Clone o repositório:
+### Pré-requisitos
+- Node.js 22+
+- Firebase CLI
+- Conta Google Cloud com APIs habilitadas
+- Conta Azure com serviços de IA
+- Bot do Telegram criado via @BotFather
+
+### 1. Clone e Instale
 ```bash
 git clone <repository-url>
 cd ameciclobot
-```
-
-2. Instale as dependências:
-```bash
 cd functions
 npm install
 ```
 
-3. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
-
-4. Configure o Firebase:
+### 2. Configure Firebase
 ```bash
 firebase login
 firebase use --add
+# Selecione seu projeto Firebase
+```
+
+### 3. Configure Variáveis de Ambiente
+Crie o arquivo `.env` em `functions/`:
+```env
+# Telegram
+BOT_TOKEN=seu_token_do_telegram_bot
+DEV_BOT_TOKEN=token_do_bot_de_desenvolvimento
+
+# Firebase
+FB_BOTFUNCTION_URL=https://sua-funcao.cloudfunctions.net
+API_KEY=sua_api_key_firebase
+FB_PROJECT_ID=seu-projeto-firebase
+FB_PRIVATE_KEY_ID=id_da_chave_privada
+FB_CLIENT_EMAIL=email_do_service_account
+FB_CLIENT_ID=id_do_cliente
+FB_CLIENT_X509_CERT_URL=url_do_certificado
+FB_CLIENT_SECRET=secret_do_cliente
+
+# Desenvolvimento
+DEV_MODE=false
+```
+
+### 4. Configure Credenciais
+Crie os arquivos JSON em `functions/src/credentials/`:
+
+#### `telegram.json`
+```json
+{
+  "token": "seu_token_do_bot",
+  "devToken": "token_de_desenvolvimento"
+}
+```
+
+#### `google.json`
+```json
+{
+  "type": "service_account",
+  "project_id": "seu-projeto",
+  "private_key_id": "id-da-chave",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...",
+  "client_email": "bot@projeto.iam.gserviceaccount.com",
+  "client_id": "123456789",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token"
+}
+```
+
+#### `gpt35.json`
+```json
+{
+  "endpoint": "https://seu-recurso.openai.azure.com/",
+  "apiKey": "sua-chave-azure-openai"
+}
+```
+
+#### `whisper.json`
+```json
+{
+  "endpoint": "https://seu-whisper.cognitiveservices.azure.com/",
+  "apiKey": "sua-chave-whisper"
+}
+```
+
+#### `workgroupsfolders.json`
+```json
+[
+  {
+    "label": "Secretaria",
+    "value": -123456789,
+    "folderId": "id-da-pasta-drive"
+  },
+  {
+    "label": "Financeiro",
+    "value": -987654321,
+    "folderId": "id-da-pasta-drive"
+  }
+]
+```
+
+#### `calendars.json`
+```json
+{
+  "primary": "calendario@ameciclo.org",
+  "events": "eventos@ameciclo.org"
+}
 ```
 
 ## 🚀 Desenvolvimento
