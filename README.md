@@ -253,105 +253,287 @@ npm run build
 # Executar em modo de desenvolvimento
 npm run serve
 
-# Assistir mudanças
+# Assistir mudanças (recompilação automática)
 npm run watch
 
 # Deploy para produção
 npm run deploy
 
-# Executar linter
+# Executar linter (ESLint)
 npm run lint
 
-# Ver logs
+# Ver logs do Firebase Functions
 npm run logs
+
+# Executar testes
+npm test
+
+# Testar pedidos de informação
+npm run test:pedidos
 ```
 
 ### Estrutura do projeto:
 
 ```
-functions/
-├── src/
-│   ├── commands/          # Comandos do bot
-│   ├── callbacks/         # Handlers de callbacks
-│   ├── handlers/          # Handlers gerais
-│   ├── services/          # Serviços externos
-│   ├── utils/             # Utilitários
-│   ├── config/            # Configurações
-│   └── index.ts           # Ponto de entrada
-├── lib/                   # Código compilado
-└── package.json
-```
+ameciclobot/
+├── functions/
+│   ├── src/
+│   │   ├── commands/          # 28 comandos do bot
+│   │   ├── callbacks/         # 10 handlers de callbacks inline
+│   │   ├── handlers/          # Handlers de eventos específicos
+│   │   ├── services/          # Integrações (Google, Azure, Firebase)
+│   │   ├── scheduler/         # 5 tarefas agendadas (cron jobs)
+│   │   ├── utils/             # Utilitários e helpers
+│   │   ├── config/            # Configurações e tipos
+│   │   ├── credentials/       # Arquivos de credenciais (não versionados)
+│   │   ├── messages/          # Templates de mensagens
+│   │   ├── test/              # Testes unitários
+│   │   ├── commands.ts        # Registro de comandos
+│   │   └── index.ts           # Ponto de entrada principal
+│   ├── lib/                   # Código TypeScript compilado
+│   ├── .env                   # Variáveis de ambiente
+│   ├── package.json           # Dependências e scripts
+│   ├── tsconfig.json          # Configuração TypeScript
+│   └── eslint.config.js       # Configuração ESLint
+├── .github/workflows/         # CI/CD GitHub Actions
+├── firebase.json              # Configuração Firebase
+├── .firebaserc                # Projetos Firebase
+└── README.md                  # Documentação
 
 ## 🔧 Configuração Detalhada
 
-### Variáveis de Ambiente
+### 5. Configure Google Cloud APIs
 
-```env
-# Telegram
-BOT_TOKEN=seu_token_do_telegram_bot
+1. **Acesse o Google Cloud Console**:
+   - Crie um novo projeto ou use existente
+   - Ative as seguintes APIs:
+     - Google Drive API
+     - Google Sheets API
+     - Google Calendar API
+     - Google Docs API
+     - Google Slides API
+     - Google Forms API
 
-# Firebase
-FIREBASE_PROJECT_ID=seu_projeto_firebase
-FIREBASE_DATABASE_URL=https://seu-projeto.firebaseio.com
+2. **Crie Service Account**:
+   ```bash
+   # Via gcloud CLI
+   gcloud iam service-accounts create ameciclo-bot \
+     --display-name="Ameciclo Bot Service Account"
+   
+   # Gere chave JSON
+   gcloud iam service-accounts keys create google.json \
+     --iam-account=ameciclo-bot@seu-projeto.iam.gserviceaccount.com
+   ```
 
-# Google APIs
-GOOGLE_SERVICE_ACCOUNT_EMAIL=bot@seu-projeto.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
-GOOGLE_SUBJECT=email_para_impersonar@ameciclo.org
+3. **Configure Domain-wide Delegation**:
+   - No Google Admin Console
+   - Adicione o Client ID do service account
+   - Escopos necessários:
+     ```
+     https://www.googleapis.com/auth/drive
+     https://www.googleapis.com/auth/spreadsheets
+     https://www.googleapis.com/auth/calendar
+     https://www.googleapis.com/auth/documents
+     https://www.googleapis.com/auth/presentations
+     https://www.googleapis.com/auth/forms
+     ```
 
-# Azure AI
-AZURE_OPENAI_ENDPOINT=https://seu-recurso.openai.azure.com/
-AZURE_OPENAI_API_KEY=sua_chave_azure
-AZURE_WHISPER_ENDPOINT=https://seu-whisper.cognitiveservices.azure.com/
-AZURE_WHISPER_API_KEY=sua_chave_whisper
-```
+### 6. Configure Azure AI Services
 
-### Configuração do Firebase
+1. **Azure OpenAI**:
+   ```bash
+   # Crie recurso via Azure CLI
+   az cognitiveservices account create \
+     --name ameciclo-openai \
+     --resource-group ameciclo-rg \
+     --kind OpenAI \
+     --sku S0 \
+     --location eastus
+   
+   # Deploy modelo GPT-3.5-turbo
+   az cognitiveservices account deployment create \
+     --name ameciclo-openai \
+     --resource-group ameciclo-rg \
+     --deployment-name gpt-35-turbo \
+     --model-name gpt-35-turbo \
+     --model-version "0613"
+   ```
 
-1. **Projeto Firebase**:
-   - Crie projeto no [Firebase Console](https://console.firebase.google.com)
-   - Ative Realtime Database e Firestore
-   - Configure regras de segurança
+2. **Azure Speech Services (Whisper)**:
+   ```bash
+   az cognitiveservices account create \
+     --name ameciclo-speech \
+     --resource-group ameciclo-rg \
+     --kind SpeechServices \
+     --sku S0 \
+     --location eastus
+   ```
 
-2. **Service Account**:
-   - Gere chave de service account
-   - Configure permissões de administrador
-   - Baixe arquivo JSON de credenciais
+### 7. Configure Firebase
 
-3. **Estrutura do Database**:
+1. **Estrutura do Realtime Database**:
    ```json
    {
-     "requests": {}, // Solicitações de pagamento
-     "calendar": {}, // Eventos de calendário
-     "forms": {},    // Formulários monitorados
-     "users": {}     // Dados de usuários
+     "requests": {
+       "request_id": {
+         "status": "pending|confirmed|cancelled",
+         "transactionType": "string",
+         "project": { "name": "string", "id": "string" },
+         "supplier": { "name": "string", "nickname": "string" },
+         "value": "number",
+         "paymentDate": "string",
+         "createdAt": "timestamp"
+       }
+     },
+     "calendar": {
+       "event_id": {
+         "title": "string",
+         "date": "string",
+         "workgroup": "string",
+         "participants": ["user_ids"]
+       }
+     },
+     "forms": {
+       "form_id": {
+         "sheetId": "string",
+         "telegramGroupId": "number",
+         "lastRow": "number",
+         "responsesTabGid": "string",
+         "formName": "string"
+       }
+     },
+     "users": {
+       "user_id": {
+         "name": "string",
+         "username": "string",
+         "workgroup": "string",
+         "permissions": ["array"]
+       }
+     },
+     "informationRequests": {
+       "request_id": {
+         "title": "string",
+         "entity": "string",
+         "deadline": "string",
+         "status": "pending|sent|received|expired"
+       }
+     }
    }
    ```
 
-### Configuração Google APIs
+2. **Regras de Segurança**:
+   ```json
+   {
+     "rules": {
+       ".read": "auth != null",
+       ".write": "auth != null",
+       "requests": {
+         ".indexOn": ["status", "transactionType", "paymentDate"]
+       },
+       "calendar": {
+         ".indexOn": ["date", "workgroup"]
+       }
+     }
+   }
+   ```
 
-1. **Google Cloud Console**:
-   - Ative APIs: Drive, Sheets, Calendar, Docs, Slides, Forms
-   - Configure OAuth 2.0 e Service Account
-   - Configure domain-wide delegation
+### 8. Deploy e Testes
 
-2. **Permissões Necessárias**:
-   - Google Drive: Criar, editar, mover arquivos
-   - Google Sheets: Ler, escrever, criar planilhas
-   - Google Calendar: Criar, editar eventos
-   - Google Docs/Slides: Criar, editar documentos
+1. **Deploy Inicial**:
+   ```bash
+   # Compile o projeto
+   npm run build
+   
+   # Deploy para Firebase
+   npm run deploy
+   
+   # Verifique os logs
+   npm run logs
+   ```
 
-### Configuração Azure AI
+2. **Teste Local**:
+   ```bash
+   # Inicie emuladores Firebase
+   npm run serve
+   
+   # Em outro terminal, teste comandos
+   npm run test:pedidos
+   ```
 
-1. **Azure OpenAI**:
-   - Crie recurso Azure OpenAI
-   - Deploy modelo GPT-3.5-turbo
-   - Configure endpoint e chaves
+3. **Configuração do Webhook**:
+   ```bash
+   # Configure webhook do Telegram
+   curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
+     -H "Content-Type: application/json" \
+     -d '{"url": "https://sua-funcao.cloudfunctions.net/botFunction"}'
+   ```
 
-2. **Azure Speech Services**:
-   - Crie recurso Speech Services
-   - Configure Whisper para transcrição
-   - Obtenha chaves de API
+### 9. Configuração de Schedulers
+
+Os schedulers são configurados automaticamente no deploy. Para ajustar horários:
+
+```typescript
+// Em functions/src/index.ts
+export const scheduledCheckEvents = functions
+  .region('us-central1')
+  .pubsub
+  .schedule('20 16 * * *') // Diário às 16:20
+  .timeZone('America/Recife')
+  .onRun(async (context) => {
+    await checkEvents(bot);
+  });
+```
+
+### 10. Monitoramento e Logs
+
+1. **Firebase Console**: Monitore execuções e erros
+2. **Google Cloud Logging**: Logs detalhados
+3. **Telegram**: Notificações de erro em grupos administrativos
+
+```bash
+# Ver logs em tempo real
+firebase functions:log --follow
+
+# Filtrar logs por função
+firebase functions:log --only functions:botFunction
+```
+
+## 📊 Estatísticas do Projeto Atual
+
+- **Versão**: 3.0.0
+- **28 Comandos** ativos implementados
+- **10 Callbacks** para interações inline
+- **5 Schedulers** para automações
+- **6 Integrações** principais (Google APIs, Azure AI, Firebase)
+- **2 Handlers** especializados
+- **5 Serviços** externos
+- **15+ Tipos de documentos** suportados
+- **Múltiplos grupos** de trabalho gerenciados
+- **Processamento em tempo real** de solicitações
+- **Backup automático** e sincronização contínua
+
+## 🔄 Recursos Avançados
+
+### Inteligência Artificial
+- **Processamento de Linguagem Natural**: Extração automática de dados de eventos a partir de texto livre usando GPT-3.5
+- **Transcrição Automática**: Conversão de áudios e vídeos em texto usando Azure Whisper
+- **Análise de Documentos**: Processamento inteligente de PDFs e extratos bancários com OCR
+- **Geração de Conteúdo**: Criação automática de documentos, apresentações e formulários
+
+### Automações
+- **Reconciliação Bancária**: Matching automático entre extratos e planilhas financeiras
+- **Notificações Inteligentes**: Alertas contextuais baseados em prazos, eventos e status
+- **Backup Automático**: Sincronização contínua com Google Drive e Firebase
+- **Relatórios Automáticos**: Geração de relatórios financeiros e de atividades
+- **Agenda Inteligente**: Distribuição automática de eventos por grupos de trabalho
+
+### Monitoramento e Segurança
+- **Health Checks**: Verificação automática de APIs e serviços
+- **Logs Estruturados**: Sistema completo de logging para debugging e auditoria
+- **Métricas de Uso**: Acompanhamento de comandos mais utilizados e performance
+- **Error Tracking**: Captura e notificação de erros em tempo real
+- **Controle de Acesso**: Sistema de permissões por grupo e usuário
+- **Auditoria Completa**: Log de todas as ações sensíveis com timestamp e usuário
 
 ## 📝 Guia de Uso
 
@@ -430,14 +612,7 @@ O bot reconhece diferentes grupos de trabalho:
 - **Métricas de Uso**: Acompanhamento de comandos mais utilizados
 - **Error Tracking**: Captura e notificação de erros em tempo real
 
-## 📊 Estatísticas do Projeto
 
-- **25+ Comandos** implementados
-- **7 Integrações** principais (Google, Azure, Firebase)
-- **4 Schedulers** para automações
-- **15+ Tipos de documentos** suportados
-- **Múltiplos grupos** de trabalho gerenciados
-- **Processamento em tempo real** de solicitações
 
 ## 🤝 Contribuição e Desenvolvimento
 
@@ -544,10 +719,72 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - [Azure AI](https://azure.microsoft.com/ai/) - Serviços de IA
 - [PDF-lib](https://pdf-lib.js.org/) - Manipulação de PDFs
 
+## 🔒 Segurança e Compliance
+
+- **Criptografia**: Todas as comunicações são criptografadas via HTTPS/TLS
+- **Controle de Acesso**: Sistema de permissões granular por grupo e usuário
+- **Auditoria**: Log completo de todas as ações sensíveis com rastreabilidade
+- **Backup Seguro**: Dados armazenados com redundância no Firebase e Google Drive
+- **Compliance**: Adequação à LGPD e boas práticas de segurança
+- **Validação de Entrada**: Sanitização e validação de todos os inputs do usuário
+- **Rate Limiting**: Proteção contra spam e uso abusivo
+
+## 🌐 Integrações Externas
+
+### APIs Google (6 integrações)
+- **Google Drive**: Armazenamento e organização hierárquica de arquivos
+- **Google Sheets**: Manipulação avançada de planilhas com fórmulas
+- **Google Calendar**: Gestão completa de eventos com recorrência
+- **Google Docs**: Criação e edição colaborativa de documentos
+- **Google Slides**: Apresentações automatizadas com templates
+- **Google Forms**: Formulários dinâmicos com monitoramento de respostas
+
+### Azure AI Services (2 integrações)
+- **Azure OpenAI GPT-3.5**: Processamento de linguagem natural avançado
+- **Azure Whisper**: Transcrição de áudio/vídeo com alta precisão
+
+### Firebase (3 serviços)
+- **Firebase Functions**: Computação serverless escalável
+- **Firebase Realtime Database**: Banco de dados em tempo real
+- **Firebase Admin SDK**: Gerenciamento de autenticação e dados
+
+## 📝 Documentação Adicional
+
+- [ANALISE_MELHORIAS.md](ANALISE_MELHORIAS.md) - Análise detalhada de melhorias
+- [PADRONIZACAO_COMANDOS.md](PADRONIZACAO_COMANDOS.md) - Padrões de desenvolvimento
+- [PLANO_UNIFORMIZACAO_COMANDOS.md](PLANO_UNIFORMIZACAO_COMANDOS.md) - Plano de uniformização
+- [.github/workflows/deploy.yml](.github/workflows/deploy.yml) - Pipeline CI/CD
+
+## 🎆 Roadmap Futuro
+
+### Em Desenvolvimento
+- [ ] Interface web administrativa completa
+- [ ] API REST pública para integrações externas
+- [ ] Sistema de plugins para comandos customizados
+- [ ] Dashboard de métricas e analytics em tempo real
+- [ ] Integração com WhatsApp Business API
+
+### Melhorias Planejadas
+- [ ] Cache inteligente Redis para melhor performance
+- [ ] Sistema de backup incremental automatizado
+- [ ] Notificações push personalizadas por usuário
+- [ ] Integração com sistemas ERP de terceiros
+- [ ] Modo offline para comandos críticos
+- [ ] Machine Learning para predição de demandas
+
 ---
 
-**Versão atual:** 1.2.2 | **Última atualização:** Dezembro 2024
+**Versão atual:** 3.0.0 | **Última atualização:** Dezembro 2024
 
 **Desenvolvido com ❤️ para a Ameciclo** - Promovendo a mobilidade sustentável no Grande Recife
 
 *Este bot é uma ferramenta open-source desenvolvida para otimizar os processos internos da Ameciclo e pode ser adaptado para outras organizações da sociedade civil.*
+
+### 📞 Suporte e Contato
+- **Issues GitHub**: [Reportar bugs e solicitar features](https://github.com/ameciclo/ameciclobot/issues)
+- **Telegram**: @ameciclo_info
+- **Email**: contato@ameciclo.org
+- **Site**: [ameciclo.org](https://ameciclo.org)
+
+### 📜 Licença
+Este projeto está sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
