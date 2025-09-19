@@ -1,5 +1,5 @@
 // messages/eventMessages.ts
-import { escapeMarkdownV2 } from "../utils/utils";
+import { escapeMarkdownV2 } from "./utils";
 import { CalendarEventData, TelegramUserInfo } from "../config/types";
 import calendars from "../credentials/calendars.json";
 

@@ -2,7 +2,7 @@ import { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
 import { getEventById, updateEventWorkgroup } from "../services/google";
 import workgroups from "../credentials/workgroupsfolders.json";
-import { buildDailyAgendaMessage } from "../messages/eventMessages";
+import { buildDailyAgendaMessage } from "../utils/eventMessages";
 import { escapeMarkdownV2 } from "../utils/utils";
 
 export const atribuirEventoCommand = {

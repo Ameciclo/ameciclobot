@@ -2,7 +2,7 @@
 import { Telegraf, Markup } from "telegraf";
 import workgroups from "../credentials/workgroupsfolders.json";
 import { getEventById, updateEventWorkgroup } from "../services/google";
-import { buildDailyAgendaMessage } from "../messages/eventMessages";
+import { buildDailyAgendaMessage } from "../utils/eventMessages";
 
 export const registerAssignWorkgroupCallbacks = (bot: Telegraf) => {
   // Callback para quando clica em "Atribuir evento X"

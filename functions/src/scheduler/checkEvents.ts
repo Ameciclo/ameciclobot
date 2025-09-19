@@ -6,7 +6,7 @@ import {
   buildWeeklyAgendaMessage,
   buildDailyAgendaMessage,
   buildUnassignedEventsMessage,
-} from "../messages/eventMessages";
+} from "../utils/eventMessages";
 import { Markup } from "telegraf";
 
 export const checkEvents = async (bot: Telegraf) => {

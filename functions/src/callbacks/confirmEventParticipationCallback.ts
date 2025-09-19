@@ -7,7 +7,7 @@ import {
 import {
   buildEventButtons,
   buildEventMessage,
-} from "../messages/eventMessages";
+} from "../utils/eventMessages";
 import { addAttendeeToEvent } from "../services/google";
 import { admin } from "../config/firebaseInit";
 
