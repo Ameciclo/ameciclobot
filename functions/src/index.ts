@@ -2,7 +2,7 @@
 import { admin } from "./config/firebaseInit";
 console.log(admin);
 import { onRequest } from "firebase-functions/v2/https";
-import { onValueCreated } from "firebase-functions/database";
+import { onValueCreated } from "firebase-functions/v2/database";
 
 import { bot } from "./config/bot";
 import { PaymentRequest } from "./config/types";
@@ -22,7 +22,7 @@ import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
 import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 
-import { onSchedule } from "firebase-functions/scheduler";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
 import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
@@ -75,9 +75,12 @@ registerFolderChooserCallback(bot);
 registerPendenciasCallbacks(bot);
 registerAssignWorkgroupCallbacks(bot);
 
-// Função disparada ao criar um novo request no Realtime Database
+// Função disparada ao criar um novo request no Realtime Database - v4
 export const sendPaymentRequest = onValueCreated(
-  "/requests/{requestId}",
+  {
+    ref: "/requests/{requestId}",
+    region: "us-central1"
+  },
   async (event) => {
     const financeiroGroup = workgroups.find(
       (group: any) => group.label === projectsSpreadsheet.workgroup
@@ -92,14 +95,20 @@ export const sendPaymentRequest = onValueCreated(
 );
 
 export const createCalendarEvent = onValueCreated(
-  "/calendar/{eventId}",
+  {
+    ref: "/calendar/{eventId}",
+    region: "us-central1"
+  },
   async (event) => {
     await handleCreateEvent(event, bot);
   }
 );
 
 export const scheduledCheckGoogleForms = onSchedule(
-  "every 2 hours",
+  {
+    schedule: "every 2 hours",
+    region: "us-central1"
+  },
   async (context) => {
     console.log(
       "RUN: scheduledCheckGoogleForms disparado em",
@@ -110,7 +119,11 @@ export const scheduledCheckGoogleForms = onSchedule(
 );
 
 export const scheduledCheckScheduledPayments = onSchedule(
-  { schedule: "0 8 * * 1,3,5", timeZone: "America/Recife" },
+  { 
+    schedule: "0 8 * * 1,3,5", 
+    timeZone: "America/Recife",
+    region: "us-central1"
+  },
   async (context) => {
     console.log(
       "RUN: scheduledCheckScheduledPayments disparado em",
@@ -121,7 +134,11 @@ export const scheduledCheckScheduledPayments = onSchedule(
 );
 
 export const scheduledCheckEvents = onSchedule(
-  { schedule: "20 16 * * *", timeZone: "America/Recife" },
+  { 
+    schedule: "20 16 * * *", 
+    timeZone: "America/Recife",
+    region: "us-central1"
+  },
   async (context) => {
     console.log(
       "RUN: scheduledCheckEvents disparado em",
@@ -132,7 +149,11 @@ export const scheduledCheckEvents = onSchedule(
 );
 
 export const scheduledCheckPedidosInformacao = onSchedule(
-  { schedule: "0 19 * * *", timeZone: "America/Recife" },
+  { 
+    schedule: "0 19 * * *", 
+    timeZone: "America/Recife",
+    region: "us-central1"
+  },
   async (context) => {
     console.log(
       "RUN: scheduledCheckPedidosInformacao disparado em",
@@ -143,7 +164,10 @@ export const scheduledCheckPedidosInformacao = onSchedule(
 );
 
 export const scheduledCheckUpcomingEvents = onSchedule(
-  "every 30 minutes",
+  {
+    schedule: "every 30 minutes",
+    region: "us-central1"
+  },
   async (context) => {
     console.log(
       "RUN: scheduledCheckUpcomingEvents disparado em",
@@ -154,8 +178,13 @@ export const scheduledCheckUpcomingEvents = onSchedule(
 );
 
 // Função HTTP do bot para webhook do Telegram
-export const botFunction = onRequest(async (req, res) => {
-  bot.handleUpdate(req.body, res);
-});
+export const botFunction = onRequest(
+  {
+    region: "us-central1"
+  },
+  async (req, res) => {
+    bot.handleUpdate(req.body, res);
+  }
+);
 
 console.log("RUN: ... bot iniciado com sucesso!");

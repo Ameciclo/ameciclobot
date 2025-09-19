@@ -43,7 +43,7 @@ export function excerptFromRequest(
   ) {
     supplierText =
       `Devolução para: ${request.refundSupplier.nickname} (${request.refundSupplier.name})\n` +
-      `${request.refundSupplier.payment_methods[0].type} ��️ ${request.refundSupplier.payment_methods[0].value}\n\n`;
+      `${request.refundSupplier.payment_methods[0].type} ️ ${request.refundSupplier.payment_methods[0].value}\n\n`;
   }
   return (
     `${title ? title.trim() : "💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰"} \n\n` +
@@ -59,8 +59,10 @@ export function excerptFromRequest(
     `💵 Valor: ${request.value}`
   );
 }
+
 export function escapeMarkdownV2(text: string): string {
-  return text.replace(/([_\*\[\]\(\)~`>#+\-=|{}\.!])/g, "\\$1");
+  if (!text) return '';
+  return text.toString().replace(/([_\*\[\]\(\)~`>#+\-=|{}\\.!])/g, "\\$1");
 }
 
 export function escapeMarkdown(text: string): string {
