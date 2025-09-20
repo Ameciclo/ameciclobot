@@ -48,19 +48,13 @@ function hasTwoSignatures(
 }
 
 /**
- * Verifica se o usuário já assinou a solicitação, retornando o “slot” (1 ou 2)
- * onde sua assinatura está armazenada.
+ * Verifica se o usuário já assinou a solicitação
  */
-function getUserSignatureSlot(
+function hasUserSigned(
   signatures: Record<number, TelegramUserInfo>,
   userId: number
-): number | undefined {
-  for (const [slotStr, userInfo] of Object.entries(signatures)) {
-    if (userInfo.id === userId) {
-      return parseInt(slotStr, 10);
-    }
-  }
-  return undefined;
+): boolean {
+  return signatures[userId] !== undefined;
 }
 
 /**
@@ -71,14 +65,22 @@ async function deleteAllCoordinatorMessages(
   ctx: Context
 ): Promise<void> {
   if (requestData.coordinator_messages) {
-    for (const [coordId, messageId] of Object.entries(requestData.coordinator_messages)) {
+    for (const [coordId, messageId] of Object.entries(
+      requestData.coordinator_messages
+    )) {
       try {
         await ctx.telegram.deleteMessage(parseInt(coordId), messageId);
       } catch (error: any) {
-        if (error.description && error.description.includes("message to delete not found")) {
+        if (
+          error.description &&
+          error.description.includes("message to delete not found")
+        ) {
           console.log(`Mensagem do coordenador ${coordId} já foi apagada.`);
         } else {
-          console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
+          console.error(
+            `Erro ao apagar mensagem do coordenador ${coordId}:`,
+            error
+          );
         }
       }
     }
@@ -93,14 +95,17 @@ async function notifyPaymentRequester(
   ctx: Context
 ): Promise<void> {
   try {
-    const message = `✅ Seu pagamento foi confirmado com sucesso!\n\n` +
+    const message =
+      `✅ Seu pagamento foi confirmado com sucesso!\n\n` +
       `💰 Tipo: ${requestData.transactionType}\n` +
-      `💵 Valor: R$ ${requestData.value}\n` +
+      `💵 Valor: ${requestData.value}\n` +
       `🗂 Projeto: ${requestData.project.name}\n` +
       `📝 Descrição: ${requestData.description}`;
-    
+
     await ctx.telegram.sendMessage(requestData.from.id, message);
-    console.log(`Notificação enviada para o solicitante (ID: ${requestData.from.id})`);
+    console.log(
+      `Notificação enviada para o solicitante (ID: ${requestData.from.id})`
+    );
   } catch (error: any) {
     console.error(`Erro ao notificar solicitante:`, error);
   }
@@ -127,30 +132,47 @@ async function updateGoogleSheetAndRequest(
 
     // Atualiza o status da solicitação para "confirmed" no Firebase
     await updatePaymentRequest(requestId, { status: "confirmed", signatures });
-    // Botões extras: visualização da planilha e opção de cancelar a solicitação
+    // Botões extras: visualização da planilha e pasta de comprovantes
     const viewSpreadsheetButton = Markup.button.url(
-      "📊 Ver Planilha",
+      "📊 Planilha Financeira",
       `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
     );
 
-    const keyboard = Markup.inlineKeyboard([viewSpreadsheetButton]);
+    const comprovantesButton = Markup.button.url(
+      "📁 Pasta de Comprovantes",
+      `https://drive.google.com/drive/folders/${requestData.project.folder_id}`
+    );
+
+    const keyboard = Markup.inlineKeyboard([
+      [viewSpreadsheetButton, comprovantesButton],
+    ]);
 
     const baseText = excerptFromRequest(
       requestData,
-      "💸💸💸 Pagamento confirmado com sucesso. 💸💸💸"
+      "💸💸💸 Pagamento confirmado com sucesso\\. 💸💸💸"
     );
     const signedByText = buildSignedByText(signatures);
-    const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+    const messageText = `${baseText}
+
+---
+Assinaturas:
+${signedByText}`;
     try {
       await ctx.editMessageText(messageText, {
         ...keyboard,
-        parse_mode: 'MarkdownV2'
+        parse_mode: "MarkdownV2",
       });
     } catch (error: any) {
       // Ignora o erro se a mensagem for idêntica ou não existir mais
-      if (error.description && error.description.includes("message is not modified")) {
+      if (
+        error.description &&
+        error.description.includes("message is not modified")
+      ) {
         console.log("Mensagem não modificada, conteúdo idêntico.");
-      } else if (error.description && error.description.includes("message to edit not found")) {
+      } else if (
+        error.description &&
+        error.description.includes("message to edit not found")
+      ) {
         console.log("Mensagem não encontrada, pode ter sido apagada.");
       } else {
         throw error;
@@ -246,9 +268,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       return;
     }
     if (requestData.status === "confirmed") {
-      await ctx.answerCbQuery(
-        "Este pagamento já foi confirmado."
-      );
+      await ctx.answerCbQuery("Este pagamento já foi confirmado.");
       return;
     }
 
@@ -257,12 +277,62 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       requestData.signatures || {};
 
     // Verifica se o usuário já assinou (toggle de assinatura)
-    const userSignatureSlot = getUserSignatureSlot(signatures, userId);
-    if (userSignatureSlot !== undefined) {
+    if (hasUserSigned(signatures, userId)) {
       // Remove assinatura
-      delete signatures[userSignatureSlot];
+      delete signatures[userId];
       await updatePaymentRequest(requestId, { signatures });
       await ctx.answerCbQuery("Sua assinatura foi removida.");
+      
+      // Atualiza a interface após remover assinatura
+      if (requestData.group_message_id) {
+        try {
+          const financeGroupId = await getWorkgroupId("Financeiro");
+          const coordinators = await getCoordinators();
+          const coordinatorButtons = buildCoordinatorButtons(
+            coordinators,
+            signatures,
+            requestId
+          );
+          const viewSpreadsheetButton = Markup.button.url(
+            "📊 Ver Planilha",
+            `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+          );
+          const cancelButton = Markup.button.callback(
+            "❌ CANCELAR",
+            `cancel_payment_${requestData.id}`
+          );
+
+          const keyboard = Markup.inlineKeyboard([
+            coordinatorButtons,
+            [viewSpreadsheetButton, cancelButton],
+          ]);
+
+          const baseText = excerptFromRequest(
+            requestData,
+            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+          );
+          const signedByText = buildSignedByText(signatures);
+          const messageText = `${baseText}
+
+---
+Assinaturas:
+${signedByText}`;
+          
+          await ctx.telegram.editMessageText(
+            financeGroupId,
+            requestData.group_message_id,
+            undefined,
+            messageText,
+            {
+              ...keyboard,
+              parse_mode: "MarkdownV2"
+            }
+          );
+        } catch (error: any) {
+          console.error("Erro ao atualizar mensagem após remoção:", error);
+        }
+      }
+      return;
     } else {
       // Se já houver duas assinaturas, não permite nova assinatura
       if (hasTwoSignatures(signatures)) {
@@ -271,10 +341,10 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         );
         return;
       }
-      
+
       // Mostra loading imediatamente
       await ctx.answerCbQuery("⏳ Processando assinatura...");
-      
+
       // Atualiza botão para mostrar loading
       try {
         const coordinators = await getCoordinators();
@@ -283,12 +353,15 @@ export async function confirmPayment(ctx: Context): Promise<void> {
           const hasSigned = Object.values(signatures).some(
             (sig) => sig.id === coordinator.telegram_user.id
           );
-          const buttonText = isCurrentUser ? "⏳ Processando..." : 
-            `${hasSigned ? "✅ " : ""}${coordinator.telegram_user.first_name}`;
+          const buttonText = isCurrentUser
+            ? "⏳ Processando..."
+            : `${hasSigned ? "✅ " : ""}${
+                coordinator.telegram_user.first_name
+              }`;
           const callbackData = `confirm_${coordinator.telegram_user.id}_${requestId}`;
           return Markup.button.callback(buttonText, callbackData);
         });
-        
+
         const viewSpreadsheetButton = Markup.button.url(
           "📊 Ver Planilha",
           `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
@@ -297,76 +370,32 @@ export async function confirmPayment(ctx: Context): Promise<void> {
           "❌ CANCELAR",
           `cancel_payment_${requestData.id}`
         );
-        
+
         const loadingKeyboard = Markup.inlineKeyboard([
           loadingButtons,
           [viewSpreadsheetButton, cancelButton],
         ]);
-        
+
         const baseText = excerptFromRequest(
           requestData,
           `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
         );
         const signedByText = buildSignedByText(signatures);
-        const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-        
+        const messageText = `${baseText}
+
+---
+Assinaturas:
+${signedByText}`;
         await ctx.editMessageText(messageText, {
           ...loadingKeyboard,
-          parse_mode: 'MarkdownV2'
+          parse_mode: "MarkdownV2",
         });
       } catch (error: any) {
         console.error("Erro ao mostrar loading:", error);
       }
-      
-      // Mostra loading imediatamente
-      await ctx.answerCbQuery("⏳ Processando assinatura...");
-      
-      // Atualiza botão para mostrar loading
-      try {
-        const coordinators = await getCoordinators();
-        const loadingButtons = coordinators.map((coordinator) => {
-          const isCurrentUser = coordinator.telegram_user.id === userId;
-          const hasSigned = Object.values(signatures).some(
-            (sig) => sig.id === coordinator.telegram_user.id
-          );
-          const buttonText = isCurrentUser ? "⏳ Processando..." : 
-            `${hasSigned ? "✅ " : ""}${coordinator.telegram_user.first_name}`;
-          const callbackData = `confirm_${coordinator.telegram_user.id}_${requestId}`;
-          return Markup.button.callback(buttonText, callbackData);
-        });
-        
-        const viewSpreadsheetButton = Markup.button.url(
-          "📊 Ver Planilha",
-          `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-        );
-        const cancelButton = Markup.button.callback(
-          "❌ CANCELAR",
-          `cancel_payment_${requestData.id}`
-        );
-        
-        const loadingKeyboard = Markup.inlineKeyboard([
-          loadingButtons,
-          [viewSpreadsheetButton, cancelButton],
-        ]);
-        
-        const baseText = excerptFromRequest(
-          requestData,
-          `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-        );
-        const signedByText = buildSignedByText(signatures);
-        const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-        
-        await ctx.editMessageText(messageText, {
-          ...loadingKeyboard,
-          parse_mode: 'MarkdownV2'
-        });
-      } catch (error: any) {
-        console.error("Erro ao mostrar loading:", error);
-      }
-      
-      // Define o novo slot: 1 se nenhum existe, ou 2 se já há uma assinatura
-      const newSlot = Object.keys(signatures).length === 0 ? 1 : 2;
-      signatures[newSlot] = ctx.from as TelegramUserInfo;
+
+      // Adiciona a assinatura usando o ID do usuário como chave
+      signatures[userId] = ctx.from as TelegramUserInfo;
 
       // Apaga a mensagem privada do coordenador que acabou de assinar
       if (
@@ -379,8 +408,13 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             requestData.coordinator_messages[userId]
           );
         } catch (err: any) {
-          if (err.description && err.description.includes("message to delete not found")) {
-            console.log(`Mensagem do coordenador já foi apagada ou não existe mais.`);
+          if (
+            err.description &&
+            err.description.includes("message to delete not found")
+          ) {
+            console.log(
+              `Mensagem do coordenador já foi apagada ou não existe mais.`
+            );
           } else {
             console.error(
               `Erro ao apagar mensagem do coordenador que assinou.`,
@@ -392,7 +426,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
 
       await updatePaymentRequest(requestId, { signatures });
 
-      if (newSlot === 2) {
+      if (Object.keys(signatures).length === 2) {
         // Imediatamente desabilita os botões para evitar cliques duplos
         if (requestData.group_message_id) {
           try {
@@ -401,8 +435,10 @@ export async function confirmPayment(ctx: Context): Promise<void> {
               requestData,
               `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
             );
-            const processingText = `${baseText}\n\n⏳ Processando pagamento...`;
+            const processingText = `${baseText}
             
+⏳ Processando pagamento...`;
+
             await ctx.telegram.editMessageText(
               financeGroupId,
               requestData.group_message_id,
@@ -455,8 +491,11 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
           );
           const signedByText = buildSignedByText(signatures);
-          const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
+          const messageText = `${baseText}
 
+---
+Assinaturas:
+${signedByText}`;
           await ctx.telegram.editMessageText(
             financeGroupId,
             requestData.group_message_id,
@@ -465,10 +504,18 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             keyboard
           );
         } catch (error: any) {
-          if (error.description && error.description.includes("message is not modified")) {
+          if (
+            error.description &&
+            error.description.includes("message is not modified")
+          ) {
             console.log("Mensagem do grupo não modificada, conteúdo idêntico.");
-          } else if (error.description && error.description.includes("message to edit not found")) {
-            console.log("Mensagem do grupo não encontrada, pode ter sido apagada.");
+          } else if (
+            error.description &&
+            error.description.includes("message to edit not found")
+          ) {
+            console.log(
+              "Mensagem do grupo não encontrada, pode ter sido apagada."
+            );
           } else {
             console.error("Erro ao atualizar mensagem no grupo:", error);
           }
@@ -476,121 +523,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       }
     }
 
-    // Só atualiza a interface atual se não houver 2 assinaturas e estivermos no grupo
-    if (Object.keys(signatures).length < 2 && ctx.chat?.type !== 'private') {
-      // Monta a interface atualizada mantendo o trecho original da solicitação
-      const coordinators: AmecicloUser[] = await getCoordinators();
-      const coordinatorButtons = buildCoordinatorButtons(
-        coordinators,
-        signatures,
-        requestId
-      );
-
-      // Botões extras: visualização da planilha e opção de cancelar a solicitação
-      const viewSpreadsheetButton = Markup.button.url(
-        "📊 Ver Planilha",
-        `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-      );
-      const cancelButton = Markup.button.callback(
-        "❌ CANCELAR",
-        // Inclui o request id no callback para que o handler de cancelamento possa usá-lo
-        `cancel_payment_${requestData.id}`
-      );
-
-      const keyboard = Markup.inlineKeyboard([
-        coordinatorButtons,
-        [viewSpreadsheetButton, cancelButton],
-      ]);
-
-      const baseText = excerptFromRequest(
-        requestData,
-        `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-      );
-      const signedByText = buildSignedByText(signatures);
-      const messageText = `${baseText}\n\n---\nAssinaturas:\n${signedByText}`;
-
-      try {
-        await ctx.editMessageText(messageText, {
-          ...keyboard,
-          parse_mode: 'MarkdownV2'
-        });
-      } catch (error: any) {
-        // Ignora o erro se a mensagem for idêntica ou não existir mais
-        if (error.description && error.description.includes("message is not modified")) {
-          console.log("Mensagem não modificada, conteúdo idêntico.");
-        } else if (error.description && error.description.includes("message to edit not found")) {
-          console.log("Mensagem não encontrada, pode ter sido apagada.");
-        } else {
-          throw error;
-        }
-      }
-
-      // Atualiza ou apaga as mensagens enviadas aos coordenadores
-      if (requestData.coordinator_messages) {
-        for (const coordinator of coordinators) {
-          const coordId = coordinator.telegram_user.id;
-          const messageId = requestData.coordinator_messages[coordId];
-
-          if (!messageId) continue;
-
-          // Verifica se o coordenador já assinou
-          const hasSigned = Object.values(signatures).some(
-            (sig) => sig.id === coordId
-          );
-
-          try {
-            if (hasSigned) {
-              // Se já assinou, apaga a mensagem do privado
-              try {
-                await ctx.telegram.deleteMessage(coordId, messageId);
-              } catch (error: any) {
-                // Ignora o erro específico de mensagem não encontrada
-                if (error.description && error.description.includes("message to delete not found")) {
-                  console.log(`Mensagem do coordenador ${coordId} já foi apagada ou não existe mais.`);
-                } else {
-                  console.error(`Erro ao apagar mensagem do coordenador ${coordId}:`, error);
-                }
-              }
-            } else {
-              // Se não assinou, atualiza a mensagem com botão
-              const updatedMessage = `Assina lá!\n💰${requestData.transactionType}\n💵${requestData.value}\n🗂${requestData.project.name}`;
-
-              // Cria o botão de confirmação para o coordenador
-              const confirmButton = Markup.button.callback(
-                "✅ Assinar",
-                `confirm_${coordId}_${requestId}`
-              );
-
-              const keyboard = Markup.inlineKeyboard([[confirmButton]]);
-
-              try {
-                await ctx.telegram.editMessageText(
-                  coordId,
-                  messageId,
-                  undefined,
-                  updatedMessage,
-                  keyboard
-                );
-              } catch (error: any) {
-                // Ignora o erro se a mensagem for idêntica ou não existir mais
-                if (error.description && error.description.includes("message is not modified")) {
-                  console.log(`Mensagem para coordenador ${coordId} não modificada, conteúdo idêntico.`);
-                } else if (error.description && error.description.includes("message to edit not found")) {
-                  console.log(`Mensagem para coordenador ${coordId} não encontrada, pode ter sido apagada.`);
-                } else {
-                  throw error;
-                }
-              }
-            }
-          } catch (err) {
-            console.error(
-              `Erro ao processar mensagem para coordenador (ID: ${coordId}):`,
-              err
-            );
-          }
-        }
-      }
-    }
+    // A atualização da interface já foi feita acima no bloco de loading/atualização do grupo financeiro
   } catch (error) {
     console.error("Erro ao confirmar pagamento:", error);
     await ctx.reply(

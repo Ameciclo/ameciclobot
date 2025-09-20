@@ -105,6 +105,9 @@ export interface PaymentRequest {
   invoice_url: string;
   project: ProjectInfo;
   supplier: Supplier;
+  unitName?: string;
+  unitValue?: number;
+  quantity?: number;
   value: string;
   status?: string;
   signatures?: { [key: number]: TelegramUserInfo };

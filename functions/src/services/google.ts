@@ -509,6 +509,9 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   if (request.transactionType === "Registrar Caixa Físico") {
     comments += `CAIXA FÍSICO ${request.project.account}\n`;
   }
+  if (request.transactionType === "Registrar Caixa Digital") {
+    comments += `CAIXA DIGITAL ${request.project.account}\n`;
+  }
   if (
     request.isRefund &&
     request.refundSupplier &&
@@ -522,9 +525,9 @@ export async function updateSpreadsheet(request: PaymentRequest) {
     "",
     request.supplier.name,
     request.description,
-    "1",
-    "unidade",
-    request.value,
+    request.quantity || "1",
+    request.unitName || "unidade",
+    request.unitValue || request.value,
     request.value,
     "⚠️PREENCHER",
     `📂 ID da Solicitação: ${request.id}`,

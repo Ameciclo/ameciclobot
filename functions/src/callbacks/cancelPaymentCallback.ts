@@ -53,8 +53,16 @@ export function registerCancelPaymentCallback(bot: Telegraf) {
         "❌❌❌ Solicitação CANCELADA. ❌❌❌"
       );
 
-      await ctx.editMessageText(messageText);
-      console.log(`Pagamento ${requestId} cancelado com sucesso.`);
+      try {
+        await ctx.editMessageText(messageText);
+        console.log(`Pagamento ${requestId} cancelado com sucesso.`);
+      } catch (error: any) {
+        if (error.description && error.description.includes("message to edit not found")) {
+          console.log("Mensagem já foi removida, cancelamento processado.");
+        } else {
+          throw error;
+        }
+      }
     } catch (err) {
       console.error("Erro ao processar cancelamento de pagamento:", err);
       await ctx.reply(

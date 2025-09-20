@@ -30,39 +30,43 @@ export function excerptFromRequest(
   title?: string | undefined
 ): string {
   const paymentMethod = request.supplier.payment_methods[0];
-  let supplierText = `Pagar com ${paymentMethod.type} ➡️ ${paymentMethod.value}\n\n`;
+  // Remove aspas duplas do valor se existirem
+  const cleanValue = paymentMethod.value.toString().replace(/"/g, '');
+  
+  let supplierText = `Pagar com ${escapeMarkdownV2(paymentMethod.type)} ➡️ ${escapeMarkdownV2(cleanValue)}\n\n`;
   
   // Se for PIX, adiciona a chave em formato clicável
   if (paymentMethod.type.toLowerCase() === 'pix') {
-    supplierText = `Pagar com ${paymentMethod.type} ➡️ \`${paymentMethod.value}\`\n\n`;
+    supplierText = `Pagar com ${escapeMarkdownV2(paymentMethod.type)} ➡️ \`${escapeMarkdownV2(cleanValue)}\`\n\n`;
   }
   if (
     request.isRefund &&
     request.refundSupplier &&
     typeof request.refundSupplier !== "string"
   ) {
+    const refundCleanValue = request.refundSupplier.payment_methods[0].value.toString().replace(/"/g, '');
     supplierText =
-      `Devolução para: ${request.refundSupplier.nickname} (${request.refundSupplier.name})\n` +
-      `${request.refundSupplier.payment_methods[0].type} ️ ${request.refundSupplier.payment_methods[0].value}\n\n`;
+      `Devolução para: ${escapeMarkdownV2(request.refundSupplier.nickname)} ${escapeMarkdownV2('(' + request.refundSupplier.name + ')')}\n` +
+      `${escapeMarkdownV2(request.refundSupplier.payment_methods[0].type)} ️ ${escapeMarkdownV2(refundCleanValue)}\n\n`;
   }
   return (
-    `${title ? title.trim() : "💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰"} \n\n` +
-    `👉 Solicitado por:  ${request.from.first_name}\n` +
-    `📂 ID da Solicitação: ${request.id}\n\n` +
-    `🗂 Projeto: ${request.project.name}\n` +
-    `📂 Item Orçamentário: ${request.budgetItem}\n` +
-    `🗒 Descrição: ${request.description}\n\n` +
-    `📈 Conta saída: ${request.project.account}\n\n` +
+    `${title ? escapeMarkdownV2(title.trim()) : "💰💰💰 SOLICITAÇÃO DE PAGAMENTO 💰💰💰"} \n\n` +
+    `👉 Solicitado por:  ${escapeMarkdownV2(request.from.first_name)}\n` +
+    `🆔 ID da Solicitação: \`${escapeMarkdownV2(request.id)}\`\n\n` +
+    `🗂 Projeto: ${escapeMarkdownV2(request.project.name)}\n` +
+    `📂 Item Orçamentário: ${escapeMarkdownV2(request.budgetItem)}\n` +
+    `🗒 Descrição: ${escapeMarkdownV2(request.description)}\n\n` +
+    `📈 Conta saída: ${escapeMarkdownV2(request.project.account)}\n\n` +
     `📉 FORNECEDOR\n` +
-    `Empresa: ${request.supplier.nickname} (${request.supplier.name})\n` +
+    `Empresa: ${escapeMarkdownV2(request.supplier.nickname)} ${escapeMarkdownV2('(' + request.supplier.name + ')')}\n` +
     `${supplierText}` +
-    `💵 Valor: ${request.value}`
+    `💵 Valor: ${escapeMarkdownV2(request.value)}`
   );
 }
 
 export function escapeMarkdownV2(text: string): string {
   if (!text) return '';
-  return text.toString().replace(/([_\*\[\]\(\)~`>#+\-=|{}\\.!])/g, "\\$1");
+  return text.toString().replace(/([_*\[\]()~`>#+=|{}.!-])/g, "\\$1");
 }
 
 export function escapeMarkdown(text: string): string {
