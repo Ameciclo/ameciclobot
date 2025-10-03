@@ -67,7 +67,10 @@ export async function sendPaymentRequestHandler(
     const result = await bot.telegram.sendMessage(
       groupChatId,
       messageToGroup,
-      confirmationMarkup
+      {
+        parse_mode: 'MarkdownV2',
+        ...confirmationMarkup
+      }
     );
 
     await updatePaymentRequestGroupMessage(request, result.message_id);

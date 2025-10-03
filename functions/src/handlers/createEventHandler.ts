@@ -6,7 +6,7 @@ import { updateCalendarEventData } from "../services/firebase";
 import {
   buildEventButtons,
   buildEventMessage,
-} from "../messages/eventMessages";
+} from "../utils/eventMessages";
 
 export async function sendEventMessage(
   bot: Telegraf,
@@ -24,13 +24,13 @@ export async function sendEventMessage(
     // Envia a mensagem para a conversa privada do usuário
     await bot.telegram.sendMessage(from.id, message, {
       parse_mode: "MarkdownV2",
-    });
+    } as any);
 
     // Envia a mensagem para o grupo de trabalho com o inline keyboard
     const groupMessage = await bot.telegram.sendMessage(workgroup, message, {
       parse_mode: "MarkdownV2",
       reply_markup: inlineKeyboard.reply_markup,
-    });
+    } as any);
 
     // Atualiza no Firebase o ID da mensagem enviada para o grupo
     await updateCalendarEventData(id, {

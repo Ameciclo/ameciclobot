@@ -1,10 +1,11 @@
 // src/commands/versao.ts
 import { Context, Telegraf } from "telegraf";
 import { BOT_VERSION } from "../config/version";
+import { escapeMarkdownV2 } from "../utils/utils";
 
 function registerVersaoCommand(bot: Telegraf) {
   bot.command("versao", async (ctx: Context) => {
-    await ctx.reply(`🤖 Ameciclo Bot\nVersão atual: ${BOT_VERSION}`);
+    await ctx.reply(`🤖 Ameciclo Bot\nVersão atual: ${escapeMarkdownV2(BOT_VERSION)}`, { parse_mode: "MarkdownV2" });
   });
 }
 

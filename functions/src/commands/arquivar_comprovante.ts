@@ -71,6 +71,14 @@ export async function registerArquivarComprovanteCommand(bot: Telegraf) {
         return;
       }
 
+      // Verifica se o pagamento está confirmado
+      if (requestData.status !== "confirmed") {
+        await ctx.reply(
+          `❌ O pagamento ainda não foi confirmado. Aguarde a aprovação dos coordenadores antes de enviar o comprovante.`
+        );
+        return;
+      }
+
       // Verifica se o projeto tem um folderId configurado
       const folderId = requestData.project.folder_id;
       if (!folderId) {

@@ -1,5 +1,9 @@
 import { Context, Telegraf } from "telegraf";
 import { saveProtocolRecord } from "../services/firebase";
+import { checkPedidosInformacao } from "../scheduler/checkPedidosInformacao";
+
+// Controle de execução simultânea
+let verificacaoEmAndamento = false;
 
 // Helper functions for command metadata
 export function getName() {
@@ -7,7 +11,7 @@ export function getName() {
 }
 
 export function getHelp() {
-  return "Use o comando `/pedido\\_de\\_informacao` seguido do protocolo e senha, ou responda a uma mensagem contendo esses dados\\.\nFormato:\n`/pedido_de_informacao \\[protocolo\\] \\[senha\\]`\nOu responda a uma mensagem com o texto padrão de solicitação\\.";
+  return "Use o comando `/pedido\\_de\\_informacao` seguido do protocolo e senha, ou responda a uma mensagem contendo esses dados\\.\nFormato:\n`/pedido_de_informacao \\[protocolo\\] \\[senha\\]`\nOu responda a uma mensagem com o texto padrão de solicitação\\.\n\n🔍 **Verificação:**\n`/pedido_de_informacao verificar` - Verifica todos os pedidos\n`/pedido_de_informacao verificar \\[protocolo\\]` - Verifica protocolo específico";
 }
 
 export function getDescription() {
@@ -31,6 +35,55 @@ export function register(bot: Telegraf) {
           .replace("/pedido_de_informacao", "")
           .trim()
           .split(/\s+/);
+
+        // Check if user wants to verify
+        if (args[0] === "verificar") {
+          if (args[1]) {
+            // Verificar protocolo específico
+            await ctx.reply(`🔍 Verificando protocolo ${args[1]}...`);
+            try {
+              const { verificarProtocoloEspecifico } = require("../scheduler/checkPedidosInformacao");
+              const resultado = await verificarProtocoloEspecifico(args[1], bot);
+              if (resultado.error) {
+                return ctx.reply(`❌ Erro: ${resultado.error}`);
+              }
+              
+              let message = `✅ Protocolo ${args[1]} verificado e atualizado!`;
+              
+              if (resultado.ultimaAtualizacao) {
+                message += `\n\n📅 **Última atualização:** ${resultado.ultimaAtualizacao.situacao}\n`;
+                message += `📆 **Data:** ${resultado.ultimaAtualizacao.data}\n`;
+                if (resultado.ultimaAtualizacao.resposta) {
+                  const resposta = resultado.ultimaAtualizacao.resposta.substring(0, 200);
+                  message += `💬 **Resposta:** ${resposta}${resultado.ultimaAtualizacao.resposta.length > 200 ? '...' : ''}`;
+                }
+              }
+              
+              return ctx.reply(message);
+            } catch (error) {
+              console.error("Erro ao verificar protocolo:", error);
+              return ctx.reply("❌ Erro ao verificar protocolo.");
+            }
+          } else {
+            // Verificar todos
+            if (verificacaoEmAndamento) {
+              return ctx.reply("⏳ Já existe uma verificação em andamento. Aguarde...");
+            }
+            
+            verificacaoEmAndamento = true;
+            await ctx.reply("🔍 Verificando todos os pedidos...");
+            
+            try {
+              await checkPedidosInformacao(bot);
+              return ctx.reply("✅ Verificação concluída!");
+            } catch (error) {
+              console.error("Erro ao verificar pedidos:", error);
+              return ctx.reply("❌ Erro ao verificar pedidos de informação.");
+            } finally {
+              verificacaoEmAndamento = false;
+            }
+          }
+        }
 
         // Try direct arguments first
         if (args.length >= 2) {

@@ -13,8 +13,7 @@ import { informeCommand } from "./commands/informe";
 import { modeloCommand } from "./commands/modelo";
 import { pedidoDeInformacaoCommand } from "./commands/pedido_de_informacao";
 import { planilhaCommand } from "./commands/planilha";
-import { processarExtratosCcCommand } from "./commands/processar_extrato_cc";
-import { processarExtratoFiCommand } from "./commands/processar_extrato_fi";
+import { processarExtratoCommand } from "./commands/processar_extrato";
 import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { transcreverCommand } from "./commands/transcrever";
 import { quem_sou_euCommand } from "./commands/quem_sou_eu";
@@ -22,18 +21,26 @@ import { arquivarComprovanteCommand } from "./commands/arquivar_comprovante";
 import { arquivarExtratoPdfCommand } from "./commands/arquivar_extrato_pdf";
 import { versaoCommand } from "./commands/versao";
 import { unirPdfsCommand } from "./commands/unir_pdfs";
+import { qrcodeCommand } from "./commands/qrcode";
+import { enqueteCommand } from "./commands/enquete";
+import { resumoCommand } from "./commands/resumo";
+import { complementarEventoCommand } from "./commands/complementar_evento";
+import { atribuirEventoCommand } from "./commands/atribuirEvento";
 
 export const commandsList = [
   arquivarComprovanteCommand,
   arquivarExtratoPdfCommand,
   apresentacaoCommand,
+  atribuirEventoCommand,
   atualizarPendenciasCommand,
   atualizarProjetosCommand,
   clippingCommand,
   comunicacaoCommand,
+  complementarEventoCommand,
   demandaCommand,
   documentoCommand,
   encaminhamentoCommand,
+  enqueteCommand,
   eventoCommand,
   formularioCommand,
   informeCommand,
@@ -41,9 +48,10 @@ export const commandsList = [
   pautaCommand,
   pedidoDeInformacaoCommand,
   planilhaCommand,
-  processarExtratosCcCommand,
-  processarExtratoFiCommand,
+  processarExtratoCommand,
+  qrcodeCommand,
   registrarPlanilhaCommand,
+  resumoCommand,
   transcreverCommand,
   quem_sou_euCommand,
   unirPdfsCommand,
