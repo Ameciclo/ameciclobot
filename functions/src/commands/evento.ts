@@ -38,10 +38,10 @@ function registerEventoCommand(bot: Telegraf) {
         return;
       }
 
-      // Ajusta a data atual para o fuso horário GMT‑3 (acrescentando 3 horas)
-      const nowLocal = new Date(new Date().getTime() + 3 * 60 * 60 * 1000);
+      // Obtém a data atual no fuso horário local (GMT-3)
+      const nowLocal = new Date();
       console.log(
-        "[evento] Data atual ajustada para GMT-3:",
+        "[evento] Data atual:",
         nowLocal.toISOString()
       );
       const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
@@ -87,19 +87,10 @@ Texto:
         return;
       }
 
-      // Ajusta as datas para GMT‑3, somando 3 horas
-      if (eventObject.startDate) {
-        const start = new Date(eventObject.startDate);
-        start.setHours(start.getHours() + 3);
-        eventObject.startDate = start.toISOString();
-        console.log("[evento] startDate ajustada:", eventObject.startDate);
-      }
-      if (eventObject.endDate) {
-        const end = new Date(eventObject.endDate);
-        end.setHours(end.getHours() + 3);
-        eventObject.endDate = end.toISOString();
-        console.log("[evento] endDate ajustada:", eventObject.endDate);
-      }
+      // As datas já vêm no formato correto do Azure, não precisa ajustar
+      console.log("[evento] Datas mantidas como retornadas pelo Azure:");
+      console.log("[evento] startDate:", eventObject.startDate);
+      console.log("[evento] endDate:", eventObject.endDate);
 
       eventObject.from = ctx.from;
       eventObject.workgroup = ctx.chat.id;
