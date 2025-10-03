@@ -20,6 +20,7 @@ import { registerEventParticipationCallback } from "./callbacks/confirmEventPart
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
+import { registerAssignWorkgroupCallback } from "./callbacks/assignWorkgroup";
 import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -35,7 +36,6 @@ import { pagamentoCommand } from "./commands/pagamento";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
 import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
 import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
-import { registerAssignWorkgroupCallbacks } from "./callbacks/assignWorkgroup";
 
 const validCommands = commandsList;
 validCommands.forEach((cmd) => {
@@ -70,10 +70,11 @@ registerCancelPaymentCallback(bot);
 registerConfirmPaymentCallback(bot);
 registerEventCallback(bot);
 registerReceiptTypeCallback(bot);
+registerAssignWorkgroupCallback(bot);
 registerInformationRequestCallback(bot);
 registerFolderChooserCallback(bot);
 registerPendenciasCallbacks(bot);
-registerAssignWorkgroupCallbacks(bot);
+registerAssignWorkgroupCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database - v4
 export const sendPaymentRequest = onValueCreated(
