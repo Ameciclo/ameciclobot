@@ -14,9 +14,14 @@ import {
   updateFinanceProject,
 } from "../services/firebase";
 
-export async function processProjectsByStatus(ctx: Context, projectStatus: string) {
+export async function processProjectsByStatus(
+  ctx: Context,
+  projectStatus: string
+) {
   try {
-    console.log(`[atualizar_pendencias] Processando projetos com status: ${projectStatus}`);
+    console.log(
+      `[atualizar_pendencias] Processando projetos com status: ${projectStatus}`
+    );
 
     // Restrição: somente no grupo Financeiro
     const currentChatId = ctx.chat?.id?.toString();
@@ -89,7 +94,11 @@ export async function processProjectsByStatus(ctx: Context, projectStatus: strin
     // 4. Define a data de hoje (formato YYYY-MM-DD)
     const date = new Date();
     const hoje =
-      date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
+      date.getFullYear() +
+      "-" +
+      (date.getMonth() + 1).toString().padStart(2, "0") +
+      "-" +
+      date.getDate().toString().padStart(2, "0");
 
     // 5. Filtra os projetos que precisam ser verificados hoje:
     //    se lastVerificationDate não for hoje ou se o status já estiver como "Acesso não concedido"
@@ -172,7 +181,9 @@ export async function processProjectsByStatus(ctx: Context, projectStatus: strin
     }
 
     console.log("[atualizar_pendencias] Comando concluído com sucesso.");
-    await ctx.replyWithMarkdown(resposta, { link_preview_options: { is_disabled: true } });
+    await ctx.replyWithMarkdown(resposta, {
+      link_preview_options: { is_disabled: true },
+    });
     return; // Garante retorno para evitar warning de paths
   } catch (error) {
     console.error("[atualizar_pendencias] Erro geral:", error);
@@ -191,25 +202,27 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
       (group: any) => group.label === projectsSpreadsheet.workgroup
     );
     if (!financeiroGroup || currentChatId !== financeiroGroup.value) {
-      await ctx.reply("Este comando só pode ser executado no grupo Financeiro.");
+      await ctx.reply(
+        "Este comando só pode ser executado no grupo Financeiro."
+      );
       return;
     }
 
     // Busca projetos em andamento
     const summaryData = await getSummaryData(projectsSpreadsheet.id);
     const headers = projectsSpreadsheet.headers;
-    
+
     const projetosEmAndamento = [];
     for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
       const row = summaryData[rowIndex];
       const nomeProjeto = row[headers.name.col];
       const statusProjeto = row[headers.status.col];
       const linkPlanilha = row[headers.id.col];
-      
+
       if (statusProjeto === "Em andamento" && nomeProjeto && linkPlanilha) {
         projetosEmAndamento.push({
           name: nomeProjeto,
-          id: getIdFromUrl(linkPlanilha)
+          id: getIdFromUrl(linkPlanilha),
         });
       }
     }
@@ -221,18 +234,29 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
 
     // Cria botões para cada projeto (texto completo, callback_data otimizado)
     const keyboard = {
-      inline_keyboard: projetosEmAndamento.slice(0, 10).map(projeto => {
-        return [{ text: projeto.name, callback_data: `pendencias_proj_${projeto.id}` }];
-      })
+      inline_keyboard: projetosEmAndamento.slice(0, 10).map((projeto) => {
+        return [
+          {
+            text: projeto.name,
+            callback_data: `pendencias_proj_${projeto.id}`,
+          },
+        ];
+      }),
     };
-    
-    keyboard.inline_keyboard.push([{ text: "❌ Cancelar", callback_data: "pendencias_cancel" }]);
+
+    keyboard.inline_keyboard.push([
+      { text: "❌ Cancelar", callback_data: "pendencias_cancel" },
+    ]);
 
     // Verifica se é chamada de callback (tem editMessageText) ou comando direto
     if (ctx.callbackQuery) {
       await ctx.editMessageText(
         `📄 **Projetos Em Andamento** (${projetosEmAndamento.length}):\n\nSelecione um projeto para verificar pendências:`,
-        { reply_markup: keyboard, parse_mode: 'Markdown', link_preview_options: { is_disabled: true } }
+        {
+          reply_markup: keyboard,
+          parse_mode: "Markdown",
+          link_preview_options: { is_disabled: true },
+        }
       );
     } else {
       await ctx.replyWithMarkdown(
@@ -246,14 +270,19 @@ export async function listProjectsInProgress(ctx: Context): Promise<void> {
   }
 }
 
-export async function processProjectById(ctx: Context, projectId: string): Promise<void> {
+export async function processProjectById(
+  ctx: Context,
+  projectId: string
+): Promise<void> {
   try {
-    console.log(`[atualizar_pendencias] Processando projeto pelo ID: ${projectId}`);
+    console.log(
+      `[atualizar_pendencias] Processando projeto pelo ID: ${projectId}`
+    );
 
     // Busca o projeto na planilha RESUMO pelo ID
     const summaryData = await getSummaryData(projectsSpreadsheet.id);
     const headers = projectsSpreadsheet.headers;
-    
+
     let projetoEncontrado = null;
     for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
       const row = summaryData[rowIndex];
@@ -263,32 +292,41 @@ export async function processProjectById(ctx: Context, projectId: string): Promi
           id: projectId,
           name: row[headers.name.col],
           spreadsheetLink: linkPlanilha,
-          projectStatus: row[headers.status.col]
+          projectStatus: row[headers.status.col],
         };
         break;
       }
     }
 
     if (!projetoEncontrado) {
-      await ctx.editMessageText(`Projeto com ID "${projectId}" não encontrado.`);
+      await ctx.editMessageText(
+        `Projeto com ID "${projectId}" não encontrado.`
+      );
       return;
     }
 
     // Verifica as pendências do projeto específico
     try {
-      const pendenciasResult = await getProjectDetailsPendencias(projetoEncontrado.id);
-      
+      const pendenciasResult = await getProjectDetailsPendencias(
+        projetoEncontrado.id
+      );
+
       // Atualiza no Firebase
       const date = new Date();
-      const hoje = date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
-      
+      const hoje =
+        date.getFullYear() +
+        "-" +
+        (date.getMonth() + 1).toString().padStart(2, "0") +
+        "-" +
+        date.getDate().toString().padStart(2, "0");
+
       await updateFinanceProject(projetoEncontrado.id, {
         pendencias: pendenciasResult.count,
         status: "OK",
         lastVerificationDate: hoje,
       });
 
-      const dataExecucao = new Date().toLocaleDateString('pt-BR');
+      const dataExecucao = new Date().toLocaleDateString("pt-BR");
       let resposta = `Projeto [${projetoEncontrado.name}](${projetoEncontrado.spreadsheetLink}):\n`;
       if (pendenciasResult.count === 0) {
         resposta += `✅ Nenhuma pendência encontrada até ${dataExecucao}.`;
@@ -297,49 +335,71 @@ export async function processProjectById(ctx: Context, projectId: string): Promi
         const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
         const itemsToShow = pendenciasResult.details.slice(0, maxItems);
         itemsToShow.forEach((item, index) => {
-          resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
+          resposta += `${index + 1}. **${item.fornecedor}** - ${
+            item.descricao
+          } - R$ ${item.valor}\n`;
         });
         if (pendenciasResult.count > maxItems) {
-          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+          resposta += `\n... e mais ${
+            pendenciasResult.count - maxItems
+          } pendência(s).`;
         }
       }
-      
-      await ctx.editMessageText(resposta, { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } });
+
+      await ctx.editMessageText(resposta, {
+        parse_mode: "Markdown",
+        link_preview_options: { is_disabled: true },
+      });
     } catch (err: any) {
       if (err.response && err.response.status === 403) {
-        await ctx.editMessageText(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
+        await ctx.editMessageText(
+          `Projeto "${projetoEncontrado.name}": Acesso não concedido.`
+        );
       } else {
         console.error("Erro ao verificar projeto:", err);
-        await ctx.editMessageText(`Erro ao verificar projeto "${projetoEncontrado.name}".`);
+        await ctx.editMessageText(
+          `Erro ao verificar projeto "${projetoEncontrado.name}".`
+        );
       }
     }
   } catch (error) {
-    console.error("[atualizar_pendencias] Erro ao processar projeto pelo ID:", error);
+    console.error(
+      "[atualizar_pendencias] Erro ao processar projeto pelo ID:",
+      error
+    );
     await ctx.editMessageText("Erro ao processar projeto.");
   }
 }
 
-export async function processProjectFromCallback(ctx: Context, projectName: string): Promise<void> {
+export async function processProjectFromCallback(
+  ctx: Context,
+  projectName: string
+): Promise<void> {
   try {
-    console.log(`[atualizar_pendencias] Buscando projeto específico via callback: ${projectName}`);
+    console.log(
+      `[atualizar_pendencias] Buscando projeto específico via callback: ${projectName}`
+    );
 
     // Busca o projeto na planilha RESUMO
     const summaryData = await getSummaryData(projectsSpreadsheet.id);
     const headers = projectsSpreadsheet.headers;
-    
+
     let projetoEncontrado = null;
     for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
       const row = summaryData[rowIndex];
       const nomeProjeto = row[headers.name.col];
-      if (nomeProjeto && (nomeProjeto.toLowerCase().includes(projectName.toLowerCase()) || 
-          projectName.toLowerCase().includes(nomeProjeto.toLowerCase()))) {
+      if (
+        nomeProjeto &&
+        (nomeProjeto.toLowerCase().includes(projectName.toLowerCase()) ||
+          projectName.toLowerCase().includes(nomeProjeto.toLowerCase()))
+      ) {
         const linkPlanilha = row[headers.id.col];
         if (linkPlanilha) {
           projetoEncontrado = {
             id: getIdFromUrl(linkPlanilha),
             name: nomeProjeto,
             spreadsheetLink: linkPlanilha,
-            projectStatus: row[headers.status.col]
+            projectStatus: row[headers.status.col],
           };
           break;
         }
@@ -353,12 +413,19 @@ export async function processProjectFromCallback(ctx: Context, projectName: stri
 
     // Verifica as pendências do projeto específico
     try {
-      const pendenciasResult = await getProjectDetailsPendencias(projetoEncontrado.id);
-      
+      const pendenciasResult = await getProjectDetailsPendencias(
+        projetoEncontrado.id
+      );
+
       // Atualiza no Firebase
       const date = new Date();
-      const hoje = date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
-      
+      const hoje =
+        date.getFullYear() +
+        "-" +
+        (date.getMonth() + 1).toString().padStart(2, "0") +
+        "-" +
+        date.getDate().toString().padStart(2, "0");
+
       await updateFinanceProject(projetoEncontrado.id, {
         pendencias: pendenciasResult.count,
         status: "OK",
@@ -373,31 +440,50 @@ export async function processProjectFromCallback(ctx: Context, projectName: stri
         const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
         const itemsToShow = pendenciasResult.details.slice(0, maxItems);
         itemsToShow.forEach((item, index) => {
-          resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
+          resposta += `${index + 1}. **${item.fornecedor}** - ${
+            item.descricao
+          } - R$ ${item.valor}\n`;
         });
         if (pendenciasResult.count > maxItems) {
-          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+          resposta += `\n... e mais ${
+            pendenciasResult.count - maxItems
+          } pendência(s).`;
         }
       }
-      
-      await ctx.editMessageText(resposta, { parse_mode: 'Markdown', link_preview_options: { is_disabled: true } });
+
+      await ctx.editMessageText(resposta, {
+        parse_mode: "Markdown",
+        link_preview_options: { is_disabled: true },
+      });
     } catch (err: any) {
       if (err.response && err.response.status === 403) {
-        await ctx.editMessageText(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
+        await ctx.editMessageText(
+          `Projeto "${projetoEncontrado.name}": Acesso não concedido.`
+        );
       } else {
         console.error("Erro ao verificar projeto:", err);
-        await ctx.editMessageText(`Erro ao verificar projeto "${projetoEncontrado.name}".`);
+        await ctx.editMessageText(
+          `Erro ao verificar projeto "${projetoEncontrado.name}".`
+        );
       }
     }
   } catch (error) {
-    console.error("[atualizar_pendencias] Erro ao processar projeto específico via callback:", error);
+    console.error(
+      "[atualizar_pendencias] Erro ao processar projeto específico via callback:",
+      error
+    );
     await ctx.editMessageText("Erro ao processar projeto específico.");
   }
 }
 
-export async function processSpecificProject(ctx: Context, projectName: string): Promise<void> {
+export async function processSpecificProject(
+  ctx: Context,
+  projectName: string
+): Promise<void> {
   try {
-    console.log(`[atualizar_pendencias] Buscando projeto específico: ${projectName}`);
+    console.log(
+      `[atualizar_pendencias] Buscando projeto específico: ${projectName}`
+    );
 
     // Restrição: somente no grupo Financeiro
     const currentChatId = ctx.chat?.id?.toString();
@@ -405,17 +491,19 @@ export async function processSpecificProject(ctx: Context, projectName: string):
       (group: any) => group.label === projectsSpreadsheet.workgroup
     );
     if (!financeiroGroup || currentChatId !== financeiroGroup.value) {
-      await ctx.reply("Este comando só pode ser executado no grupo Financeiro.");
+      await ctx.reply(
+        "Este comando só pode ser executado no grupo Financeiro."
+      );
       return;
     }
 
     // Busca o projeto na planilha RESUMO
     const summaryData = await getSummaryData(projectsSpreadsheet.id);
     const headers = projectsSpreadsheet.headers;
-    
+
     let projetoEncontrado = null;
     const projectNameLower = projectName.toLowerCase();
-    
+
     // 1. Busca exata primeiro
     for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
       const row = summaryData[rowIndex];
@@ -427,26 +515,29 @@ export async function processSpecificProject(ctx: Context, projectName: string):
             id: getIdFromUrl(linkPlanilha),
             name: nomeProjeto,
             spreadsheetLink: linkPlanilha,
-            projectStatus: row[headers.status.col]
+            projectStatus: row[headers.status.col],
           };
           break;
         }
       }
     }
-    
+
     // 2. Se não encontrou exato, busca parcial
     if (!projetoEncontrado) {
       for (let rowIndex = 1; rowIndex < summaryData.length; rowIndex++) {
         const row = summaryData[rowIndex];
         const nomeProjeto = row[headers.name.col];
-        if (nomeProjeto && nomeProjeto.toLowerCase().includes(projectNameLower)) {
+        if (
+          nomeProjeto &&
+          nomeProjeto.toLowerCase().includes(projectNameLower)
+        ) {
           const linkPlanilha = row[headers.id.col];
           if (linkPlanilha) {
             projetoEncontrado = {
               id: getIdFromUrl(linkPlanilha),
               name: nomeProjeto,
               spreadsheetLink: linkPlanilha,
-              projectStatus: row[headers.status.col]
+              projectStatus: row[headers.status.col],
             };
             break;
           }
@@ -461,19 +552,26 @@ export async function processSpecificProject(ctx: Context, projectName: string):
 
     // Verifica as pendências do projeto específico
     try {
-      const pendenciasResult = await getProjectDetailsPendencias(projetoEncontrado.id);
-      
+      const pendenciasResult = await getProjectDetailsPendencias(
+        projetoEncontrado.id
+      );
+
       // Atualiza no Firebase
       const date = new Date();
-      const hoje = date.getFullYear() + "-" + (date.getMonth() + 1).toString().padStart(2, '0') + "-" + date.getDate().toString().padStart(2, '0');
-      
+      const hoje =
+        date.getFullYear() +
+        "-" +
+        (date.getMonth() + 1).toString().padStart(2, "0") +
+        "-" +
+        date.getDate().toString().padStart(2, "0");
+
       await updateFinanceProject(projetoEncontrado.id, {
         pendencias: pendenciasResult.count,
         status: "OK",
         lastVerificationDate: hoje,
       });
 
-      const dataExecucao = new Date().toLocaleDateString('pt-BR');
+      const dataExecucao = new Date().toLocaleDateString("pt-BR");
       let resposta = `Projeto [${projetoEncontrado.name}](${projetoEncontrado.spreadsheetLink}):\n`;
       if (pendenciasResult.count === 0) {
         resposta += `✅ Nenhuma pendência encontrada até ${dataExecucao}.`;
@@ -482,23 +580,36 @@ export async function processSpecificProject(ctx: Context, projectName: string):
         const maxItems = 10; // Limita a 10 itens para evitar MESSAGE_TOO_LONG
         const itemsToShow = pendenciasResult.details.slice(0, maxItems);
         itemsToShow.forEach((item, index) => {
-          resposta += `${index + 1}. **${item.fornecedor}** - ${item.descricao} - R$ ${item.valor}\n`;
+          resposta += `${index + 1}. **${item.fornecedor}** - ${
+            item.descricao
+          } - R$ ${item.valor}\n`;
         });
         if (pendenciasResult.count > maxItems) {
-          resposta += `\n... e mais ${pendenciasResult.count - maxItems} pendência(s).`;
+          resposta += `\n... e mais ${
+            pendenciasResult.count - maxItems
+          } pendência(s).`;
         }
       }
-      
-      await ctx.replyWithMarkdown(resposta, { link_preview_options: { is_disabled: true } });
+
+      await ctx.replyWithMarkdown(resposta, {
+        link_preview_options: { is_disabled: true },
+      });
     } catch (err: any) {
       if (err.response && err.response.status === 403) {
-        await ctx.reply(`Projeto "${projetoEncontrado.name}": Acesso não concedido.`);
+        await ctx.reply(
+          `Projeto "${projetoEncontrado.name}": Acesso não concedido.`
+        );
       } else {
-        await ctx.reply(`Erro ao verificar projeto "${projetoEncontrado.name}".`);
+        await ctx.reply(
+          `Erro ao verificar projeto "${projetoEncontrado.name}".`
+        );
       }
     }
   } catch (error) {
-    console.error("[atualizar_pendencias] Erro ao processar projeto específico:", error);
+    console.error(
+      "[atualizar_pendencias] Erro ao processar projeto específico:",
+      error
+    );
     await ctx.reply("Erro ao processar projeto específico.");
   }
 }
@@ -514,13 +625,15 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         (group: any) => group.label === projectsSpreadsheet.workgroup
       );
       if (!financeiroGroup || currentChatId !== financeiroGroup.value) {
-        await ctx.reply("Este comando só pode ser executado no grupo Financeiro.");
+        await ctx.reply(
+          "Este comando só pode ser executado no grupo Financeiro."
+        );
         return;
       }
 
       // Verifica se há parâmetro (projeto específico)
       const params = ctx.text?.split(/\s+/).slice(1).join(" ").trim();
-      
+
       if (params) {
         // Busca projeto específico
         await processSpecificProject(ctx, params);
@@ -529,7 +642,8 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
 
       // Mostra botões para seleção de status
 
-      const message = "📊 *Atualizar Pendências de Projetos*\n\n" +
+      const message =
+        "📊 *Atualizar Pendências de Projetos*\n\n" +
         "Selecione o status dos projetos que deseja verificar:\n\n" +
         "💡 *Dica:* Para verificar um projeto específico, use:\n" +
         "`/atualizar_pendencias nome_do_projeto`";
@@ -538,25 +652,41 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         inline_keyboard: [
           [
             { text: "📋 Todos", callback_data: "pendencias_status_Todos" },
-            { text: "✅ Finalizado", callback_data: "pendencias_status_Finalizado" }
+            {
+              text: "✅ Finalizado",
+              callback_data: "pendencias_status_Finalizado",
+            },
           ],
           [
-            { text: "🔄 Em andamento", callback_data: "pendencias_status_Em andamento" },
-            { text: "⏸️ Não iniciado", callback_data: "pendencias_status_Não iniciado" }
+            {
+              text: "🔄 Em andamento",
+              callback_data: "pendencias_status_Em andamento",
+            },
+            {
+              text: "⏸️ Não iniciado",
+              callback_data: "pendencias_status_Não iniciado",
+            },
           ],
           [
-            { text: "💰 Finalizado com sobras", callback_data: "pendencias_status_Finalizado com sobras" }
+            {
+              text: "💰 Finalizado com sobras",
+              callback_data: "pendencias_status_Finalizado com sobras",
+            },
           ],
           [
-            { text: "📄 Listar Em Andamento", callback_data: "pendencias_list_projects" }
+            {
+              text: "📄 Listar Em Andamento",
+              callback_data: "pendencias_list_projects",
+            },
           ],
-          [
-            { text: "❌ Cancelar", callback_data: "pendencias_cancel" }
-          ]
-        ]
+          [{ text: "❌ Cancelar", callback_data: "pendencias_cancel" }],
+        ],
       };
 
-      await ctx.replyWithMarkdown(message, { reply_markup: keyboard, link_preview_options: { is_disabled: true } });
+      await ctx.replyWithMarkdown(message, {
+        reply_markup: keyboard,
+        link_preview_options: { is_disabled: true },
+      });
       return;
     } catch (error) {
       console.error("[atualizar_pendencias] Erro geral:", error);
@@ -566,8 +696,6 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
   });
 
   return;
-
-
 }
 
 export const atualizarPendenciasCommand = {
