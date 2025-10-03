@@ -6,8 +6,7 @@ import {
   buildWeeklyAgendaMessage,
   buildDailyAgendaMessage,
   buildUnassignedEventsMessage,
-} from "../messages/eventMessages";
-import { Markup } from "telegraf";
+} from "../utils/eventMessages";
 
 export const checkEvents = async (bot: Telegraf) => {
   console.log("Iniciando checkWorkgroupEvents...");
@@ -63,16 +62,14 @@ export const checkEvents = async (bot: Telegraf) => {
           } as any);
         }
 
-        // Para Secretaria, enviar também eventos não atribuídos com botões
+        // Para Secretaria, enviar também eventos não atribuídos
         if (group.label === "Secretaria" && unassignedEvents.length > 0) {
           const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
-          const keyboard = buildEventAssignmentKeyboard(unassignedEvents);
           console.log(
-            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria com botões de atribuição.`
+            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
           );
           await bot.telegram.sendMessage(group.value, unassignedMessage, {
             parse_mode: "MarkdownV2",
-            reply_markup: keyboard.reply_markup,
             disable_web_page_preview: true,
           } as any);
         }
@@ -126,16 +123,14 @@ export const checkEvents = async (bot: Telegraf) => {
           } as any);
         }
 
-        // Para Secretaria, enviar também eventos não atribuídos com botões
+        // Para Secretaria, enviar também eventos não atribuídos
         if (group.label === "Secretaria" && unassignedEvents.length > 0) {
           const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
-          const keyboard = buildEventAssignmentKeyboard(unassignedEvents);
           console.log(
-            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria com botões de atribuição.`
+            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
           );
           await bot.telegram.sendMessage(group.value, unassignedMessage, {
             parse_mode: "MarkdownV2",
-            reply_markup: keyboard.reply_markup,
             disable_web_page_preview: true,
           } as any);
         }
@@ -149,14 +144,3 @@ export const checkEvents = async (bot: Telegraf) => {
     console.error("Erro geral em checkWorkgroupEvents:", error);
   }
 };
-
-function buildEventAssignmentKeyboard(unassignedEvents: any[]) {
-  const buttons = unassignedEvents.map(event => 
-    Markup.button.callback(
-      `📝 Atribuir: ${event.summary || 'Evento sem título'}`,
-      `assign_event_${event.id}`
-    )
-  );
-  
-  return Markup.inlineKeyboard(buttons, { columns: 1 });
-}

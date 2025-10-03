@@ -509,6 +509,9 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   if (request.transactionType === "Registrar Caixa Físico") {
     comments += `CAIXA FÍSICO ${request.project.account}\n`;
   }
+  if (request.transactionType === "Registrar Caixa Digital") {
+    comments += `CAIXA DIGITAL ${request.project.account}\n`;
+  }
   if (
     request.isRefund &&
     request.refundSupplier &&
@@ -522,9 +525,9 @@ export async function updateSpreadsheet(request: PaymentRequest) {
     "",
     request.supplier.name,
     request.description,
-    "1",
-    "unidade",
-    request.value,
+    request.quantity || "1",
+    request.unitName || "unidade",
+    request.unitValue || request.value,
     request.value,
     "⚠️PREENCHER",
     `📂 ID da Solicitação: ${request.id}`,
@@ -828,42 +831,53 @@ export async function updateEventWorkgroup(
   const calendar = google.calendar({ version: "v3", auth });
   const calendarConfigs = calendars as CalendarConfig[];
   
-  // Primeiro tenta buscar o evento real
-  const event = await getEventById(eventId);
-  if (!event) {
-    console.error(`Evento ${eventId} não encontrado para atualizar workgroup`);
-    return false;
-  }
+  // Busca o evento e identifica qual calendário ele pertence
+  let eventData = null;
+  let correctCalendarId = null;
   
-  // Encontra o calendário correto
   for (const calendarConfig of calendarConfigs) {
     try {
-      // Atualiza com o workgroup
-      await calendar.events.update({
+      const response = await calendar.events.get({
         calendarId: calendarConfig.id,
-        eventId: event.id,
-        requestBody: {
-          ...event,
-          extendedProperties: {
-            ...event.extendedProperties,
-            private: {
-              ...event.extendedProperties?.private,
-              workgroup: workgroupId,
-            },
-          },
-        },
+        eventId,
       });
-      
-      console.log(`Evento ${event.id} atribuído ao workgroup ${workgroupId}`);
-      return true;
+      eventData = response.data;
+      correctCalendarId = calendarConfig.id;
+      break; // Encontrou o evento, para a busca
     } catch (error) {
-      // Continua tentando nos outros calendários
+      // Continua procurando nos outros calendários
       continue;
     }
   }
   
-  console.error(`Erro ao atualizar evento ${eventId}`);
-  return false;
+  if (!eventData || !correctCalendarId) {
+    console.error(`Evento ${eventId} não encontrado em nenhum calendário`);
+    return false;
+  }
+  
+  try {
+    // Atualiza apenas no calendário correto
+    await calendar.events.update({
+      calendarId: correctCalendarId,
+      eventId: eventData.id,
+      requestBody: {
+        ...eventData,
+        extendedProperties: {
+          ...eventData.extendedProperties,
+          private: {
+            ...eventData.extendedProperties?.private,
+            workgroup: workgroupId,
+          },
+        },
+      },
+    });
+    
+    console.log(`Evento ${eventData.id} atribuído ao workgroup ${workgroupId} no calendário ${correctCalendarId}`);
+    return true;
+  } catch (error) {
+    console.error(`Erro ao atualizar evento ${eventId}:`, error);
+    return false;
+  }
 }
 
 // ------------------------------------------------------

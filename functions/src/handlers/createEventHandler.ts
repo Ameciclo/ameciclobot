@@ -6,7 +6,7 @@ import { updateCalendarEventData } from "../services/firebase";
 import {
   buildEventButtons,
   buildEventMessage,
-} from "../messages/eventMessages";
+} from "../utils/eventMessages";
 
 export async function sendEventMessage(
   bot: Telegraf,

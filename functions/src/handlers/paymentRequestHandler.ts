@@ -68,8 +68,8 @@ export async function sendPaymentRequestHandler(
       groupChatId,
       messageToGroup,
       {
-        ...confirmationMarkup,
-        parse_mode: 'MarkdownV2'
+        parse_mode: 'MarkdownV2',
+        ...confirmationMarkup
       }
     );
 
