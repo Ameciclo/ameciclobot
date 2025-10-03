@@ -158,7 +158,23 @@ function registerAtualizarPendenciasCommand(bot: Telegraf) {
         const proj = mergedProjects[projectId];
         // Exibe apenas se houver pendências ou se o status indicar problema de acesso
         if (proj.status === "Acesso não concedido" || proj.pendencias > 0) {
-          let linha = `• [${proj.name}](${proj.spreadsheetLink}) `;
+          // Define o emoji baseado no status do projeto
+          let statusEmoji = "";
+          switch (proj.projectStatus) {
+            case "Em andamento":
+              statusEmoji = "🔄";
+              break;
+            case "Finalizado":
+              statusEmoji = "✅";
+              break;
+            case "Não iniciado":
+              statusEmoji = "⏸️";
+              break;
+            default:
+              statusEmoji = "📋";
+          }
+          
+          let linha = `${statusEmoji} [${proj.name}](${proj.spreadsheetLink}) `;
           if (proj.status === "Acesso não concedido") {
             linha += "– Acesso não concedido.";
           } else {
