@@ -12,7 +12,42 @@ import {
   PaymentRequest,
   TelegramUserInfo,
 } from "../config/types";
-import { excerptFromRequest } from "../utils/utils"; // <-- novo import
+
+/**
+ * Gera texto simples do pagamento sem MarkdownV2
+ */
+function buildPaymentText(
+  request: PaymentRequest,
+  title: string,
+  signatures?: Record<number, TelegramUserInfo>
+): string {
+  const paymentMethod = request.supplier.payment_methods[0];
+  const cleanValue = paymentMethod.value.toString().replace(/"/g, '');
+  
+  let paymentText = `Pagar com ${paymentMethod.type} ➡️ ${cleanValue}`;
+  if (paymentMethod.type.toLowerCase() === 'pix') {
+    paymentText = `Pagar com ${paymentMethod.type} ➡️ \`${cleanValue}\``;
+  }
+  
+  let text = `${title}\n\n` +
+    `👉 Solicitado por: ${request.from.first_name}\n` +
+    `🆔 ID da Solicitação: \`${request.id}\`\n\n` +
+    `🗂 Projeto: ${request.project.name}\n` +
+    `📂 Item Orçamentário: ${request.budgetItem}\n` +
+    `🗒 Descrição: ${request.description}\n\n` +
+    `📈 Conta saída: ${request.project.account}\n\n` +
+    `📉 FORNECEDOR\n` +
+    `Empresa: ${request.supplier.nickname} (${request.supplier.name})\n` +
+    `${paymentText}\n\n` +
+    `💵 Valor: ${request.value}`;
+    
+  if (signatures) {
+    const signedByText = buildSignedByText(signatures);
+    text += `\n\n---\nAssinaturas:\n${signedByText}`;
+  }
+  
+  return text;
+}
 
 /**
  * Extrai os dados do callback enviado pelo botão do Telegram.
@@ -132,57 +167,61 @@ async function updateGoogleSheetAndRequest(
 
     // Atualiza o status da solicitação para "confirmed" no Firebase
     await updatePaymentRequest(requestId, { status: "confirmed", signatures });
-    // Botões extras: visualização da planilha e pasta de comprovantes
-    const viewSpreadsheetButton = Markup.button.url(
-      "📊 Planilha Financeira",
-      `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
-    );
 
-    const comprovantesButton = Markup.button.url(
-      "📁 Pasta de Comprovantes",
-      `https://drive.google.com/drive/folders/${requestData.project.folder_id}`
-    );
+    // Atualiza a mensagem no grupo financeiro com o status final
+    if (requestData.group_message_id) {
+      try {
+        const financeGroupId = await getWorkgroupId("Financeiro");
+        const viewSpreadsheetButton = Markup.button.url(
+          "📊 Planilha Financeira",
+          `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+        );
 
-    const keyboard = Markup.inlineKeyboard([
-      [viewSpreadsheetButton, comprovantesButton],
-    ]);
+        const comprovantesButton = Markup.button.url(
+          "📁 Pasta de Comprovantes",
+          `https://drive.google.com/drive/folders/${requestData.project.folder_id}`
+        );
 
-    const baseText = excerptFromRequest(
-      requestData,
-      "💸💸💸 Pagamento confirmado com sucesso\\. 💸💸💸"
-    );
-    const signedByText = buildSignedByText(signatures);
-    const messageText = `${baseText}
+        const keyboard = Markup.inlineKeyboard([
+          [viewSpreadsheetButton, comprovantesButton],
+        ]);
 
----
-Assinaturas:
-${signedByText}`;
-    try {
-      await ctx.editMessageText(messageText, {
-        ...keyboard,
-        parse_mode: "MarkdownV2",
-      });
-    } catch (error: any) {
-      // Ignora o erro se a mensagem for idêntica ou não existir mais
-      if (
-        error.description &&
-        error.description.includes("message is not modified")
-      ) {
-        console.log("Mensagem não modificada, conteúdo idêntico.");
-      } else if (
-        error.description &&
-        error.description.includes("message to edit not found")
-      ) {
-        console.log("Mensagem não encontrada, pode ter sido apagada.");
-      } else {
-        throw error;
+        const messageText = buildPaymentText(
+          requestData,
+          "💸💸💸 Pagamento confirmado com sucesso. 💸💸💸",
+          signatures
+        );
+
+        await ctx.telegram.editMessageText(
+          financeGroupId,
+          requestData.group_message_id,
+          undefined,
+          messageText,
+          {
+            ...keyboard,
+            parse_mode: "Markdown"
+          }
+        );
+      } catch (error: any) {
+        if (
+          error.description &&
+          error.description.includes("message is not modified")
+        ) {
+          console.log("Mensagem não modificada, conteúdo idêntico.");
+        } else if (
+          error.description &&
+          error.description.includes("message to edit not found")
+        ) {
+          console.log("Mensagem não encontrada, pode ter sido apagada.");
+        } else {
+          console.error("Erro ao atualizar mensagem final:", error);
+        }
       }
     }
 
     console.log("Pagamento confirmado!");
     return true;
   } catch (error) {
-    await ctx.answerCbQuery("Falha ao registrar pagamento na planilha.");
     console.error("Erro ao atualizar a planilha e a solicitação:", error);
     return false;
   }
@@ -307,16 +346,11 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             [viewSpreadsheetButton, cancelButton],
           ]);
 
-          const baseText = excerptFromRequest(
+          const messageText = buildPaymentText(
             requestData,
-            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`,
+            signatures
           );
-          const signedByText = buildSignedByText(signatures);
-          const messageText = `${baseText}
-
----
-Assinaturas:
-${signedByText}`;
           
           await ctx.telegram.editMessageText(
             financeGroupId,
@@ -325,7 +359,7 @@ ${signedByText}`;
             messageText,
             {
               ...keyboard,
-              parse_mode: "MarkdownV2"
+              parse_mode: "Markdown"
             }
           );
         } catch (error: any) {
@@ -376,19 +410,14 @@ ${signedByText}`;
           [viewSpreadsheetButton, cancelButton],
         ]);
 
-        const baseText = excerptFromRequest(
+        const messageText = buildPaymentText(
           requestData,
-          `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+          `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`,
+          signatures
         );
-        const signedByText = buildSignedByText(signatures);
-        const messageText = `${baseText}
-
----
-Assinaturas:
-${signedByText}`;
         await ctx.editMessageText(messageText, {
           ...loadingKeyboard,
-          parse_mode: "MarkdownV2",
+          parse_mode: "Markdown"
         });
       } catch (error: any) {
         console.error("Erro ao mostrar loading:", error);
@@ -431,34 +460,28 @@ ${signedByText}`;
         if (requestData.group_message_id) {
           try {
             const financeGroupId = await getWorkgroupId("Financeiro");
-            const baseText = excerptFromRequest(
+            const processingText = buildPaymentText(
               requestData,
               `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-            );
-            const processingText = `${baseText}
-            
-⏳ Processando pagamento...`;
+            ) + "\n\n⏳ Processando pagamento...";
 
             await ctx.telegram.editMessageText(
               financeGroupId,
               requestData.group_message_id,
               undefined,
-              processingText
+              processingText,
+              { parse_mode: "Markdown" }
             );
           } catch (error: any) {
             console.error("Erro ao desabilitar botões:", error);
           }
         }
-        const updated = await updateGoogleSheetAndRequest(
+        await updateGoogleSheetAndRequest(
           requestData,
           requestId,
           signatures,
           ctx
         );
-        if (!updated) {
-          return;
-        }
-        // Quando há 2 assinaturas, o pagamento está confirmado - não precisa atualizar mais nada
         return;
       }
 
@@ -486,22 +509,20 @@ ${signedByText}`;
             [viewSpreadsheetButton, cancelButton],
           ]);
 
-          const baseText = excerptFromRequest(
+          const messageText = buildPaymentText(
             requestData,
-            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
+            `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`,
+            signatures
           );
-          const signedByText = buildSignedByText(signatures);
-          const messageText = `${baseText}
-
----
-Assinaturas:
-${signedByText}`;
           await ctx.telegram.editMessageText(
             financeGroupId,
             requestData.group_message_id,
             undefined,
             messageText,
-            keyboard
+            {
+              ...keyboard,
+              parse_mode: "Markdown"
+            }
           );
         } catch (error: any) {
           if (
