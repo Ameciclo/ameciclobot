@@ -1,20 +1,20 @@
 // src/commands/processarExtrato.ts
 import { Context, Telegraf } from "telegraf";
-import axiosInstance from "../config/httpService";
+import axiosInstance from "../../config/httpService";
 import { parse } from "csv-parse/sync";
-import getAccounts from "../credentials/accounts.json";
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import getAccounts from "../../credentials/accounts.json";
+import projectsSpreadsheet from "../../credentials/projectsSpreadsheet.json";
 import {
   appendExtratoRow,
   appendExtratoData,
   uploadCSVToDrive,
-} from "../services/google";
-import { getMonthNamePortuguese } from "../utils/utils";
-import workgroups from "../credentials/workgroupsfolders.json";
+} from "../../services/google";
+import { getMonthNamePortuguese } from "../../utils/utils";
+import workgroups from "../../credentials/workgroupsfolders.json";
 import iconv from "iconv-lite";
-import { getAllRequests } from "../services/firebase";
-import { PaymentRequest } from "../config/types";
-import { reconcileExtract, ExtractEntry } from "../services/reconciliation";
+import { getAllRequests } from "../../services/firebase";
+import { PaymentRequest } from "../../config/types";
+import { reconcileExtract, ExtractEntry } from "../../services/reconciliation";
 
 // ======= Funções para Conta Corrente (CSV) =======
 function removeLeadingZeros(str: string): string {

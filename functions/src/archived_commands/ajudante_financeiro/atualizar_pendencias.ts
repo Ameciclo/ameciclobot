@@ -5,14 +5,14 @@ import {
   getIdFromUrl,
   getProjectDetailsPendencias,
   getProjectDetailsPendenciasCount,
-} from "../services/google";
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
-import workgroups from "../credentials/workgroupsfolders.json";
+} from "../../services/google";
+import projectsSpreadsheet from "../../credentials/projectsSpreadsheet.json";
+import workgroups from "../../credentials/workgroupsfolders.json";
 import {
   getFinanceProjects,
   saveFinanceProjects,
   updateFinanceProject,
-} from "../services/firebase";
+} from "../../services/firebase";
 
 export async function processProjectsByStatus(
   ctx: Context,

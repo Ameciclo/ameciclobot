@@ -4,10 +4,10 @@ import {
   getIdFromUrl,
   getProjectBudgetItems,
   getSummaryData,
-} from "../services/google";
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
-import workgroups from "../credentials/workgroupsfolders.json";
-import { sendProjectsToDB } from "../services/firebase";
+} from "../../services/google";
+import projectsSpreadsheet from "../../credentials/projectsSpreadsheet.json";
+import workgroups from "../../credentials/workgroupsfolders.json";
+import { sendProjectsToDB } from "../../services/firebase";
 
 function registerAtualizarProjetosCommand(bot: Telegraf) {
   bot.command("atualizar_projetos", async (ctx: Context) => {

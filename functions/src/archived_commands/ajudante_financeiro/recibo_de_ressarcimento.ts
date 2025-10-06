@@ -207,8 +207,48 @@ export async function registerReciboDeRessarcimentoCommand(bot: Telegraf) {
       return;
     }
 
+    // Verificar se o ID foi fornecido no comando
+    const text = ctx.text || "";
+    const match = text.match(/\/recibo_de_ressarcimento(?:@\w+)?\s+(.+)/);
+    
+    if (!match || !match[1]) {
+      // Se não tem ID, usar o fluxo antigo
+      try {
+        const file = await ctx.telegram.getFile(document.file_id);
+        if (!file.file_path) {
+          await ctx.reply("❌ Erro ao obter o arquivo.");
+          return;
+        }
+
+        const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+        const response = await fetch(fileUrl);
+        const pdfBuffer = Buffer.from(await response.arrayBuffer());
+
+        sessions.set(userId, {
+          userId,
+          pdfBuffer,
+          step: "waiting_transaction_id",
+        });
+
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.callback("❌ CANCELAR", `cancel_recibo_${userId}`)],
+        ]);
+
+        await ctx.reply(
+          "📄 PDF das notas fiscais recebido!\n\n🆔 Agora envie o ID da transação de ressarcimento:",
+          keyboard
+        );
+      } catch (error) {
+        console.error("Erro ao processar PDF:", error);
+        await ctx.reply("❌ Erro ao processar o PDF. Tente novamente.");
+      }
+      return;
+    }
+
+    // Se tem ID, processar diretamente
+    const transactionId = match[1].trim();
+    
     try {
-      // Baixar o PDF
       const file = await ctx.telegram.getFile(document.file_id);
       if (!file.file_path) {
         await ctx.reply("❌ Erro ao obter o arquivo.");
@@ -219,24 +259,58 @@ export async function registerReciboDeRessarcimentoCommand(bot: Telegraf) {
       const response = await fetch(fileUrl);
       const pdfBuffer = Buffer.from(await response.arrayBuffer());
 
-      // Criar sessão
-      sessions.set(userId, {
-        userId,
-        pdfBuffer,
-        step: "waiting_transaction_id",
-      });
+      await ctx.reply("🔄 Buscando dados da transação...");
 
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("❌ CANCELAR", `cancel_recibo_${userId}`)],
-      ]);
+      const requestData = await getRequestData(transactionId);
+      
+      if (!requestData) {
+        await ctx.reply("❌ Transação não encontrada. Verifique o ID e tente novamente.");
+        return;
+      }
 
-      await ctx.reply(
-        "📄 PDF das notas fiscais recebido!\n\n🆔 Agora envie o ID da transação de ressarcimento:",
-        keyboard
+      if (!requestData.isRefund) {
+        await ctx.reply("❌ Esta transação não é um ressarcimento.");
+        return;
+      }
+
+      const refundSupplier = typeof requestData.refundSupplier === 'string' ? null : requestData.refundSupplier;
+      if (!refundSupplier || !refundSupplier.name) {
+        await ctx.reply("❌ Dados do beneficiário não encontrados na transação.");
+        return;
+      }
+
+      if (!refundSupplier.address || refundSupplier.address.trim() === '') {
+        await ctx.reply("⚠️ Atenção: Endereço do beneficiário não encontrado. O recibo será gerado com campo em branco.");
+      }
+
+      await ctx.reply("📝 Gerando recibo de ressarcimento...");
+
+      const reciboBytes = await generateReciboPage(requestData);
+      const finalPdf = await PDFDocument.create();
+      
+      const reciboPdf = await PDFDocument.load(reciboBytes);
+      const reciboPages = await finalPdf.copyPages(reciboPdf, reciboPdf.getPageIndices());
+      reciboPages.forEach((page) => finalPdf.addPage(page));
+
+      const notasPdf = await PDFDocument.load(pdfBuffer);
+      const notasPages = await finalPdf.copyPages(notasPdf, notasPdf.getPageIndices());
+      notasPages.forEach((page) => finalPdf.addPage(page));
+
+      const finalPdfBytes = await finalPdf.save();
+      const fileName = `Recibo_Ressarcimento_${transactionId}_${Date.now()}.pdf`;
+
+      await ctx.replyWithDocument(
+        {
+          source: Buffer.from(finalPdfBytes),
+          filename: fileName,
+        },
+        {
+          caption: `✅ Recibo de ressarcimento gerado!\n\n📋 Transação: ${transactionId}\n👤 Beneficiário: ${refundSupplier?.name}\n💰 Valor: ${requestData.value}`,
+        }
       );
     } catch (error) {
-      console.error("Erro ao processar PDF:", error);
-      await ctx.reply("❌ Erro ao processar o PDF. Tente novamente.");
+      console.error("Erro ao gerar recibo:", error);
+      await ctx.reply("❌ Erro ao gerar o recibo. Tente novamente.");
     }
   });
 
