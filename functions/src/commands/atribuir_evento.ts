@@ -1,8 +1,7 @@
 import { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
-import { getEventById, updateEventWorkgroup } from "../services/google";
+import { getEventById } from "../services/google";
 import workgroups from "../credentials/workgroupsfolders.json";
-import { buildDailyAgendaMessage } from "../utils/eventMessages";
 import { escapeMarkdownV2 } from "../utils/utils";
 
 export const atribuirEventoCommand = {
@@ -21,10 +20,18 @@ export const atribuirEventoCommand = {
       
       try {
         // Buscar o evento pelo ID
+        console.log("[atribuirEvento] Buscando evento com ID:", eventId);
         const event = await getEventById(eventId);
+        console.log("[atribuirEvento] Evento retornado:", event ? JSON.stringify(event, null, 2) : "null");
         
         if (!event) {
           await ctx.reply("❌ Evento não encontrado com o ID fornecido.");
+          return;
+        }
+
+        // Verificar se o evento foi cancelado
+        if (event.status === 'cancelled') {
+          await ctx.reply("❌ Este evento foi cancelado e não pode ser atribuído.");
           return;
         }
 
@@ -40,16 +47,29 @@ export const atribuirEventoCommand = {
         }
 
         // Criar teclado com grupos de trabalho
-        const buttons = workgroups.map(group => 
-          Markup.button.callback(
+        const buttons = workgroups.map(group => {
+          const callbackData = `asg|${group.value}|${eventId}`;
+          console.log("[atribuirEvento] Criando botão:", group.label, "callback:", callbackData);
+          console.log("[atribuirEvento] Tamanho do callback:", callbackData.length);
+          
+          if (callbackData.length > 64) {
+            console.warn("[atribuirEvento] ⚠️ Callback muito longo!", callbackData.length, "caracteres");
+          }
+          
+          return Markup.button.callback(
             `📋 ${group.label}`,
-            `assign_to_${group.value}_${eventId}`
-          )
-        );
+            callbackData
+          );
+        });
+        
+        console.log("[atribuirEvento] Total de botões criados:", buttons.length);
+        console.log("[atribuirEvento] Todos os callbacks:", buttons.map(b => (b as any).callback_data));
         
         const keyboard = Markup.inlineKeyboard(buttons, { columns: 2 });
 
         const eventTitle = event.summary || "Evento sem título";
+        console.log("[atribuirEvento] Título do evento:", eventTitle);
+        console.log("[atribuirEvento] event.summary:", event.summary);
         const message = `🎯 **Atribuindo evento a um grupo de trabalho**\n\n📝 **Evento:** ${escapeMarkdownV2(eventTitle)}\n\n👥 Selecione o grupo de trabalho:`;
 
         await ctx.reply(message, {
@@ -63,49 +83,7 @@ export const atribuirEventoCommand = {
       }
     });
 
-    // Handler para os callbacks de atribuição
-    bot.action(/^assign_to_(\d+)_(.+)$/, async (ctx) => {
-      const match = ctx.match;
-      const groupId = match[1];
-      const eventId = match[2];
-      
-      try {
-        const group = workgroups.find(g => g.value.toString() === groupId);
-        if (!group) {
-          await ctx.answerCbQuery("❌ Grupo não encontrado");
-          return;
-        }
 
-        // Atualizar o evento com o grupo
-        await updateEventWorkgroup(eventId, groupId);
-        
-        // Buscar o evento atualizado
-        const event = await getEventById(eventId);
-        
-        if (event) {
-          // Editar a mensagem original
-          const eventTitle = event.summary || "Evento sem título";
-          const successMessage = `✅ **Evento atribuído com sucesso\\!**\n\n📝 **Evento:** ${escapeMarkdownV2(eventTitle)}\n👥 **Grupo:** ${escapeMarkdownV2(group.label)}`;
-          
-          await ctx.editMessageText(successMessage, {
-            parse_mode: "MarkdownV2"
-          });
-
-          // Enviar o evento para o grupo atribuído
-          const eventMessage = buildDailyAgendaMessage([event]);
-          await ctx.telegram.sendMessage(group.value, eventMessage, {
-            parse_mode: "MarkdownV2",
-            link_preview_options: { is_disabled: true }
-          });
-        }
-
-        await ctx.answerCbQuery(`✅ Evento atribuído ao ${group.label}`);
-
-      } catch (error) {
-        console.error("Erro ao atribuir evento:", error);
-        await ctx.answerCbQuery("❌ Erro ao atribuir evento");
-      }
-    });
   },
 
   name: () => "atribuir_evento",

@@ -74,7 +74,6 @@ registerAssignWorkgroupCallback(bot);
 registerInformationRequestCallback(bot);
 registerFolderChooserCallback(bot);
 registerPendenciasCallbacks(bot);
-registerAssignWorkgroupCallback(bot);
 
 // Função disparada ao criar um novo request no Realtime Database - v4
 export const sendPaymentRequest = onValueCreated(
