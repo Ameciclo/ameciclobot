@@ -1,7 +1,7 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { getRequestData } from "../services/firebase";
-import { PaymentRequest } from "../config/types";
+import { getRequestData } from "../../services/firebase";
+import { PaymentRequest } from "../../config/types";
 
 interface ReciboSession {
   userId: number;
