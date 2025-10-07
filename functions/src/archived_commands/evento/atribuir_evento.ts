@@ -1,8 +1,8 @@
 import { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
-import { getEventById } from "../services/google";
-import workgroups from "../credentials/workgroupsfolders.json";
-import { escapeMarkdownV2 } from "../utils/utils";
+import { getEventById } from "../../services/google";
+import workgroups from "../../credentials/workgroupsfolders.json";
+import { escapeMarkdownV2 } from "../../utils/utils";
 
 export const atribuirEventoCommand = {
   register: (bot: Telegraf) => {
@@ -38,7 +38,7 @@ export const atribuirEventoCommand = {
         // Verificar se já está atribuído
         const currentWorkgroup = event.extendedProperties?.private?.workgroup;
         if (currentWorkgroup) {
-          const group = workgroups.find((g: any) => g.value.toString() === currentWorkgroup);
+          const group = workgroups.find(g => g.value.toString() === currentWorkgroup);
           const groupName = group ? group.label : "Grupo desconhecido";
           await ctx.reply(`⚠️ Este evento já está atribuído ao grupo: **${groupName}**`, {
             parse_mode: "Markdown"
@@ -47,7 +47,7 @@ export const atribuirEventoCommand = {
         }
 
         // Criar teclado com grupos de trabalho
-        const buttons = workgroups.map((group: any) => {
+        const buttons = workgroups.map(group => {
           const callbackData = `asg|${group.value}|${eventId}`;
           console.log("[atribuirEvento] Criando botão:", group.label, "callback:", callbackData);
           console.log("[atribuirEvento] Tamanho do callback:", callbackData.length);
@@ -63,7 +63,7 @@ export const atribuirEventoCommand = {
         });
         
         console.log("[atribuirEvento] Total de botões criados:", buttons.length);
-        console.log("[atribuirEvento] Todos os callbacks:", buttons.map((b: any) => (b as any).callback_data));
+        console.log("[atribuirEvento] Todos os callbacks:", buttons.map(b => (b as any).callback_data));
         
         const keyboard = Markup.inlineKeyboard(buttons, { columns: 2 });
 
@@ -82,6 +82,7 @@ export const atribuirEventoCommand = {
         await ctx.reply("❌ Erro ao buscar o evento. Verifique se o ID está correto.");
       }
     });
+
 
   },
 
