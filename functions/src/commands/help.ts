@@ -75,7 +75,8 @@ async function helpCommandSpecific(ctx: Context, query: string) {
 Comandos disponíveis:
 ${commandsInfo}
 
-Retorne APENAS o nome do comando (ex: /evento) ou "NENHUM" se não encontrar correspondência.`;
+Retorne APENAS o nome do comando (ex: /evento) ou "NENHUM" se não encontrar correspondência. Caso haja correspondência, retorne no formato:
+ /comando - descrição`;
       
       const response = await sendChatCompletion([
         {
@@ -87,7 +88,10 @@ Retorne APENAS o nome do comando (ex: /evento) ou "NENHUM" se não encontrar cor
       
       const suggestedCommand = response.choices?.[0]?.message?.content?.trim();
       if (suggestedCommand && suggestedCommand !== "NENHUM") {
-        commandHelpers = getCommandByName(suggestedCommand);
+        // Extrair apenas o nome do comando se a IA retornou mais informações
+        const commandMatch = suggestedCommand.match(/\/\w+/);
+        const cleanCommand = commandMatch ? commandMatch[0] : suggestedCommand;
+        commandHelpers = getCommandByName(cleanCommand);
       }
     } catch (error) {
       console.error("[help] Erro na busca por IA:", error);
@@ -95,10 +99,19 @@ Retorne APENAS o nome do comando (ex: /evento) ou "NENHUM" se não encontrar cor
   }
   
   if (commandHelpers) {
-    const helpMessage = `🔍 **${escapeMarkdownV2(commandHelpers.name())}**\n\n` +
-      `📝 ${escapeMarkdownV2(commandHelpers.description())}\n\n` +
-      `${commandHelpers.help()}`;
-    await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
+    try {
+      const helpMessage = `🔍 **${escapeMarkdownV2(commandHelpers.name())}**\n\n` +
+        `📝 ${escapeMarkdownV2(commandHelpers.description())}\n\n` +
+        `${escapeMarkdownV2(commandHelpers.help())}`;
+      await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
+    } catch (error) {
+      console.error("[help] Erro ao enviar mensagem com MarkdownV2:", error);
+      // Fallback: enviar sem formatação
+      const plainMessage = `🔍 ${commandHelpers.name()}\n\n` +
+        `📝 ${commandHelpers.description()}\n\n` +
+        `${commandHelpers.help()}`;
+      await ctx.reply(plainMessage);
+    }
   } else {
     await ctx.reply(
       `❌ Comando ou funcionalidade "${escapeMarkdownV2(query)}" não encontrado\\.\n\n` +
@@ -136,8 +149,8 @@ export function registerHelpCommand(bot: Telegraf) {
 
 export const ajudaCommand = {
   register,
-  name: () => "/help",
+  name: () => "/ajuda",
   help: () =>
-    "Use \`/help\` para ver suas informações, versão do bot e local\\. Use \`/help [comando]\` para ajuda específica ou \`/help [descrição]\` para encontrar comandos\\.",
+    "Use \`/help\` ou \`/ajuda\` para ver suas informações, versão do bot e local\\. Use \`/ajuda [comando]\` para ajuda específica ou \`/ajuda [descrição]\` para encontrar comandos\\.",
   description: () => "❓ Informações do usuário e ajuda.",
 };

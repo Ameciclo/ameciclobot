@@ -242,13 +242,14 @@ function registerEventoCommand(bot: Telegraf) {
       }
 
       // Obtém a data atual no fuso horário local (GMT-3)
-      const nowLocal = new Date();
-      console.log("[evento] Data atual:", nowLocal.toISOString());
-      const prompt = `Hoje é dia ${nowLocal.toISOString()} e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
+      const nowUTC = new Date();
+      const nowLocal = new Date(nowUTC.getTime() - (3 * 60 * 60 * 1000));
+      console.log("[evento] Data atual (GMT-3):", nowLocal.toISOString());
+      const prompt = `Hoje é dia ${nowLocal.toISOString()} (GMT-3, horário de Brasília) e quero que extraia as informações de evento do seguinte texto e retorne APENAS um JSON no formato:
 {
   "name": "Título do Evento",
-  "startDate": "ISODate",
-  "endDate": "ISODate",
+  "startDate": "ISODate no formato GMT-3 (ex: 2025-10-28T17:00:00-03:00)",
+  "endDate": "ISODate no formato GMT-3 (ex: 2025-10-28T19:00:00-03:00)",
   "location": "Local do evento",
   "description": "Descrição completa do evento"
 }

@@ -1,6 +1,6 @@
 import { Context, Telegraf, Markup } from "telegraf";
 import { createDocument, createPresentation, createForm, createSheet, listFolders, listModelsFromFolder } from "../services/google";
-import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
+import { setTempData, getCachedFolders, setCachedFolders, getTempData } from "../services/firebase";
 import { getPreviewTitle } from "../utils/utils";
 import workgroups from "../credentials/workgroupsfolders.json";
 
@@ -170,16 +170,12 @@ export function registerNovoArquivoCallback(bot: Telegraf) {
     }
 
     try {
-      const originalMessage = await ctx.telegram.forwardMessage(
-        chat.id, chat.id, parseInt(messageId)
-      );
-      await ctx.telegram.deleteMessage(chat.id, originalMessage.message_id);
-      
-      const messageText = (originalMessage as any).text || "";
-      const title = messageText.replace("/novo_arquivo@ameciclobot", "").replace("/novo_arquivo", "").trim();
+      // Recupera o título do Firebase
+      const titleData = await getTempData(`title_${chat.id}_${messageId}`);
+      const title = titleData?.title;
       
       if (!title) {
-        return ctx.reply("Não foi possível recuperar o título da mensagem original.");
+        return ctx.reply("Não foi possível recuperar o título. Execute o comando novamente.");
       }
 
       if (fileType === "modelo") {
@@ -188,7 +184,8 @@ export function registerNovoArquivoCallback(bot: Telegraf) {
         return handleFileCreation(ctx, fileType, title);
       }
     } catch (error) {
-      return ctx.reply("Não foi possível recuperar a mensagem original. Execute o comando novamente.");
+      console.error("Erro ao processar callback novo_arquivo:", error);
+      return ctx.reply("Ocorreu um erro ao processar a seleção. Tente novamente.");
     }
   });
 }

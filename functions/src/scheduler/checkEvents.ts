@@ -8,7 +8,7 @@ import {
   buildUnassignedEventsMessage,
 } from "../utils/eventMessages";
 
-export const checkEvents = async (bot: Telegraf) => {
+export const checkEvents = async (bot: Telegraf, privateChatId?: number) => {
   console.log("Iniciando checkWorkgroupEvents...");
   try {
     const today = new Date();
@@ -50,28 +50,45 @@ export const checkEvents = async (bot: Telegraf) => {
           return !props || !props.workgroup;
         });
 
-        // Enviar eventos atribuídos normalmente
-        if (assignedEvents.length > 0) {
-          const message = buildWeeklyAgendaMessage(assignedEvents);
-          console.log(
-            `Enviando agenda semanal para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
-          );
-          await bot.telegram.sendMessage(group.value, message, {
-            parse_mode: "MarkdownV2",
-            disable_web_page_preview: true,
-          } as any);
-        }
+        if (privateChatId) {
+          // Enviar no chat privado
+          if (assignedEvents.length > 0) {
+            const message = `📅 **Agenda Semanal - ${group.label}:**\n\n${buildWeeklyAgendaMessage(assignedEvents)}`;
+            await bot.telegram.sendMessage(privateChatId, message, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
+          if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+            const unassignedMessage = `🗓️ **Eventos Não Atribuídos:**\n\n${buildUnassignedEventsMessage(unassignedEvents)}`;
+            await bot.telegram.sendMessage(privateChatId, unassignedMessage, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
+        } else {
+          // Enviar para os grupos (comportamento original)
+          if (assignedEvents.length > 0) {
+            const message = buildWeeklyAgendaMessage(assignedEvents);
+            console.log(
+              `Enviando agenda semanal para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
+            );
+            await bot.telegram.sendMessage(group.value, message, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
 
-        // Para Secretaria, enviar também eventos não atribuídos
-        if (group.label === "Secretaria" && unassignedEvents.length > 0) {
-          const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
-          console.log(
-            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
-          );
-          await bot.telegram.sendMessage(group.value, unassignedMessage, {
-            parse_mode: "MarkdownV2",
-            disable_web_page_preview: true,
-          } as any);
+          if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+            const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
+            console.log(
+              `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
+            );
+            await bot.telegram.sendMessage(group.value, unassignedMessage, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
         }
 
         if (assignedEvents.length === 0 && (group.label !== "Secretaria" || unassignedEvents.length === 0)) {
@@ -111,28 +128,45 @@ export const checkEvents = async (bot: Telegraf) => {
           return !props || !props.workgroup;
         });
 
-        // Enviar eventos atribuídos normalmente
-        if (assignedEvents.length > 0) {
-          const message = buildDailyAgendaMessage(assignedEvents);
-          console.log(
-            `Enviando agenda de amanhã para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
-          );
-          await bot.telegram.sendMessage(group.value, message, {
-            parse_mode: "MarkdownV2",
-            disable_web_page_preview: true,
-          } as any);
-        }
+        if (privateChatId) {
+          // Enviar no chat privado
+          if (assignedEvents.length > 0) {
+            const message = `📅 **Agenda Diária - ${group.label}:**\n\n${buildDailyAgendaMessage(assignedEvents)}`;
+            await bot.telegram.sendMessage(privateChatId, message, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
+          if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+            const unassignedMessage = `🗓️ **Eventos Não Atribuídos:**\n\n${buildUnassignedEventsMessage(unassignedEvents)}`;
+            await bot.telegram.sendMessage(privateChatId, unassignedMessage, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
+        } else {
+          // Enviar para os grupos (comportamento original)
+          if (assignedEvents.length > 0) {
+            const message = buildDailyAgendaMessage(assignedEvents);
+            console.log(
+              `Enviando agenda de amanhã para o grupo ${group.label} (ID: ${group.value}) com ${assignedEvents.length} eventos.`
+            );
+            await bot.telegram.sendMessage(group.value, message, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
 
-        // Para Secretaria, enviar também eventos não atribuídos
-        if (group.label === "Secretaria" && unassignedEvents.length > 0) {
-          const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
-          console.log(
-            `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
-          );
-          await bot.telegram.sendMessage(group.value, unassignedMessage, {
-            parse_mode: "MarkdownV2",
-            disable_web_page_preview: true,
-          } as any);
+          if (group.label === "Secretaria" && unassignedEvents.length > 0) {
+            const unassignedMessage = buildUnassignedEventsMessage(unassignedEvents);
+            console.log(
+              `Enviando ${unassignedEvents.length} eventos não atribuídos para a Secretaria.`
+            );
+            await bot.telegram.sendMessage(group.value, unassignedMessage, {
+              parse_mode: "MarkdownV2",
+              disable_web_page_preview: true,
+            } as any);
+          }
         }
 
         if (assignedEvents.length === 0 && (group.label !== "Secretaria" || unassignedEvents.length === 0)) {

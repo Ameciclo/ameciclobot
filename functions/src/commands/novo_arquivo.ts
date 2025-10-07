@@ -1,4 +1,5 @@
 import { Context, Telegraf } from "telegraf";
+import { setTempData } from "../services/firebase";
 
 function registerNovoArquivoCommand(bot: Telegraf) {
   bot.command("novo_arquivo", async (ctx: Context) => {
@@ -16,6 +17,10 @@ function registerNovoArquivoCommand(bot: Telegraf) {
     }
 
     const messageId = ctx.message.message_id;
+    const chatId = ctx.message.chat.id;
+    
+    // Armazena o título temporariamente no Firebase
+    await setTempData(`title_${chatId}_${messageId}`, { title }, 300);
 
     const buttons = [
       [{ text: "📄 Documento", callback_data: `new_file:documento:${messageId}` }],
