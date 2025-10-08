@@ -69,13 +69,13 @@ export const checkDemandReminders = async (bot: Telegraf) => {
               const username = mention.replace('@', '');
               
               const reminderMessage = 
-                `⏰ *LEMBRETE: DEMANDA VENCE AMANHÃ\\!*\n\n` +
-                `🆔 *ID:* \\`${escapeMarkdownV2(demandaId)}\\`\n` +
+                `⏰ *LEMBRETE: DEMANDA VENCE AMANHÃ!*\n\n` +
+                `🆔 *ID:* \`${escapeMarkdownV2(demandaId)}\`\n` +
                 `📅 *Prazo:* ${escapeMarkdownV2(data.dataLimite)}\n` +
                 `👤 *Solicitante:* ${escapeMarkdownV2(data.solicitante)}\n` +
                 `🏢 *Workgroup:* ${escapeMarkdownV2(data.workgroup)}\n\n` +
                 `📝 *Demanda:* ${escapeMarkdownV2(data.demanda)}\n\n` +
-                `💡 Use \\`/demanda ${demandaId}\\` para adiar se necessário\\.`;
+                `💡 Use \`/demanda ${demandaId}\` para adiar se necessário.`;
 
               await bot.telegram.sendMessage(
                 `@${username}`,
@@ -100,7 +100,7 @@ export const checkDemandReminders = async (bot: Telegraf) => {
               );
               
               console.log(`[demand-reminders] Lembrete enviado para ${username}`);
-            } catch (error) {
+            } catch (error: any) {
               console.log(`[demand-reminders] Não foi possível enviar lembrete para ${mention}:`, error.message);
             }
           }

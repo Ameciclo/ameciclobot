@@ -22,9 +22,7 @@ export function registerDemandaCallbacks(bot: Telegraf) {
       });
 
       await ctx.editMessageText(
-        `✅ *Demanda aceita\!*\n\nVocê concordou com a demanda \`${escapeMarkdownV2(demandaId)}\`\.
-
-💡 Use \`/demanda ${demandaId}\` para gerenciar prazos\.`,
+        `✅ *Demanda aceita!*\n\nVocê concordou com a demanda \`${escapeMarkdownV2(demandaId)}\`.\n\n💡 Use \`/demanda ${demandaId}\` para gerenciar prazos.`,
         { parse_mode: "MarkdownV2" }
       );
 
@@ -106,7 +104,10 @@ export function registerDemandaCallbacks(bot: Telegraf) {
       // Calcula nova data
       const newDate = new Date();
       newDate.setDate(newDate.getDate() + days);
-      const newDateStr = formatDate(newDate);
+      const day = String(newDate.getDate()).padStart(2, '0');
+      const month = String(newDate.getMonth() + 1).padStart(2, '0');
+      const year = newDate.getFullYear();
+      const newDateStr = `${day}/${month}/${year}`;
 
       // Atualiza no Firebase
       await admin.database().ref(`demandas/${demandaId}`).update({
@@ -123,7 +124,7 @@ export function registerDemandaCallbacks(bot: Telegraf) {
       const dayText = days === 1 ? "amanhã" : days === 2 ? "depois de amanhã" : days === 7 ? "uma semana" : "um mês";
       
       await ctx.editMessageText(
-        `📅 *Demanda adiada\!*\n\n` +
+        `📅 *Demanda adiada!*\n\n` +
         `🆔 *ID:* \`${escapeMarkdownV2(demandaId)}\`\n` +
         `📅 *Novo prazo:* ${escapeMarkdownV2(newDateStr)}\n` +
         `⏰ *Adiada para:* ${escapeMarkdownV2(dayText)}`,
@@ -178,11 +179,11 @@ export function registerDemandaCallbacks(bot: Telegraf) {
 
       // Atualiza a mensagem
       const updatedMessage = 
-        `✅ *Demanda resolvida\\!*\n\n` +
-        `🆔 *ID:* \\`${escapeMarkdownV2(demandaId)}\\`\n` +
+        `✅ *Demanda resolvida!*\n\n` +
+        `🆔 *ID:* \`${escapeMarkdownV2(demandaId)}\`\n` +
         `👤 *Resolvida por:* ${escapeMarkdownV2(resolvedBy)}\n` +
         `📝 *Demanda:* ${escapeMarkdownV2(demandaData.demanda)}\n\n` +
-        `🎉 *Obrigado por resolver esta demanda\\!*`;
+        `🎉 *Obrigado por resolver esta demanda!*`;
 
       await ctx.editMessageText(updatedMessage, {
         parse_mode: "MarkdownV2"
