@@ -3,31 +3,24 @@ import { admin } from "../config/firebaseInit";
 import { escapeMarkdownV2 } from "../utils/utils";
 import workgroups from "../credentials/workgroupsfolders.json";
 
-interface DemandaData {
-  demandados: string[];
-  dataLimite: string;
-  textoOriginal: string;
-  demanda: string;
-  workgroup: string;
-  solicitante: string;
-  dataRegistro: string;
-  status: string;
-}
+
 
 function registerListarDemandasCommand(bot: Telegraf) {
-  bot.command("listar_demandas", async (ctx: Context) => {
+  bot.command("listar_demandas", async (ctx: Context): Promise<void> => {
     try {
       console.log("[listar-demandas] Iniciando comando");
       
       const chat = ctx.message?.chat;
       if (!chat) {
-        return ctx.reply("Erro ao identificar o chat.");
+        await ctx.reply("Erro ao identificar o chat.");
+        return;
       }
 
       // Identifica o workgroup atual
       const currentWorkgroup = workgroups.find(wg => wg.value === chat.id.toString());
       if (!currentWorkgroup) {
-        return ctx.reply("Este comando só pode ser usado nos grupos de trabalho da Ameciclo.");
+        await ctx.reply("Este comando só pode ser usado nos grupos de trabalho da Ameciclo.");
+        return;
       }
 
       // Busca demandas do Firebase
@@ -43,9 +36,10 @@ function registerListarDemandasCommand(bot: Telegraf) {
       if (workgroupDemandas.length === 0) {
         const message = `🎉 *Parabéns\\!*\n\nNão há demandas pendentes para o grupo *${escapeMarkdownV2(currentWorkgroup.label)}*\\.`;
         
-        return ctx.reply(message, {
+        await ctx.reply(message, {
           parse_mode: "MarkdownV2"
         });
+        return;
       }
 
       // Monta mensagem com demandas
@@ -86,7 +80,7 @@ function registerListarDemandasCommand(bot: Telegraf) {
 
     } catch (error) {
       console.error("[listar-demandas] Erro:", error);
-      return ctx.reply("Erro ao listar demandas. Tente novamente mais tarde.");
+      await ctx.reply("Erro ao listar demandas. Tente novamente mais tarde.");
     }
   });
 }

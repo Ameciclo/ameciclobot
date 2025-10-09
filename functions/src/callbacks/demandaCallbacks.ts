@@ -1,10 +1,10 @@
-import { Context, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import { admin } from "../config/firebaseInit";
 import { escapeMarkdownV2 } from "../utils/utils";
 
 export function registerDemandaCallbacks(bot: Telegraf) {
   // Callback para concordar com demanda
-  bot.action(/^agree_demanda_(.+)$/, async (ctx: Context) => {
+  bot.action(/^agree_demanda_(.+)$/, async (ctx) => {
     try {
       const demandaId = ctx.match![1];
       const userId = ctx.from?.id;
@@ -35,7 +35,7 @@ export function registerDemandaCallbacks(bot: Telegraf) {
   });
 
   // Callback para adiar demanda (menu)
-  bot.action(/^postpone_demanda_(.+)$/, async (ctx: Context) => {
+  bot.action(/^postpone_demanda_(.+)$/, async (ctx) => {
     try {
       const demandaId = ctx.match![1];
       
@@ -81,7 +81,7 @@ export function registerDemandaCallbacks(bot: Telegraf) {
   });
 
   // Callback para adiar demanda (execução)
-  bot.action(/^postpone_(.+)_(\d+)$/, async (ctx: Context) => {
+  bot.action(/^postpone_(.+)_(\d+)$/, async (ctx) => {
     try {
       const demandaId = ctx.match![1];
       const days = parseInt(ctx.match![2]);
@@ -140,7 +140,7 @@ export function registerDemandaCallbacks(bot: Telegraf) {
   });
 
   // Callback para resolver demanda
-  bot.action(/^resolve_demanda_(.+)$/, async (ctx: Context) => {
+  bot.action(/^resolve_demanda_(.+)$/, async (ctx) => {
     try {
       const demandaId = ctx.match![1];
       const userId = ctx.from?.id;

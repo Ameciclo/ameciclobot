@@ -350,10 +350,10 @@ export const demandaCommand = {
   register: registerDemandaCommand,
   name: () => "/demanda",
   help: () =>
-    "Use o comando `/demanda` para registrar uma demanda\\. Os formatos aceitos são:\n" +
-    "1\\. Com data: `/demanda \\[data limite\\] \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
-    "2\\. Sem data: `/demanda \\[@destinatário(s)\\] \\[texto da demanda\\]`\n" +
-    "3\\. Comunicação: `/demanda comunicacao \\[data opcional\\] \\[texto da demanda\\]`\n" +
+    "Use o comando `/demanda` para registrar uma demanda. Os formatos aceitos são:\n" +
+    "1. Com data: `/demanda [data limite] [@destinatário(s)] [texto da demanda]`\n" +
+    "2. Sem data: `/demanda [@destinatário(s)] [texto da demanda]`\n" +
+    "3. Comunicação: `/demanda comunicacao [data opcional] [texto da demanda]`\n" +
     "Exemplos:\n`/demanda 22/09 @ameciclobot Fazer um bot pro Telegram`\n" +
     "`/demanda @ameciclobot Fazer um bot pro Telegram`\n" +
     "`/demanda comunicacao 15/12 Criar post sobre mobilidade`",
