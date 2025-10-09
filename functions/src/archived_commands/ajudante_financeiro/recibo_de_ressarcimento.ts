@@ -107,7 +107,7 @@ async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Arr
   const projectName = requestData.project.name || 'NOME_DO_PROJETO';
   const currentDate = getCurrentDate();
   
-  const reciboText = `Eu, ${supplierName}, inscrito no CPF sob o nº ${supplierCpf}, com domicílio na ${supplierAddress}, declaro que recebi da Associação Metropolitana de Ciclistas do Recife - Ameciclo, inscrita no CNPJ nº 19.297.825/0001-48, com sede na Rua da Aurora, nº 529, Loja 2, no bairro de Santo Amaro, na cidade do Recife - PE, a quantia de ${value} (${valueInWords}), referente ao ressarcimento de ${description} para o projeto ${projectName}.
+  const reciboText = `Eu, ${supplierName}, inscrito no CPF sob o nº ${supplierCpf}, com domicílio na ${supplierAddress}, declaro que recebi da Associação Metropolitana de Ciclistas do Recife - Ameciclo, inscrita no CNPJ nº 19.297.825/0001-48, com sede na Rua da Aurora, nº 529, Loja 2, no bairro de Santo Amaro, na cidade do Recife - PE, CEP: 50.050-145, a quantia de ${value} (${valueInWords}), referente ao ressarcimento de ${description} para o projeto ${projectName}.
 
 
 O comprovante fiscal das compras estão anexados a este recibo.
@@ -178,7 +178,7 @@ Recife, ${currentDate}.
   });
   
   // Nome completo
-  page.drawText('Nome Completo', {
+  page.drawText(supplierName, {
     x: 50,
     y: yPosition - 20,
     size: 10,
