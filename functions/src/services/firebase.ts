@@ -457,3 +457,21 @@ export async function setCachedFolders(parentFolderId: string, folders: any[]): 
     console.error('Erro ao salvar pastas em cache:', error);
   }
 }
+
+export async function addSubscriber(telegramUser: TelegramUserInfo): Promise<boolean> {
+  try {
+    const subscriberData = {
+      id: telegramUser.id,
+      name: `${telegramUser.first_name}${telegramUser.last_name ? ' ' + telegramUser.last_name : ''}`,
+      role: "SUBSCRIBER",
+      telegram_user: telegramUser,
+      updated_at: new Date().toISOString()
+    };
+
+    await admin.database().ref(`subscribers/${telegramUser.id}`).set(subscriberData);
+    return true;
+  } catch (error) {
+    console.error('Erro ao adicionar subscriber:', error);
+    return false;
+  }
+}
