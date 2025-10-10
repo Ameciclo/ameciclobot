@@ -142,6 +142,11 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
         return ctx.editMessageText("❌ Dados do beneficiário não encontrados.");
       }
       
+      if (!refundSupplier.address || refundSupplier.address.trim() === '') {
+        await ctx.editMessageText("⚠️ Atenção: Endereço do beneficiário não encontrado. O recibo será gerado com campo em branco.");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
       const fileLink = await ctx.telegram.getFileLink(fileId);
       const response = await fetch(fileLink.href);
       const pdfBuffer = Buffer.from(await response.arrayBuffer());
@@ -407,6 +412,73 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
 }
 
 // Funções auxiliares dos comandos originais
+function formatCurrency(value: string): string {
+  const numValue = parseFloat(value.replace(/[R$\s]/g, '').replace(',', '.'));
+  return numValue.toLocaleString('pt-BR', { 
+    style: 'currency', 
+    currency: 'BRL' 
+  });
+}
+
+function numberToWords(value: string): string {
+  const numValue = parseFloat(value.replace(/[R$\s]/g, '').replace(',', '.'));
+  const reais = Math.floor(numValue);
+  const centavos = Math.round((numValue - reais) * 100);
+  
+  const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+  const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  const especiais = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+  const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+  
+  function convertNumber(num: number): string {
+    if (num === 0) return '';
+    if (num === 100) return 'cem';
+    if (num < 10) return unidades[num];
+    if (num < 20) return especiais[num - 10];
+    if (num < 100) {
+      const dez = Math.floor(num / 10);
+      const uni = num % 10;
+      return `${dezenas[dez]}${uni > 0 ? ` e ${unidades[uni]}` : ''}`;
+    }
+    if (num < 1000) {
+      const cen = Math.floor(num / 100);
+      const resto = num % 100;
+      return `${centenas[cen]}${resto > 0 ? ` e ${convertNumber(resto)}` : ''}`;
+    }
+    return num.toString();
+  }
+  
+  let resultado = '';
+  
+  if (reais === 0) {
+    resultado = 'zero reais';
+  } else {
+    const reaisText = convertNumber(reais);
+    resultado = `${reaisText} ${reais === 1 ? 'real' : 'reais'}`;
+  }
+  
+  if (centavos > 0) {
+    const centavosText = convertNumber(centavos);
+    resultado += ` e ${centavosText} ${centavos === 1 ? 'centavo' : 'centavos'}`;
+  }
+  
+  return resultado;
+}
+
+function getCurrentDate(): string {
+  const now = new Date();
+  const months = [
+    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+  ];
+  
+  const day = now.getDate();
+  const month = months[now.getMonth()];
+  const year = now.getFullYear();
+  
+  return `${day} de ${month} de ${year}`;
+}
+
 async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
@@ -425,19 +497,87 @@ async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Arr
   
   const refundSupplier = typeof requestData.refundSupplier === 'string' ? null : requestData.refundSupplier;
   const supplierName = refundSupplier?.name || 'NOME_DO_BENEFICIÁRIO';
-  const value = requestData.value;
+  const supplierCpf = refundSupplier?.id_number?.trim() || 'CPF_DO_BENEFICIÁRIO';
+  const supplierAddress = refundSupplier?.address || 'ENDEREÇO_DO_BENEFICIÁRIO';
+  const value = formatCurrency(requestData.value);
+  const valueInWords = numberToWords(requestData.value);
   const description = requestData.description || 'DESCRIÇÃO_DO_RESSARCIMENTO';
   const projectName = requestData.project.name || 'NOME_DO_PROJETO';
+  const currentDate = getCurrentDate();
   
-  const reciboText = `Eu, ${supplierName}, declaro que recebi da Ameciclo a quantia de ${value}, referente ao ressarcimento de ${description} para o projeto ${projectName}.`;
+  const reciboText = `Eu, ${supplierName}, inscrito no CPF sob o nº ${supplierCpf}, com domicílio na ${supplierAddress}, declaro que recebi da Associação Metropolitana de Ciclistas do Recife - Ameciclo, inscrita no CNPJ nº 19.297.825/0001-48, com sede na Rua da Aurora, nº 529, Loja 2, no bairro de Santo Amaro, na cidade do Recife - PE, CEP: 50.050-145, a quantia de ${value} (${valueInWords}), referente ao ressarcimento de ${description} para o projeto ${projectName}.
+
+
+O comprovante fiscal das compras estão anexados a este recibo.
+
+
+
+Recife, ${currentDate}.
+
+
+
+
+`;
   
-  page.drawText(reciboText, {
+  const lines = reciboText.split('\n');
+  let yPosition = height - 150;
+  
+  for (const line of lines) {
+    if (line.trim() === '') {
+      yPosition -= 20;
+      continue;
+    }
+    
+    const words = line.split(' ');
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const textWidth = font.widthOfTextAtSize(testLine, 12);
+      
+      if (textWidth > width - 100) {
+        if (currentLine) {
+          page.drawText(currentLine, {
+            x: 50,
+            y: yPosition,
+            size: 12,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
+          yPosition -= 20;
+        }
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) {
+      page.drawText(currentLine, {
+        x: 50,
+        y: yPosition,
+        size: 12,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
+      yPosition -= 20;
+    }
+  }
+  
+  yPosition -= 60;
+  page.drawLine({
+    start: { x: 50, y: yPosition },
+    end: { x: 300, y: yPosition },
+    thickness: 1,
+    color: rgb(0, 0, 0),
+  });
+  
+  page.drawText(supplierName, {
     x: 50,
-    y: height - 150,
-    size: 12,
+    y: yPosition - 20,
+    size: 10,
     font: font,
     color: rgb(0, 0, 0),
-    maxWidth: width - 100,
   });
   
   return await pdfDoc.save();
