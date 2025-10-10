@@ -19,6 +19,9 @@ export function getDescription() {
 export function register(bot: Telegraf) {
   bot.command("informe", async (ctx: Context) => {
     try {
+      console.log("[informe] Comando /informe executado");
+      console.log("[informe] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
@@ -69,6 +72,7 @@ export function register(bot: Telegraf) {
       );
 
       if (success) {
+        console.log(`[informe] Informe registrado com sucesso por ${from.first_name}: "${inform}"`);
         return ctx.reply(
           `Valeu, ${from.first_name}! Registrado com sucesso! Veja na planilha:`,
           {
@@ -85,12 +89,13 @@ export function register(bot: Telegraf) {
           }
         );
       } else {
+        console.error("[informe] Erro ao salvar informe na planilha");
         return ctx.reply(
           "Houve um erro ao salvar a informe. Tente novamente mais tarde."
         );
       }
     } catch (error) {
-      console.error("Erro ao processar comando /informe:", error);
+      console.error("[informe] Erro ao processar comando /informe:", error);
       return ctx.reply(
         "Ocorreu um erro ao registrar sua informe. Tente novamente mais tarde."
       );

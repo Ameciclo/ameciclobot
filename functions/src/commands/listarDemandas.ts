@@ -8,7 +8,8 @@ import workgroups from "../credentials/workgroupsfolders.json";
 function registerListarDemandasCommand(bot: Telegraf) {
   bot.command("listar_demandas", async (ctx: Context): Promise<void> => {
     try {
-      console.log("[listar-demandas] Iniciando comando");
+      console.log("[listar_demandas] Comando /listar_demandas executado");
+      console.log("[listar_demandas] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
       
       const chat = ctx.message?.chat;
       if (!chat) {
@@ -76,10 +77,10 @@ function registerListarDemandasCommand(bot: Telegraf) {
         }
       });
 
-      console.log(`[listar-demandas] Listadas ${workgroupDemandas.length} demandas para ${currentWorkgroup.label}`);
+      console.log(`[listar_demandas] Listadas ${workgroupDemandas.length} demandas para ${currentWorkgroup.label}`);
 
     } catch (error) {
-      console.error("[listar-demandas] Erro:", error);
+      console.error("[listar_demandas] Erro:", error);
       await ctx.reply("Erro ao listar demandas. Tente novamente mais tarde.");
     }
   });

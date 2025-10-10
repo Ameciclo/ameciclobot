@@ -52,8 +52,13 @@ async function buildUserInfoMessage(ctx: Context): Promise<string> {
 }
 
 async function helpCommand(ctx: Context) {
+  console.log("[help] Comando /help executado");
+  console.log("[help] Usuário:", ctx.from ? `${ctx.from.first_name} (ID: ${ctx.from.id})` : "N/A");
+  
   const helpMessage = await buildUserInfoMessage(ctx);
   await ctx.reply(helpMessage, { parse_mode: "MarkdownV2" });
+  
+  console.log("[help] Mensagem de help enviada com sucesso");
 }
 
 function getCommandByName(name: string) {
@@ -61,6 +66,9 @@ function getCommandByName(name: string) {
 }
 
 async function helpCommandSpecific(ctx: Context, query: string) {
+  console.log(`[help] Comando /help executado com query: "${query}"`);
+  console.log("[help] Usuário:", ctx.from ? `${ctx.from.first_name} (ID: ${ctx.from.id})` : "N/A");
+  
   const normalizedCommand = query.startsWith("/") ? query : `/${query}`;
   let commandHelpers = getCommandByName(normalizedCommand);
   
@@ -123,6 +131,9 @@ Retorne APENAS o nome do comando (ex: /evento) ou "NENHUM" se não encontrar cor
 
 function register(bot: Telegraf) {
   bot.command(["help", "ajuda"], async (ctx: Context) => {
+    console.log("[ajuda] Comando /ajuda executado");
+    console.log("[ajuda] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+    
     if (ctx.message && "text" in ctx.message) {
       const text = ctx.message.text || "";
       const args = text.split(" ").slice(1);
@@ -143,6 +154,7 @@ function register(bot: Telegraf) {
 
 export function registerHelpCommand(bot: Telegraf) {
   bot.help(async (ctx: Context) => {
+    console.log("[help] Comando help (built-in) executado");
     await helpCommand(ctx);
   });
 }

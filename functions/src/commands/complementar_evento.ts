@@ -57,6 +57,9 @@ async function updateEventDescription(eventId: string, newDescription: string): 
 export async function registerComplementarEventoCommand(bot: Telegraf) {
   bot.command("complementar_evento", async (ctx: Context) => {
     try {
+      console.log("[complementar_evento] Comando /complementar_evento executado");
+      console.log("[complementar_evento] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const text = ctx.text || "";
       const match = text.match(
         /\/complementar_evento(?:@\w+)?\s+([a-zA-Z0-9_-]+)/
@@ -137,6 +140,7 @@ export async function registerComplementarEventoCommand(bot: Telegraf) {
         const success = await updateEventDescription(eventId, newDescription);
         
         if (success) {
+          console.log(`[complementar_evento] Descrição atualizada para evento: "${event.summary}"`);
           await ctx.reply(
             `✅ Descrição do evento "${event.summary}" atualizada com sucesso!\n\n📝 Nova descrição: ${newDescription}`
           );
@@ -209,6 +213,7 @@ export async function registerComplementarEventoCommand(bot: Telegraf) {
       const success = await addEventAttachment(eventId, uploadResponse, fileName);
 
       if (success) {
+        console.log(`[complementar_evento] Imagem anexada ao evento: "${event.summary}" - Arquivo: ${fileName}`);
         await ctx.reply(
           `✅ Imagem do evento "${event.summary}" anexada com sucesso!\n\n📁 Arquivo: ${fileName}\n📎 Anexo adicionado ao evento`
         );
@@ -219,7 +224,7 @@ export async function registerComplementarEventoCommand(bot: Telegraf) {
       }
 
     } catch (error) {
-      console.error("Erro ao complementar evento:", error);
+      console.error("[complementar_evento] Erro ao complementar evento:", error);
       await ctx.reply(
         "Ocorreu um erro ao processar o complemento do evento. Tente novamente."
       );

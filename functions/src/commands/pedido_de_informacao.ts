@@ -22,6 +22,9 @@ export function getDescription() {
 export function register(bot: Telegraf) {
   bot.command("pedido_de_informacao", async (ctx: Context) => {
     try {
+      console.log("[pedido_de_informacao] Comando /pedido_de_informacao executado");
+      console.log("[pedido_de_informacao] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
       const message = ctx.message;
@@ -125,6 +128,7 @@ export function register(bot: Telegraf) {
       );
 
       if (firebaseSuccess) {
+        console.log(`[pedido_de_informacao] Protocolo registrado com sucesso: ${protocol}`);
         return ctx.reply(
           `✅ Registrado com sucesso!\nProtocolo: ${protocol}\nSenha: ${password}`
         );
@@ -134,7 +138,7 @@ export function register(bot: Telegraf) {
         );
       }
     } catch (error) {
-      console.error("Erro no comando /pedido_de_informacao:", error);
+      console.error("[pedido_de_informacao] Erro no comando /pedido_de_informacao:", error);
       return ctx.reply("❌ Ocorreu um erro ao processar sua solicitação.");
     }
   });

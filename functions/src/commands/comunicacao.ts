@@ -72,7 +72,8 @@ function formatDateDDMM(date: Date): string {
 function registerComunicacaoCommand(bot: Telegraf) {
   bot.command("comunicacao", async (ctx: Context) => {
     try {
-      console.log("[comunicacao] Comando recebido");
+      console.log("[comunicacao] Comando /comunicacao executado");
+      console.log("[comunicacao] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
       
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
@@ -219,6 +220,7 @@ function registerComunicacaoCommand(bot: Telegraf) {
       }
       
       // Resposta de sucesso
+      console.log(`[comunicacao] Demanda registrada com sucesso por ${from.first_name}: "${text}"`);
       await ctx.reply(
         `✅ Valeu, ${escapeMarkdownV2(from.first_name)}\\! Demanda de comunicação registrada com sucesso\\!`,
         {

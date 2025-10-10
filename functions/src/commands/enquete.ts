@@ -4,6 +4,9 @@ import { Context, Telegraf } from "telegraf";
 function registerEnqueteCommand(bot: Telegraf) {
   bot.command("enquete", async (ctx: Context) => {
     try {
+      console.log("[enquete] Comando /enquete executado");
+      console.log("[enquete] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
@@ -55,6 +58,7 @@ function registerEnqueteCommand(bot: Telegraf) {
       console.log(
         `[enquete] Enquete criada por ${from.first_name}: "${enqueteText}"`
       );
+      console.log("[enquete] Comando /enquete concluído com sucesso");
     } catch (error) {
       console.error("[enquete] Erro no comando:", error);
       await ctx.reply(

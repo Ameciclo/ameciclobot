@@ -17,6 +17,9 @@ export function buildCommandsMessage(header: string, footer: string): string {
 }
 
 async function startCommand(ctx: Context) {
+  console.log("[start] Comando /start executado");
+  console.log("[start] Usuário:", ctx.from ? `${ctx.from.first_name} (ID: ${ctx.from.id})` : "N/A");
+  
   // Adicionar usuário aos subscribers se não existir
   if (ctx.from) {
     try {
@@ -44,7 +47,7 @@ Aqui estão os comandos disponíveis:`;
 🚀 Bora começar? Digite um dos comandos acima para usar o bot\\!`;
 
   const startMessage = buildCommandsMessage(header, footer);
-  console.log("Mensagem de start:", startMessage);
+  console.log("[start] Mensagem de start enviada com sucesso");
   await ctx.reply(startMessage, { parse_mode: "MarkdownV2" });
 }
 
@@ -56,6 +59,8 @@ export function registerStartCommand(bot: Telegraf) {
 
 function registerIniciarCommand(bot: Telegraf) {
   bot.command("iniciar", async (ctx: Context) => {
+    console.log("[iniciar] Comando /iniciar executado");
+    console.log("[iniciar] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
     await startCommand(ctx);
   });
 }

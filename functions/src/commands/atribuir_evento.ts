@@ -7,6 +7,9 @@ import { escapeMarkdownV2 } from "../utils/utils";
 export const atribuirEventoCommand = {
   register: (bot: Telegraf) => {
     bot.command("atribuir_evento", async (ctx: Context) => {
+      console.log("[atribuir_evento] Comando /atribuir_evento executado");
+      console.log("[atribuir_evento] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const args = ctx.message && 'text' in ctx.message ? ctx.message.text.split(" ").slice(1) : [];
       
       if (!args || args.length === 0) {
@@ -76,9 +79,11 @@ export const atribuirEventoCommand = {
           parse_mode: "MarkdownV2",
           reply_markup: keyboard.reply_markup
         });
+        
+        console.log(`[atribuir_evento] Interface de atribuição exibida para evento: "${eventTitle}"`);
 
       } catch (error) {
-        console.error("Erro ao buscar evento:", error);
+        console.error("[atribuir_evento] Erro ao buscar evento:", error);
         await ctx.reply("❌ Erro ao buscar o evento. Verifique se o ID está correto.");
       }
     });

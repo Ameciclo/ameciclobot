@@ -11,6 +11,10 @@ const sessions = new Map<number, PdfSession>();
 
 export async function registerUnirPdfsCommand(bot: Telegraf) {
   bot.command("unir_pdfs", async (ctx: Context) => {
+    console.log("[unir_pdfs] Comando /unir_pdfs executado");
+    console.log("[unir_pdfs] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+    console.log("[unir_pdfs] Usuário:", ctx.from ? `${ctx.from.first_name} (ID: ${ctx.from.id})` : "N/A");
+    
     const userId = ctx.from?.id;
     if (!userId) return;
 
@@ -24,6 +28,8 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
       [Markup.button.callback("❌ CANCELAR", `cancel_pdf_${userId}`)],
     ]);
 
+    console.log(`[unir_pdfs] Sessão iniciada para usuário ${userId}`);
+    
     await ctx.reply(
       "📄 Envie o primeiro arquivo PDF que deseja unir:",
       keyboard
@@ -33,6 +39,7 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
   // Handler para cancelar
   bot.action(/^cancel_pdf_(\d+)$/, async (ctx) => {
     const userId = parseInt(ctx.match[1]);
+    console.log(`[unir_pdfs] Sessão cancelada para usuário ${userId}`);
     sessions.delete(userId);
     await ctx.editMessageText("❌ Operação cancelada.");
     await ctx.answerCbQuery();
@@ -62,6 +69,8 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
       const pdfBytes = await mergedPdf.save();
       const fileName = `PDFs_Unidos_${Date.now()}.pdf`;
 
+      console.log(`[unir_pdfs] ${session.pdfs.length} PDFs unidos com sucesso para usuário ${userId}`);
+      
       await ctx.replyWithDocument(
         {
           source: Buffer.from(pdfBytes),
@@ -72,7 +81,7 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
         }
       );
     } catch (error) {
-      console.error("Erro ao unir PDFs:", error);
+      console.error(`[unir_pdfs] Erro ao unir PDFs para usuário ${userId}:`, error);
       await ctx.reply("❌ Erro ao unir os PDFs. Tente novamente.");
     }
 
@@ -107,6 +116,8 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
 
       session.pdfs.push(pdfBuffer);
       session.step = "waiting_next";
+      
+      console.log(`[unir_pdfs] PDF ${session.pdfs.length} adicionado para usuário ${userId}`);
 
       const buttons = [
         [Markup.button.callback("❌ CANCELAR", `cancel_pdf_${userId}`)],
@@ -125,7 +136,7 @@ export async function registerUnirPdfsCommand(bot: Telegraf) {
         keyboard
       );
     } catch (error) {
-      console.error("Erro ao processar PDF:", error);
+      console.error(`[unir_pdfs] Erro ao processar PDF para usuário ${userId}:`, error);
       await ctx.reply("❌ Erro ao processar o PDF. Tente novamente.");
     }
   });

@@ -110,6 +110,9 @@ const schedulers = [
 
 function registerTestarRotinasCommand(bot: Telegraf) {
   bot.command("testar_rotinas", async (ctx: Context) => {
+    console.log("[testar_rotinas] Comando /testar_rotinas executado");
+    console.log("[testar_rotinas] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+    
     // Verificar se é chat privado
     if (ctx.chat?.type !== 'private') {
       await ctx.reply("❌ Este comando só pode ser usado no chat privado do bot.");
@@ -119,6 +122,8 @@ function registerTestarRotinasCommand(bot: Telegraf) {
     const buttons = schedulers.map(scheduler => 
       [Markup.button.callback(scheduler.name, `exec_${scheduler.key}`)]
     );
+    
+    console.log("[testar_rotinas] Interface de teste de rotinas exibida");
     
     await ctx.reply(
       "🤖 Escolha qual scheduler executar:", 
@@ -142,9 +147,10 @@ function registerTestarRotinasCommand(bot: Telegraf) {
           await scheduler.func(bot, ctx.chat?.id);
         }
         
+        console.log(`[testar_rotinas] Scheduler ${scheduler.key} executado com sucesso`);
         await ctx.editMessageText(`✅ ${scheduler.name} executado com sucesso!`);
       } catch (err) {
-        console.error(`[executar_scheduler] Erro ao executar ${scheduler.key}:`, err);
+        console.error(`[testar_rotinas] Erro ao executar ${scheduler.key}:`, err);
         await ctx.editMessageText(`❌ Erro ao executar ${scheduler.name}: ${err}`);
       }
     });

@@ -4,6 +4,9 @@ import * as QRCode from "qrcode";
 function registerQrcodeCommand(bot: Telegraf) {
   bot.command("qrcode", async (ctx: Context) => {
     try {
+      console.log("[qrcode] Comando /qrcode executado");
+      console.log("[qrcode] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       let link = "";
 
       // Verifica se é resposta a uma mensagem
@@ -37,8 +40,10 @@ function registerQrcodeCommand(bot: Telegraf) {
         { source: qrBuffer },
         { caption: `📱 QR Code para: ${link}` }
       );
+      
+      console.log("[qrcode] QR Code gerado com sucesso para:", link);
     } catch (error) {
-      console.error("Erro ao gerar QR Code:", error);
+      console.error("[qrcode] Erro ao gerar QR Code:", error);
       await ctx.reply("❌ Erro ao gerar QR Code. Tente novamente.");
     }
   });

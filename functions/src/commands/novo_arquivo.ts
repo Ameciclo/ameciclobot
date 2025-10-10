@@ -3,6 +3,9 @@ import { setTempData } from "../services/firebase";
 
 function registerNovoArquivoCommand(bot: Telegraf) {
   bot.command("novo_arquivo", async (ctx: Context) => {
+    console.log("[novo_arquivo] Comando /novo_arquivo executado");
+    console.log("[novo_arquivo] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+    
     if (!ctx.message || !("text" in ctx.message)) {
       return ctx.reply("Este comando só pode ser utilizado com mensagens de texto.");
     }
@@ -30,6 +33,8 @@ function registerNovoArquivoCommand(bot: Telegraf) {
       [{ text: "📋 Modelo", callback_data: `new_file:modelo:${messageId}` }]
     ];
 
+    console.log(`[novo_arquivo] Solicitação de criação de arquivo: "${title}"`);
+    
     return ctx.reply(
       `Que tipo de arquivo você quer criar?\nTítulo: ${title}`,
       { reply_markup: { inline_keyboard: buttons } }
