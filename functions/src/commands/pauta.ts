@@ -24,6 +24,7 @@ function registerPautaCommand(bot: Telegraf) {
 
       if (!from || !chat || !topic) {
         return ctx.reply(pautaCommand.help(), {
+          parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [
               [

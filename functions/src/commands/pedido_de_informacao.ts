@@ -117,7 +117,7 @@ export function register(bot: Telegraf) {
       }
 
       if (!protocol || !password) {
-        return ctx.reply(getHelp());
+        return ctx.reply(getHelp(), { parse_mode: "Markdown" });
       }
       // Save to Firebase
       const firebaseSuccess = await saveProtocolRecord(

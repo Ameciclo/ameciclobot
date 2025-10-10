@@ -36,6 +36,7 @@ export function register(bot: Telegraf) {
 
       if (!from || !chat || !inform) {
         return ctx.reply(getHelp(), {
+          parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [
               [
