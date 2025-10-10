@@ -1,14 +1,30 @@
 import { Context, Markup, Telegraf } from "telegraf";
+import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
+import workgroups from "../credentials/workgroupsfolders.json";
 
 export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
   bot.command("ajudante_financeiro", async (ctx: Context) => {
     try {
+      console.log("[ajudante_financeiro] Comando /ajudante_financeiro executado");
+      console.log("[ajudante_financeiro] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
+      // Validação do grupo financeiro primeiro
+      const currentChatId = ctx.chat?.id?.toString();
+      const financeiroGroup = workgroups.find(
+        (group: any) => group.label === projectsSpreadsheet.workgroup
+      );
+
+      if (!financeiroGroup || currentChatId !== financeiroGroup.value) {
+        return ctx.reply("❌ Este comando só pode ser executado no grupo Financeiro.");
+      }
+
       const message = ctx.message as any;
       
       // Verifica se é resposta a um arquivo
       if (message?.reply_to_message?.document) {
         const text = ctx.text || "";
         const match = text.match(/\/ajudante_financeiro(?:@\w+)?\s+(.+)/);
+        const fileId = message.reply_to_message.document.file_id;
         
         // Se tem ID após o comando, pergunta se quer arquivar comprovante ou fazer recibo
         if (match && match[1]) {
@@ -16,15 +32,18 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
           
           const keyboard = Markup.inlineKeyboard([
             [
-              Markup.button.callback("📎 Arquivar Comprovante", `ajudante_arquivar_comprovante_${requestId}`),
-              Markup.button.callback("📄 Recibo Ressarcimento", `ajudante_recibo_ressarcimento_${requestId}`)
+              Markup.button.callback("📎 Arquivar Comprovante", "arquivar_comprovante"),
+              Markup.button.callback("📄 Recibo Ressarcimento", "recibo_ressarcimento")
             ],
             [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
           ]);
           
+          console.log(`[ajudante_financeiro] Arquivo com ID detectado: ${requestId}, File ID: ${fileId}`);
+          
           return ctx.reply(
             `📁 *Arquivo com ID detectado!*\n\n` +
-            `ID da transação: \`${requestId}\`\n\n` +
+            `ID da transação: \`${requestId}\`\n` +
+            `File ID: \`${fileId}\`\n\n` +
             `O que você deseja fazer?\n\n` +
             `• *Arquivar Comprovante*: Arquiva comprovante de pagamento\n` +
             `• *Recibo Ressarcimento*: Gera recibo de ressarcimento com notas fiscais`,
@@ -35,14 +54,17 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
         // Se não tem ID, pergunta o que fazer com o arquivo
         const keyboard = Markup.inlineKeyboard([
           [
-            Markup.button.callback("📊 Arquivar Extrato PDF", "ajudante_arquivar_extrato"),
-            Markup.button.callback("💰 Processar Extrato", "ajudante_processar_extrato")
+            Markup.button.callback("📊 Arquivar Extrato PDF", "arquivar_extrato"),
+            Markup.button.callback("💰 Processar Extrato", "processar_extrato")
           ],
           [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
         ]);
         
+        console.log(`[ajudante_financeiro] Arquivo detectado sem ID, File ID: ${fileId}`);
+        
         return ctx.reply(
-          "📁 *Arquivo detectado!*\n\n" +
+          `📁 *Arquivo detectado!*\n\n` +
+          `File ID: \`${fileId}\`\n\n` +
           "O que você deseja fazer com este arquivo?\n\n" +
           "• *Arquivar Extrato PDF*: Arquiva um extrato bancário em PDF no Google Drive\n" +
           "• *Processar Extrato*: Processa extratos CSV/TXT e adiciona na planilha financeira\n\n" +
@@ -55,11 +77,13 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
       // Se não é resposta a arquivo, mostra opções principais
       const keyboard = Markup.inlineKeyboard([
         [
-          Markup.button.callback("📋 Atualizar Pendências", "ajudante_pendencias"),
-          Markup.button.callback("🔄 Atualizar Projetos", "ajudante_projetos")
+          Markup.button.callback("📋 Atualizar Pendências", "atualizar_pendencias"),
+          Markup.button.callback("🔄 Atualizar Projetos", "atualizar_projetos")
         ],
         [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
       ]);
+      
+      console.log("[ajudante_financeiro] Interface principal do ajudante financeiro exibida");
       
       return ctx.reply(
         "🤖 *Ajudante Financeiro*\n\n" +
@@ -80,7 +104,7 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
         { ...keyboard, parse_mode: "Markdown" }
       );
     } catch (error) {
-      console.error("Erro no ajudante financeiro:", error);
+      console.error("[ajudante_financeiro] Erro no ajudante financeiro:", error);
       return ctx.reply("Ocorreu um erro. Tente novamente.");
     }
   });
