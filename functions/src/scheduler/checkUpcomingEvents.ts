@@ -60,7 +60,7 @@ async function getFirebaseEventId(googleEventId: string): Promise<string | null>
 }
 
 // Função para verificar eventos que começam em 30 minutos
-export const checkUpcomingEvents = async (bot: Telegraf) => {
+export const checkUpcomingEvents = async (bot: Telegraf, privateChatId?: number) => {
   console.log("Verificando eventos que começam em 30 minutos...");
   try {
     const now = new Date();
@@ -96,15 +96,24 @@ export const checkUpcomingEvents = async (bot: Telegraf) => {
 
       const message = buildEventReminderMessage(event);
 
-      // Envia notificação para cada participante
-      for (const userId of participantIds) {
-        try {
-          await bot.telegram.sendMessage(userId, message, {
-            parse_mode: "MarkdownV2",
-          } as any);
-          console.log(`Notificação enviada para usuário ${userId}`);
-        } catch (error) {
-          console.error(`Erro ao enviar notificação para usuário ${userId}:`, error);
+      if (privateChatId) {
+        // Enviar no chat privado
+        const privateMessage = `🔔 **Evento Próximo:**\n\n${message}`;
+        await bot.telegram.sendMessage(privateChatId, privateMessage, {
+          parse_mode: "MarkdownV2",
+        } as any);
+        console.log(`Notificação do evento enviada no chat privado`);
+      } else {
+        // Envia notificação para cada participante (comportamento original)
+        for (const userId of participantIds) {
+          try {
+            await bot.telegram.sendMessage(userId, message, {
+              parse_mode: "MarkdownV2",
+            } as any);
+            console.log(`Notificação enviada para usuário ${userId}`);
+          } catch (error) {
+            console.error(`Erro ao enviar notificação para usuário ${userId}:`, error);
+          }
         }
       }
 

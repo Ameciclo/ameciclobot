@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
-import { appendSheetRowAsPromise } from "../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
-import urls from "../credentials/urls.json";
+import { appendSheetRowAsPromise } from "../../services/google"; // Supondo que você tenha um serviço para integração com Google Sheets
+import urls from "../../credentials/urls.json";
 
 const MIN_TOPIC_SIZE = 5;
 

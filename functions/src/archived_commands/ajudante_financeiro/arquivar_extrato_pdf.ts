@@ -1,8 +1,8 @@
 import { Context, Markup, Telegraf } from "telegraf";
 // @ts-ignore
 import pdfParse from "pdf-parse";
-import getAccounts from "../credentials/accounts.json";
-import workgroups from "../credentials/workgroupsfolders.json";
+import getAccounts from "../../credentials/accounts.json";
+import workgroups from "../../credentials/workgroupsfolders.json";
 
 // Função para converter mês por extenso para número
 function convertMonthToNumber(month: string): string {

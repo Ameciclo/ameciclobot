@@ -1,5 +1,5 @@
 import { Context, Telegraf } from 'telegraf';
-import { getUserData, updateUserEmail } from '../services/firebase';
+import { getUserData, updateUserEmail } from '../../services/firebase';
 
 export function getName() {
   return "/quem_sou_eu";

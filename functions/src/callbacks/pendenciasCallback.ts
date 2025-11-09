@@ -1,5 +1,5 @@
 import { Telegraf } from "telegraf";
-import { processProjectsByStatus, listProjectsInProgress, processProjectById } from "../commands/atualizar_pendencias";
+import { processProjectsByStatus, listProjectsInProgress, processProjectById } from "../archived_commands/ajudante_financeiro/atualizar_pendencias";
 
 export function registerPendenciasCallbacks(bot: Telegraf) {
   // Callback para processar a seleção de status

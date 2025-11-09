@@ -1,7 +1,7 @@
 import { Context, Markup, Telegraf } from "telegraf";
-import { getRequestData, updatePaymentRequest } from "../services/firebase";
-import { uploadInvoice } from "../services/google";
-import { formatDate } from "../utils/utils";
+import { getRequestData, updatePaymentRequest } from "../../services/firebase";
+import { uploadInvoice } from "../../services/google";
+import { formatDate } from "../../utils/utils";
 
 // Função para sanitizar o nome do arquivo
 function sanitizeFileName(text: string, maxLength = 50): string {

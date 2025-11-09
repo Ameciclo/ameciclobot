@@ -7,7 +7,7 @@ import { getSheetsClient } from "../services/google";
 import { Telegraf } from "telegraf";
 import { Markup } from "telegraf";
 
-export const checkGoogleForms = async (bot: Telegraf) => {
+export const checkGoogleForms = async (bot: Telegraf, privateChatId?: number) => {
   console.log("Iniciando verificação de planilhas...");
   try {
     const forms = await getRegisteredForms();
@@ -57,12 +57,13 @@ export const checkGoogleForms = async (bot: Telegraf) => {
           ],
         ]);
 
-        await bot.telegram.sendMessage(telegramGroupId, message, {
+        const targetChatId = privateChatId || telegramGroupId;
+        await bot.telegram.sendMessage(targetChatId, message, {
           parse_mode: "HTML",
           reply_markup: buttons.reply_markup,
         });
         console.log(
-          `Notificação enviada para o grupo ${telegramGroupId} para a planilha "${sheetId}".`
+          `Notificação enviada para o ${privateChatId ? 'chat privado' : `grupo ${telegramGroupId}`} para a planilha "${sheetId}".`
         );
       } else {
         console.log(

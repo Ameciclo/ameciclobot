@@ -1,10 +1,10 @@
 // src/commands/processarExtratoFiCommand.ts
 import { Context, Telegraf } from "telegraf";
-import axiosInstance from "../config/httpService";
-import getAccounts from "../credentials/accounts.json"; // Array de contas
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json"; // Contém { id, statementsFolder, workgroup, ... }
-import { appendExtratoRow, uploadCSVToDrive } from "../services/google";
-import workgroups from "../credentials/workgroupsfolders.json";
+import axiosInstance from "../../config/httpService";
+import getAccounts from "../../credentials/accounts.json"; // Array de contas
+import projectsSpreadsheet from "../../credentials/projectsSpreadsheet.json"; // Contém { id, statementsFolder, workgroup, ... }
+import { appendExtratoRow, uploadCSVToDrive } from "../../services/google";
+import workgroups from "../../credentials/workgroupsfolders.json";
 import iconv from "iconv-lite";
 
 async function processExtratoTxt(fileUrl: string): Promise<{

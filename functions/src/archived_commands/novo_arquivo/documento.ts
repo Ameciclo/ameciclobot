@@ -1,8 +1,35 @@
 import { Context, Telegraf } from "telegraf";
-import { createDocument, listFolders } from "../services/google";
-import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
+import { createDocument, listFolders } from "../../services/google";
+import { setTempData, getCachedFolders, setCachedFolders } from "../../services/firebase";
 // Importa a lista de grupos a partir do arquivo de configuração
-import workgroups from "../credentials/workgroupsfolders.json";
+import workgroups from "../../credentials/workgroupsfolders.json";
+
+function createFolderKeyboard(subfolders: any[], tempId: string) {
+  const buttons = [
+    [{ text: "📁 Pasta Raiz", callback_data: `move_doc:${tempId}:root` }]
+  ];
+
+  for (let i = 0; i < subfolders.length; i += 2) {
+    const row = [];
+    
+    row.push({
+      text: `📂 ${subfolders[i].name.substring(0, 20)}`,
+      callback_data: `move_doc:${tempId}:${i}`
+    });
+    
+    if (i + 1 < subfolders.length) {
+      row.push({
+        text: `📂 ${subfolders[i + 1].name.substring(0, 20)}`,
+        callback_data: `move_doc:${tempId}:${i + 1}`
+      });
+    }
+    
+    buttons.push(row);
+  }
+
+  buttons.push([{ text: "🔄 Atualizar Pastas", callback_data: `refresh_folders:${tempId}` }]);
+  return buttons;
+}
 
 function createFolderKeyboard(subfolders: any[], tempId: string) {
   const buttons = [

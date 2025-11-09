@@ -20,6 +20,9 @@ export function getDescription() {
 export function register(bot: Telegraf) {
   bot.command("clipping", async (ctx: Context) => {
     try {
+      console.log("[clipping] Comando /clipping executado");
+      console.log("[clipping] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
@@ -77,6 +80,7 @@ export function register(bot: Telegraf) {
       );
 
       if (success) {
+        console.log(`[clipping] Clipping registrado com sucesso por ${from.first_name}: "${url}"`);
         return ctx.reply(
           `Valeu, ${from.first_name}! Registrado com sucesso! Veja na planilha:`,
           {
@@ -93,12 +97,13 @@ export function register(bot: Telegraf) {
           }
         );
       } else {
+        console.error("[clipping] Erro ao salvar clipping na planilha");
         return ctx.reply(
           "Houve um erro ao salvar a clipping. Tente novamente mais tarde."
         );
       }
     } catch (error) {
-      console.error("Erro ao processar comando /clipping:", error);
+      console.error("[clipping] Erro ao processar comando /clipping:", error);
       return ctx.reply(
         "Ocorreu um erro ao registrar sua clipping. Tente novamente mais tarde."
       );

@@ -1,8 +1,8 @@
 import { Context, Telegraf } from "telegraf";
-import { appendSheetRowAsPromise } from "../services/google";
-import { escapeMarkdownV2 } from "../utils/utils";
-import urls from "../credentials/urls.json";
-import workgroups from "../credentials/workgroupsfolders.json";
+import { appendSheetRowAsPromise } from "../../services/google";
+import { escapeMarkdownV2 } from "../../utils/utils";
+import urls from "../../credentials/urls.json";
+import workgroups from "../../credentials/workgroupsfolders.json";
 
 const MIN_TOPIC_SIZE = 5;
 

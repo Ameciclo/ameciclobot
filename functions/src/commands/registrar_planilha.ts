@@ -17,6 +17,9 @@ export function getDescription() {
 
 export function register(bot: Telegraf) {
   bot.command("registrar_planilha", async (ctx: Context) => {
+    console.log("[registrar_planilha] Comando /registrar_planilha executado");
+    console.log("[registrar_planilha] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+    
     if (!ctx.message || !("text" in ctx.message)) {
       return ctx.reply(
         "Este comando só pode ser usado com mensagens de texto."
@@ -64,12 +67,14 @@ export function register(bot: Telegraf) {
         [Markup.button.url("Ver planilha", sheetUrl)],
       ]);
 
+      console.log(`[registrar_planilha] Planilha registrada com sucesso: ${sheetDetails.name} (ID: ${sheetId})`);
+      
       return ctx.reply(
         `Planilha registrada com sucesso!\nID: ${sheetId}\nNome: ${sheetDetails.name}\nÚltima linha registrada: ${lastRow}`,
         buttons
       );
     } catch (error) {
-      console.error("Erro ao registrar planilha:", error);
+      console.error("[registrar_planilha] Erro ao registrar planilha:", error);
       return ctx.reply("Ocorreu um erro ao registrar a planilha.");
     }
   });

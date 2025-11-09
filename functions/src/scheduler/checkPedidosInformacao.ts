@@ -149,7 +149,7 @@ export const verificarProtocoloEspecifico = async (protocolo: string, bot: Teleg
   }
 };
 
-export const checkPedidosInformacao = async (bot: Telegraf) => {
+export const checkPedidosInformacao = async (bot: Telegraf, privateChatId?: number) => {
   const startTime = new Date().toISOString();
   console.log(`[${startTime}] Iniciando verificação de pedidos de informação...`);
   
@@ -190,6 +190,14 @@ export const checkPedidosInformacao = async (bot: Telegraf) => {
     
     const endTime = new Date().toISOString();
     console.log(`[${endTime}] Verificação concluída: ${verificados} pedidos verificados, ${atualizados} atualizados, ${novasRespostas} novas respostas`);
+    
+    if (privateChatId) {
+      const message = `📋 **Verificação de Pedidos de Informação:**\n\n` +
+        `✅ ${verificados} pedidos verificados\n` +
+        `🔄 ${atualizados} atualizados\n` +
+        `🔔 ${novasRespostas} novas respostas`;
+      await bot.telegram.sendMessage(privateChatId, message, { parse_mode: "Markdown" });
+    }
   } catch (error) {
     console.error(`[${startTime}] Erro ao verificar pedidos de informação:`, error);
   }

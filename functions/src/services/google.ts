@@ -735,37 +735,58 @@ export async function getEventDetails(
 }
 
 export async function getEventById(eventId: string): Promise<any> {
+  console.log("[getEventById] Buscando evento:", eventId);
   const calendar = google.calendar({ version: "v3", auth });
   const calendarConfigs = calendars as CalendarConfig[];
   
   // Primeiro tenta buscar diretamente pelo ID do Google Calendar
   for (const calendarConfig of calendarConfigs) {
     try {
+      console.log("[getEventById] Tentando calendário:", calendarConfig.id);
       const response = await calendar.events.get({
         calendarId: calendarConfig.id,
         eventId,
       });
+      console.log("[getEventById] Evento encontrado no calendário:", calendarConfig.id);
       return response.data;
     } catch (error) {
+      console.log("[getEventById] Erro no calendário", calendarConfig.id, ":", (error as any).message);
       // Continua tentando nos outros calendários
       continue;
     }
   }
   
   // Se não encontrou, pode ser um ID do Firebase, busca no Firebase
+  console.log("[getEventById] Tentando buscar no Firebase:", eventId);
   try {
     const snapshot = await admin.database().ref(`calendar/${eventId}`).once('value');
     const eventData = snapshot.val();
+    console.log("[getEventById] Dados do Firebase:", eventData);
     
-    if (eventData && eventData.calendarEventId) {
-      // Tenta buscar pelo ID real do Google Calendar
-      return await getEventById(eventData.calendarEventId);
+    if (eventData && (eventData.calendarEventId || eventData.googleEventId)) {
+      const realEventId = eventData.calendarEventId || eventData.googleEventId;
+      console.log("[getEventById] Encontrado ID real no Firebase:", realEventId);
+      // Evita recursão infinita - busca diretamente no Google Calendar
+      for (const calendarConfig of calendarConfigs) {
+        try {
+          console.log("[getEventById] Tentando buscar ID real no calendário:", calendarConfig.id);
+          const response = await calendar.events.get({
+            calendarId: calendarConfig.id,
+            eventId: realEventId,
+          });
+          console.log("[getEventById] Evento real encontrado:", response.data.summary);
+          return response.data;
+        } catch (error) {
+          console.log("[getEventById] Erro ao buscar ID real no calendário", calendarConfig.id, ":", (error as any).message);
+          continue;
+        }
+      }
     }
   } catch (error) {
-    console.error(`Erro ao buscar evento no Firebase: ${error}`);
+    console.error(`[getEventById] Erro ao buscar evento no Firebase: ${error}`);
   }
   
-  console.error(`Evento ${eventId} não encontrado em nenhum calendário`);
+  console.error(`[getEventById] Evento ${eventId} não encontrado em nenhum calendário`);
   return null;
 }
 
@@ -831,53 +852,42 @@ export async function updateEventWorkgroup(
   const calendar = google.calendar({ version: "v3", auth });
   const calendarConfigs = calendars as CalendarConfig[];
   
-  // Busca o evento e identifica qual calendário ele pertence
-  let eventData = null;
-  let correctCalendarId = null;
+  // Primeiro tenta buscar o evento real
+  const event = await getEventById(eventId);
+  if (!event) {
+    console.error(`Evento ${eventId} não encontrado para atualizar workgroup`);
+    return false;
+  }
   
+  // Encontra o calendário correto
   for (const calendarConfig of calendarConfigs) {
     try {
-      const response = await calendar.events.get({
+      // Atualiza com o workgroup
+      await calendar.events.update({
         calendarId: calendarConfig.id,
-        eventId,
+        eventId: event.id,
+        requestBody: {
+          ...event,
+          extendedProperties: {
+            ...event.extendedProperties,
+            private: {
+              ...event.extendedProperties?.private,
+              workgroup: workgroupId,
+            },
+          },
+        },
       });
-      eventData = response.data;
-      correctCalendarId = calendarConfig.id;
-      break; // Encontrou o evento, para a busca
+      
+      console.log(`Evento ${event.id} atribuído ao workgroup ${workgroupId}`);
+      return true;
     } catch (error) {
-      // Continua procurando nos outros calendários
+      // Continua tentando nos outros calendários
       continue;
     }
   }
   
-  if (!eventData || !correctCalendarId) {
-    console.error(`Evento ${eventId} não encontrado em nenhum calendário`);
-    return false;
-  }
-  
-  try {
-    // Atualiza apenas no calendário correto
-    await calendar.events.update({
-      calendarId: correctCalendarId,
-      eventId: eventData.id,
-      requestBody: {
-        ...eventData,
-        extendedProperties: {
-          ...eventData.extendedProperties,
-          private: {
-            ...eventData.extendedProperties?.private,
-            workgroup: workgroupId,
-          },
-        },
-      },
-    });
-    
-    console.log(`Evento ${eventData.id} atribuído ao workgroup ${workgroupId} no calendário ${correctCalendarId}`);
-    return true;
-  } catch (error) {
-    console.error(`Erro ao atualizar evento ${eventId}:`, error);
-    return false;
-  }
+  console.error(`Erro ao atualizar evento ${eventId}`);
+  return false;
 }
 
 // ------------------------------------------------------

@@ -7,6 +7,9 @@ const MIN_TOPIC_SIZE = 5;
 function registerPautaCommand(bot: Telegraf) {
   bot.command("pauta", async (ctx: Context) => {
     try {
+      console.log("[pauta] Comando /pauta executado");
+      console.log("[pauta] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
+      
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
 
@@ -21,6 +24,7 @@ function registerPautaCommand(bot: Telegraf) {
 
       if (!from || !chat || !topic) {
         return ctx.reply(pautaCommand.help(), {
+          parse_mode: "Markdown",
           reply_markup: {
             inline_keyboard: [
               [
@@ -57,6 +61,7 @@ function registerPautaCommand(bot: Telegraf) {
       );
 
       if (success) {
+        console.log(`[pauta] Pauta registrada com sucesso por ${from.first_name}: "${topic}"`);
         return ctx.reply(
           `Valeu, ${from.first_name}! Registrado com sucesso! Veja na planilha:`,
           {
@@ -73,12 +78,13 @@ function registerPautaCommand(bot: Telegraf) {
           }
         );
       } else {
+        console.error("[pauta] Erro ao salvar pauta na planilha");
         return ctx.reply(
           "Houve um erro ao salvar a pauta. Tente novamente mais tarde."
         );
       }
     } catch (error) {
-      console.error("Erro ao processar comando /pauta:", error);
+      console.error("[pauta] Erro ao processar comando /pauta:", error);
       return ctx.reply(
         "Ocorreu um erro ao registrar sua pauta. Tente novamente mais tarde."
       );

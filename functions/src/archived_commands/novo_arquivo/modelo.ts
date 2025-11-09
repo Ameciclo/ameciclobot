@@ -1,9 +1,9 @@
 // src/commands/modelo.ts
 import { Context, Telegraf, Markup } from "telegraf";
-import { listModelsFromFolder } from "../services/google";
-import { setTempData } from "../services/firebase";
-import { getPreviewTitle } from "../utils/utils";
-import workgroups from "../credentials/workgroupsfolders.json";
+import { listModelsFromFolder } from "../../services/google";
+import { setTempData } from "../../services/firebase";
+import { getPreviewTitle } from "../../utils/utils";
+import workgroups from "../../credentials/workgroupsfolders.json";
 
 async function registerModeloCommand(bot: Telegraf) {
   bot.command("modelo", async (ctx: Context) => {

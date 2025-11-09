@@ -5,7 +5,7 @@ import { getAllRequests } from "../services/firebase";
 import workgroups from "../credentials/workgroupsfolders.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 
-export const checkScheduledPayments = async (bot: Telegraf) => {
+export const checkScheduledPayments = async (bot: Telegraf, privateChatId?: number) => {
   console.log("Iniciando verificação de agendamentos bancários...");
   try {
     // Obtém todas as solicitações (requests) do Firebase
@@ -39,14 +39,17 @@ export const checkScheduledPayments = async (bot: Telegraf) => {
         message += `    📅 Data: ${payment.paymentDate}\n`;
         message += `    💲 Valor: ${payment.value || "N/A"}\n\n`;
       });
-      const financeiroGroup = workgroups.find(
-        (group: any) => group.label === projectsSpreadsheet.workgroup
-      );
-      const groupChatId = financeiroGroup!.value;
-      await bot.telegram.sendMessage(groupChatId, message, {
+      const targetChatId = privateChatId || (() => {
+        const financeiroGroup = workgroups.find(
+          (group: any) => group.label === projectsSpreadsheet.workgroup
+        );
+        return financeiroGroup!.value;
+      })();
+      
+      await bot.telegram.sendMessage(targetChatId, message, {
         parse_mode: "Markdown",
       });
-      console.log("Notificação de agendamentos enviada.");
+      console.log(`Notificação de agendamentos enviada para ${privateChatId ? 'chat privado' : 'grupo financeiro'}.`);
     } else {
       console.log("Nenhum agendamento encontrado para os próximos 3 dias.");
     }

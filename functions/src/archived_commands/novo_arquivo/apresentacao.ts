@@ -1,8 +1,36 @@
-// /commands/planilha.ts
+// /commands/apresentacao.ts
+
 import { Context, Telegraf } from "telegraf";
-import { createSheet, listFolders } from "../services/google";
-import { setTempData, getCachedFolders, setCachedFolders } from "../services/firebase";
-import workgroups from "../credentials/workgroupsfolders.json";
+import { createPresentation, listFolders } from "../../services/google";
+import { setTempData, getCachedFolders, setCachedFolders } from "../../services/firebase";
+import workgroups from "../../credentials/workgroupsfolders.json";
+
+function createFolderKeyboard(subfolders: any[], tempId: string) {
+  const buttons = [
+    [{ text: "📁 Pasta Raiz", callback_data: `move_doc:${tempId}:root` }]
+  ];
+
+  for (let i = 0; i < subfolders.length; i += 2) {
+    const row = [];
+    
+    row.push({
+      text: `📂 ${subfolders[i].name.substring(0, 20)}`,
+      callback_data: `move_doc:${tempId}:${i}`
+    });
+    
+    if (i + 1 < subfolders.length) {
+      row.push({
+        text: `📂 ${subfolders[i + 1].name.substring(0, 20)}`,
+        callback_data: `move_doc:${tempId}:${i + 1}`
+      });
+    }
+    
+    buttons.push(row);
+  }
+
+  buttons.push([{ text: "🔄 Atualizar Pastas", callback_data: `refresh_folders:${tempId}` }]);
+  return buttons;
+}
 
 function createFolderKeyboard(subfolders: any[], tempId: string) {
   const buttons = [
@@ -32,19 +60,19 @@ function createFolderKeyboard(subfolders: any[], tempId: string) {
 }
 
 export function getName() {
-  return "/planilha";
+  return "/apresentacao";
 }
 
 export function getHelp() {
-  return "Use o comando `/planilha` para criar uma Google Sheet\\. O formato esperado é:\n`/planilha \\[título da planilha\\]`";
+  return "Use o comando `/apresentacao` para criar uma Google Presentation\\. O formato esperado é:\n`/apresentacao \\[título da apresentação\\]`";
 }
 
 export function getDescription() {
-  return "📊 Criar uma Google Sheet para planilhas.";
+  return "🎞️ Criar uma Google Presentation para apresentações.";
 }
 
 export function register(bot: Telegraf) {
-  bot.command("planilha", async (ctx: Context) => {
+  bot.command("apresentacao", async (ctx: Context) => {
     try {
       const from = ctx.message?.from;
       const chat = ctx.message?.chat;
@@ -55,7 +83,7 @@ export function register(bot: Telegraf) {
       }
       if (chat.type !== "group" && chat.type !== "supergroup") {
         return ctx.reply(
-          "O comando /planilha deve ser usado em um grupo de trabalho."
+          "O comando /apresentacao deve ser usado em um grupo de trabalho."
         );
       }
       if (!ctx.message || !("text" in ctx.message)) {
@@ -64,10 +92,10 @@ export function register(bot: Telegraf) {
         );
       }
       const messageText = ctx.message.text;
-      const originalTitle = messageText.replace("/planilha@ameciclobot", "").replace("/planilha", "").trim();
+      const originalTitle = messageText.replace("/apresentacao@ameciclobot", "").replace("/apresentacao", "").trim();
       if (!originalTitle) {
         return ctx.reply(
-          "Por favor, forneça um título para a planilha.\nExemplo: `/planilha Nome da Planilha`"
+          "Por favor, forneça um título para a apresentação.\nExemplo: `/apresentacao Nome da Apresentação`"
         );
       }
 
@@ -76,28 +104,28 @@ export function register(bot: Telegraf) {
         "0" +
         (now.getMonth() + 1)
       ).slice(-2)}.${("0" + now.getDate()).slice(-2)}`;
-      const fullTitle = `Planilha - ${formattedDate} - ${originalTitle}`;
+      const fullTitle = `Apresentação - ${formattedDate} - ${originalTitle}`;
 
       const groupConfig = workgroups.find(
         (group: any) => group.value === String(chat.id)
       );
       if (!groupConfig) {
         return ctx.reply(
-          "Este grupo não possui uma pasta configurada para planilhas."
+          "Este grupo não possui uma pasta configurada para apresentações."
         );
       }
 
-      const sheet = await createSheet(fullTitle);
-      const sheetId = sheet.spreadsheetId || sheet.id;
-      if (!sheetId) {
-        return ctx.reply("Não foi possível obter o ID da planilha criada.");
+      const pres = await createPresentation(fullTitle);
+      const presentationId = pres.presentationId || pres.id;
+      if (!presentationId) {
+        return ctx.reply("Não foi possível obter o ID da apresentação criada.");
       }
 
       const tempId = Date.now().toString(36);
       await setTempData(tempId, {
-        documentId: sheetId,
+        documentId: presentationId,
         parentFolderId: groupConfig.folderId,
-        documentType: "Planilha",
+        documentType: "Apresentação",
         documentTitle: fullTitle
       }, 300);
 
@@ -110,19 +138,19 @@ export function register(bot: Telegraf) {
       const keyboard = createFolderKeyboard(subfolders, tempId);
       
       return ctx.reply(
-        `Planilha "${fullTitle}" criada com sucesso!\nEscolha onde salvá-la:`,
+        `Apresentação "${fullTitle}" criada com sucesso!\nEscolha onde salvá-la:`,
         { reply_markup: { inline_keyboard: keyboard } }
       );
     } catch (error) {
-      console.error("Erro ao processar comando /planilha:", error);
+      console.error("Erro ao processar comando /apresentacao:", error);
       return ctx.reply(
-        "Ocorreu um erro ao criar a planilha. Tente novamente mais tarde."
+        "Ocorreu um erro ao criar a apresentação. Tente novamente mais tarde."
       );
     }
   });
 }
 
-export const planilhaCommand = {
+export const apresentacaoCommand = {
   register,
   name: getName,
   help: getHelp,

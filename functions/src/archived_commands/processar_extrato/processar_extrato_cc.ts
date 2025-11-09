@@ -1,16 +1,16 @@
 // src/commands/processarExtratosCcCommand.ts
 import { Context, Telegraf } from "telegraf";
-import axiosInstance from "../config/httpService";
+import axiosInstance from "../../config/httpService";
 import { parse } from "csv-parse/sync";
-import getAccounts from "../credentials/accounts.json"; // Array de contas
-import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json"; // Contém { id, headers, statementsFolder, workgroup, ... }
+import getAccounts from "../../credentials/accounts.json"; // Array de contas
+import projectsSpreadsheet from "../../credentials/projectsSpreadsheet.json"; // Contém { id, headers, statementsFolder, workgroup, ... }
 import {
   appendExtratoRow,
   appendExtratoData,
   uploadCSVToDrive,
-} from "../services/google";
-import { getMonthNamePortuguese } from "../utils/utils";
-import workgroups from "../credentials/workgroupsfolders.json";
+} from "../../services/google";
+import { getMonthNamePortuguese } from "../../utils/utils";
+import workgroups from "../../credentials/workgroupsfolders.json";
 import iconv from "iconv-lite";
 
 // ======= Funções Auxiliares para o CSV =========

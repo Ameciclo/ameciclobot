@@ -10,17 +10,9 @@ import { PaymentRequest } from "./config/types";
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { handleCreateEvent } from "./handlers/createEventHandler";
 
-import { iniciarCommand, registerStartCommand } from "./commands/start";
-import { ajudaCommand, registerHelpCommand } from "./commands/help";
 import { getCoordinators } from "./services/firebase";
 import workgroups from "./credentials/workgroupsfolders.json";
 import projectsSpreadsheet from "./credentials/projectsSpreadsheet.json";
-
-import { registerEventParticipationCallback } from "./callbacks/confirmEventParticipationCallback";
-import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
-import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
-import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
-import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { checkGoogleForms } from "./scheduler/checkForms";
@@ -28,52 +20,16 @@ import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
 import { checkEvents } from "./scheduler/checkEvents";
 import { checkUpcomingEvents } from "./scheduler/checkUpcomingEvents";
 import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
+import { sendWeeklyReport } from "./scheduler/weeklyReport";
 
-import { commandsList } from "./commands";
-import { registerEventCallback } from "./callbacks/eventCallback";
-import { pagamentoCommand } from "./commands/pagamento";
-import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
-import { registerInformationRequestCallback } from "./callbacks/informationRequestCallback";
-import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
-import { registerAssignWorkgroupCallbacks } from "./callbacks/assignWorkgroup";
+import { registerAllCommands, setTelegramCommands } from "./commandsRegister";
+import { registerAllCallbacks } from "./callbacksRegister";
+import { BOT_VERSION } from "./config/version";
 
-const validCommands = commandsList;
-validCommands.forEach((cmd) => {
-  cmd.register(bot);
-});
+registerAllCommands(bot);
+registerAllCallbacks(bot);
 
-ajudaCommand.register(bot);
-registerHelpCommand(bot);
-iniciarCommand.register(bot);
-registerStartCommand(bot);
-
-pagamentoCommand.register(bot);
-
-const telegramCommands = validCommands.map((cmd) => ({
-  command: cmd.name(),
-  description: cmd.description(),
-}));
-
-telegramCommands.push({
-  command: ajudaCommand.name(),
-  description: ajudaCommand.description(),
-});
-telegramCommands.push({
-  command: iniciarCommand.name(),
-  description: iniciarCommand.description(),
-});
-bot.telegram.setMyCommands(telegramCommands);
-
-registerModeloUseCallback(bot);
-registerEventParticipationCallback(bot);
-registerCancelPaymentCallback(bot);
-registerConfirmPaymentCallback(bot);
-registerEventCallback(bot);
-registerReceiptTypeCallback(bot);
-registerInformationRequestCallback(bot);
-registerFolderChooserCallback(bot);
-registerPendenciasCallbacks(bot);
-registerAssignWorkgroupCallbacks(bot);
+setTelegramCommands(bot);
 
 // Função disparada ao criar um novo request no Realtime Database - v4
 export const sendPaymentRequest = onValueCreated(
@@ -177,6 +133,21 @@ export const scheduledCheckUpcomingEvents = onSchedule(
   }
 );
 
+export const scheduledWeeklyReport = onSchedule(
+  {
+    schedule: "0 8 * * 1",
+    timeZone: "America/Recife",
+    region: "us-central1"
+  },
+  async (context) => {
+    console.log(
+      "RUN: scheduledWeeklyReport disparado em",
+      new Date().toISOString()
+    );
+    await sendWeeklyReport(bot);
+  }
+);
+
 // Função HTTP do bot para webhook do Telegram
 export const botFunction = onRequest(
   {
@@ -187,4 +158,4 @@ export const botFunction = onRequest(
   }
 );
 
-console.log("RUN: ... bot iniciado com sucesso!");
+console.log(`RUN: ... bot iniciado com sucesso! v${BOT_VERSION}`);
