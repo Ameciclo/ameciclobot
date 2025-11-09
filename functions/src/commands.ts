@@ -13,11 +13,13 @@ import { unirPdfsCommand } from "./commands/unir_pdfs";
 import { resumoCommand } from "./commands/resumo";
 import { testarRotinasCommand } from "./commands/testar_rotinas";
 import { ajudanteFinanceiroCommand } from "./commands/ajudante_financeiro";
+import { denunciaCommand } from "./commands/denuncia";
 
 export const commandsList = [
   ajudanteFinanceiroCommand,
   clippingCommand,
   demandaCommand,
+  denunciaCommand,
   enqueteCommand,
   eventoCommand,
   informeCommand,
