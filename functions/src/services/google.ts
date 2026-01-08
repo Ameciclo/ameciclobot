@@ -54,10 +54,11 @@ function bufferToStream(buffer: Buffer | ArrayBuffer): Readable {
   return Readable.from(buffer);
 }
 
-export async function uploadInvoice(
+export async function uploadFile(
   fileBuffer: Buffer | ArrayBuffer,
   fileName: string,
-  folderId: string
+  folderId: string,
+  mimeType: string
 ): Promise<string | null | undefined> {
   const drive = google.drive({ version: "v3", auth });
 
@@ -68,7 +69,7 @@ export async function uploadInvoice(
         parents: [folderId],
       },
       media: {
-        mimeType: "application/pdf",
+        mimeType,
         body: bufferToStream(fileBuffer),
       },
       fields: "id,webViewLink",
@@ -79,6 +80,14 @@ export async function uploadInvoice(
     console.error("Erro ao fazer upload do arquivo:", error);
     throw error;
   }
+}
+
+export async function uploadInvoice(
+  fileBuffer: Buffer | ArrayBuffer,
+  fileName: string,
+  folderId: string
+): Promise<string | null | undefined> {
+  return uploadFile(fileBuffer, fileName, folderId, "application/pdf");
 }
 
 export async function uploadCSVToDrive(

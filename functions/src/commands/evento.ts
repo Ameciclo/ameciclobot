@@ -1,8 +1,9 @@
 import { Context, Telegraf } from "telegraf";
 import { Markup } from "telegraf";
 import { sendChatCompletion } from "../services/azure";
-import { getEventById, addEventAttachment, uploadInvoice } from "../services/google";
+import { getEventById, addEventAttachment, uploadFile } from "../services/google";
 import { formatDate, escapeMarkdownV2 } from "../utils/utils";
+import { buildEventMessage } from "../utils/eventMessages";
 import workgroups from "../credentials/workgroupsfolders.json";
 import calendars from "../credentials/calendars.json";
 
@@ -44,7 +45,7 @@ async function updateEventDescription(eventId: string, newDescription: string): 
   return false;
 }
 
-function sanitizeFileName(text: string, maxLength = 50): string {
+function sanitizeFileName(text: string, maxLength = 80): string {
   const sanitized = text
     .replace(/[\\/:*?\"<>|]/g, "_")
     .replace(/\r?\n|\r/g, " ")
@@ -183,13 +184,35 @@ function registerEventoCommand(bot: Telegraf) {
         }
 
         const date = formatDate(new Date());
-        const eventTitle = sanitizeFileName(event.summary || "Evento");
-        const fileName = `${date} - ${eventTitle} - Complemento`;
+        const eventTitle = sanitizeFileName(event.summary || "Evento", 60);
+        
+        // Detecta extensão e mime type do arquivo
+        let extension = ".jpg";
+        let mimeType = "image/jpeg";
+        
+        if (document?.mime_type) {
+          if (document.mime_type.includes("png")) {
+            extension = ".png";
+            mimeType = "image/png";
+          } else if (document.mime_type.includes("pdf")) {
+            extension = ".pdf";
+            mimeType = "application/pdf";
+          } else if (document.mime_type.includes("jpeg")) {
+            extension = ".jpg";
+            mimeType = "image/jpeg";
+          }
+        } else if (photo) {
+          extension = ".png";
+          mimeType = "image/png";
+        }
+        
+        const fileName = `${date} - ${eventTitle}${extension}`;
 
-        const uploadResponse = await uploadInvoice(
+        const uploadResponse = await uploadFile(
           fileBuffer,
           fileName,
-          folderId
+          folderId,
+          mimeType
         );
 
         if (!uploadResponse) {
@@ -366,15 +389,6 @@ Texto:
 
       const eventMessage = buildEventMessage(eventObject);
       console.log("[evento] Mensagem de evento construída.");
-
-      // Gera um ID temporário para o evento
-      const tempEventId = Math.random().toString(36).substring(2, 8);
-      
-      // Armazena temporariamente os dados do evento no Firebase
-      const { admin } = require('../config/firebaseInit');
-      console.log(`[evento] Salvando evento temporário com ID: ${tempEventId}`);
-      await admin.database().ref(`temp_events/${tempEventId}`).set(eventObject);
-      console.log("[evento] Evento temporário salvo no Firebase");
 
       const inlineKeyboard = {
         reply_markup: {

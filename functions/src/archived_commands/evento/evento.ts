@@ -2,7 +2,7 @@ import { Context, Telegraf } from "telegraf";
 import { sendChatCompletion } from "../../services/azure";
 import workgroups from "../../credentials/workgroupsfolders.json";
 import calendars from "../../credentials/calendars.json";
-import { buildEventMessage } from "../../messages/eventMessages";
+import { buildEventMessage } from "../../utils/eventMessages";
 
 // Converte a lista de workgroups para um array de IDs numéricos
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
