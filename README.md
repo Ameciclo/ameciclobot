@@ -787,4 +787,3 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - **Site**: [ameciclo.org](https://ameciclo.org)
 
 ### 📜 Licença
-Este projeto está sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
