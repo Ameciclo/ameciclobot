@@ -710,7 +710,17 @@ export const nomeCommand = {
 
 ## 📄 Licença e Créditos
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está sob a licença AGPL-3.0. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+**IMPORTANTE**: Este software é licenciado sob a GNU Affero General Public License v3.0 (AGPL-3.0). Isso significa que:
+
+- ✅ Você pode usar, modificar e distribuir este software livremente
+- ✅ Você pode usar este software para fins comerciais
+- ⚠️ **Se você executar este software em um servidor e oferecer acesso via rede, deve disponibilizar o código fonte completo**
+- ⚠️ **Qualquer modificação deve ser disponibilizada sob a mesma licença AGPL-3.0**
+- ⚠️ **Deve incluir aviso de copyright e licença em todas as cópias**
+
+Para mais informações sobre a licença AGPL-3.0, visite: https://www.gnu.org/licenses/agpl-3.0.html
 
 ### Tecnologias Utilizadas
 - [Telegraf.js](https://telegraf.js.org/) - Framework para bots Telegram
@@ -787,3 +797,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - **Site**: [ameciclo.org](https://ameciclo.org)
 
 ### 📜 Licença
+
+Este projeto está licenciado sob a **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+Para mais informações, consulte o arquivo [LICENSE](LICENSE) ou visite: https://www.gnu.org/licenses/agpl-3.0.html
