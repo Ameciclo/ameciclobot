@@ -85,14 +85,21 @@ function extractInfoFromPDF(text: string): {
     /m[eê]s\/?ano\s+refer[eê]ncia\s*[:\-]?\s*([A-ZÇÃ]+\/\d{4}|\d{2}\/\d{4})/i,
     /periodo\s+do\s+extrato\s*[:\-]?\s*(\d{2})\s*\/\s*(\d{4})/i,
     /extrato\s+(?:de\s+)?(?:conta|investimento).*?(\d{2})\s*\/\s*(\d{4})/i,
-    /data\s+(?:do\s+)?extrato\s*[:\-]?\s*(\d{2})\s*\/\s*(\d{4})/i
+    /data\s+(?:do\s+)?extrato\s*[:\-]?\s*(\d{2})\s*\/\s*(\d{4})/i,
+    /(\d{2})\s*\/\s*(\d{4})/g,
+    /\b(\d{1,2})\s*de\s*([A-ZÇÃ]+)\s*de\s*(\d{4})\b/i
   ];
   
   for (const regex of mesAnoRegexes) {
     const match = normFixed.match(regex);
     if (match) {
+      // Se tiver três grupos (dia, mês por extenso, ano)
+      if (match[3]) {
+        const mes = convertMonthToNumber(match[2]);
+        mesAno = `${mes}/${match[3]}`;
+      }
       // Se tiver dois grupos capturados (mês e ano separados)
-      if (match[2]) {
+      else if (match[2]) {
         mesAno = `${match[1]}/${match[2]}`;
       } else if (match[1]) {
         mesAno = match[1];
