@@ -8,51 +8,59 @@ A Ameciclo é uma organização da sociedade civil que promove o uso da biciclet
 
 ## 🚀 Funcionalidades Principais
 
-O bot oferece **28 comandos ativos** organizados em categorias funcionais:
+O bot oferece **20 comandos ativos** organizados em categorias funcionais:
 
-### 📄 Gestão de Documentos
+### 📄 Gestão de Documentos e Arquivos
+- `/documento` - Cria Google Docs automaticamente em pastas organizadas por grupo de trabalho
+- `/apresentacao` - Cria Google Slides com templates organizacionais
+- `/planilha` - Cria Google Sheets para análise de dados
+- `/formulario` - Cria Google Forms automaticamente com monitoramento de respostas
+- `/modelo` - Biblioteca de modelos de documentos com sistema de cópia inteligente
+- `/novo_arquivo` - Sistema unificado para criação de arquivos Google (Docs, Sheets, Slides, Forms)
 - `/unir_pdfs` - Une múltiplos arquivos PDF em um único documento usando PDF-lib
 - `/transcrever` - Transcreve áudios e vídeos para texto usando Azure Whisper AI
-- `/documento` - Cria Google Docs automaticamente em pastas organizadas por grupo de trabalho
-- `/arquivar_comprovante` - Arquiva comprovantes de pagamento no Google Drive com categorização automática
-- `/arquivar_extrato_pdf` - Processa e arquiva extratos bancários em PDF com OCR
-- `/apresentacao` - Cria Google Slides com templates organizacionais
-- `/modelo` - Biblioteca de modelos de documentos com sistema de cópia inteligente
+- `/registrar_planilha` - Sistema de registro e catalogação de planilhas organizacionais
 
-### 💰 Gestão Financeira
-- `/processar_extrato_cc` - Processa extratos de conta corrente com reconciliação automática
-- `/processar_extrato_fi` - Analisa extratos de fundos de investimento e gera relatórios
-- `/processar_extrato` - Processamento geral de extratos bancários
-- `/atualizar_pendencias` - Monitora e atualiza pendências financeiras em planilhas Google Sheets
-- `/atualizar_projetos` - Monitoramento e atualização de status de projetos em tempo real
+### 💰 Gestão Financeira Avançada
+- `/ajudante_financeiro` - **Assistente unificado** que integra 6 comandos financeiros:
+  - Arquivar comprovantes de pagamento no Google Drive
+  - Gerar recibos de ressarcimento com notas fiscais
+  - Arquivar extratos bancários em PDF com OCR inteligente
+  - Processar extratos CSV/TXT com reconciliação automática
+  - Atualizar pendências financeiras em planilhas Google Sheets
+  - Monitorar e atualizar status de projetos em tempo real
+- `/processar_extrato` - Processamento geral de extratos bancários com IA
 - **Sistema de Aprovação**: Workflow automatizado com notificações para coordenadores
-- **Central Ameciclista**: Interface web para solicitações de pagamento
+- **Central Ameciclista**: Interface web para solicitações de pagamento (comando `/pagamento` desativado)
 
 ### 📅 Eventos e Comunicação
 - `/evento` - Cria eventos no Google Calendar com IA para extração de dados de texto natural
 - `/atribuir_evento` - Atribui eventos a grupos de trabalho específicos
 - `/complementar_evento` - Adiciona informações complementares a eventos existentes
-- `/comunicacao` - Ferramentas para comunicação interna e externa
-- `/informe` - Sistema de criação e distribuição de informes organizacionais
 - `/clipping` - Gestão de clipping de notícias e mídia
+- `/informe` - Sistema de criação e distribuição de informes organizacionais
 - **Agenda Automática**: Envio diário (16:20) e semanal (domingos) de agenda para grupos de trabalho
+- **Notificações de Eventos**: Lembretes 30 minutos antes para participantes confirmados
 
-### 📊 Gestão Organizacional
-- `/planilha` - Integração completa com Google Sheets para análise de dados
-- `/registrar_planilha` - Sistema de registro e catalogação de planilhas organizacionais
+### 📊 Gestão Organizacional e Transparência
 - `/pauta` - Criação e gestão de pautas de reuniões com templates automáticos
-- `/demanda` - Sistema de gestão de demandas internas com rastreamento
-- `/encaminhamento` - Workflow de encaminhamentos internos com rastreamento
-- `/pedido_de_informacao` - Sistema completo de gestão de pedidos de informação pública
+- `/demanda` - Sistema completo de gestão de demandas internas com rastreamento
+- `/pedido_de_informacao` - **Sistema avançado** de gestão de pedidos de informação pública com:
+  - Scraping automático de portais governamentais
+  - Monitoramento de prazos e status
+  - Notificações de respostas e recursos
+  - Workflow completo de acompanhamento
 - `/resumo` - Gera resumos executivos de atividades
+- `/denuncia` - Sistema de registro e acompanhamento de denúncias
 
 ### 🔧 Utilitários e Ferramentas
-- `/formulario` - Cria Google Forms automaticamente com monitoramento de respostas
 - `/enquete` - Cria enquetes interativas no Telegram
 - `/qrcode` - Gera códigos QR para links e textos
-- `/ajuda` - Sistema de ajuda contextual e lista de comandos
+- `/testar_rotinas` - Executa testes dos schedulers e rotinas automáticas
+- `/ajuda` - Sistema de ajuda contextual com IA para encontrar comandos
 - `/versao` - Controle de versão e changelog do bot
-- `/quem_sou_eu` - Perfil do usuário e permissões no sistema
+- `/quem_sou_eu` - Perfil do usuário, permissões e cadastro de email
+- `/start` - Inicialização do bot com lista completa de comandos
 
 ## 🛠️ Stack Tecnológica
 
@@ -97,11 +105,11 @@ O bot oferece **28 comandos ativos** organizados em categorias funcionais:
 ### Estrutura Modular
 ```
 functions/src/
-├── commands/          # Comandos do bot (25+ comandos)
-├── callbacks/         # Handlers de callbacks inline
-├── handlers/          # Handlers de eventos específicos
-├── services/          # Integrações externas (Google, Azure, Firebase)
-├── scheduler/         # Tarefas agendadas (cron jobs)
+├── commands/          # 20 comandos ativos do bot
+├── callbacks/         # 12 handlers de callbacks inline
+├── handlers/          # 2 handlers especializados (pagamentos e eventos)
+├── services/          # 6 integrações externas (Google, Azure, Firebase)
+├── scheduler/         # 7 tarefas agendadas (cron jobs)
 ├── utils/             # Utilitários e helpers
 ├── config/            # Configurações e tipos
 ├── credentials/       # Configurações de APIs (não versionadas)
@@ -110,27 +118,39 @@ functions/src/
 
 ### Fluxos Principais
 
-#### 1. Fluxo de Pagamentos
+#### 1. Fluxo de Pagamentos (Desativado - Migrado para Central Ameciclista)
 ```
-Usuário → Solicitação → Validação → Aprovação → Planilha → Arquivo
-```
-
-#### 2. Gestão de Eventos
-```
-Texto Natural → IA (GPT) → Extração de Dados → Google Calendar → Notificações
+Usuário → Central Ameciclista → Validação → Aprovação → Planilha → Arquivo
 ```
 
-#### 3. Processamento de Documentos
+#### 2. Gestão de Eventos com IA
 ```
-Upload → Processamento → Categorização → Google Drive → Notificação
+Texto Natural → IA (GPT-3.5) → Extração de Dados → Google Calendar → Notificações → Lembretes
+```
+
+#### 3. Processamento de Documentos Inteligente
+```
+Upload → Processamento/OCR → Categorização → Google Drive → Notificação
+```
+
+#### 4. Sistema de Pedidos de Informação
+```
+Criação → Scraping Portal → Monitoramento → Notificação → Recurso/Aceitação
+```
+
+#### 5. Assistente Financeiro Unificado
+```
+Comando → Detecção de Contexto → Seleção de Ação → Processamento → Resultado
 ```
 
 ### Tarefas Agendadas (Schedulers)
-- **Formulários**: Verifica respostas a cada 2 horas (checkForms)
-- **Pagamentos**: Monitora pagamentos agendados (seg/qua/sex às 8h) (checkScheduledPayments)
-- **Eventos**: Envia agenda diária (16:20) e semanal (domingos) (checkEvents)
-- **Pedidos de Informação**: Verifica prazos diariamente (19h) (checkPedidosInformacao)
-- **Eventos Próximos**: Notifica sobre eventos do dia seguinte (checkUpcomingEvents)
+- **Formulários**: Verifica novas respostas a cada 2 horas e notifica grupos responsáveis
+- **Pagamentos Agendados**: Monitora pagamentos bancários agendados (seg/qua/sex às 8h)
+- **Agenda de Eventos**: Envia agenda diária (16:20) e semanal (domingos) para grupos de trabalho
+- **Pedidos de Informação**: Verifica status e prazos diariamente (19h) com scraping automático
+- **Eventos Próximos**: Notifica participantes 30 minutos antes dos eventos
+- **Relatório Semanal**: Envia relatório de atividades às segundas-feiras (8h)
+- **Lembretes de Demandas**: Sistema de notificações para demandas pendentes
 
 ## 📦 Instalação e Configuração
 
@@ -278,11 +298,11 @@ npm run test:pedidos
 ameciclobot/
 ├── functions/
 │   ├── src/
-│   │   ├── commands/          # 28 comandos do bot
-│   │   ├── callbacks/         # 10 handlers de callbacks inline
-│   │   ├── handlers/          # Handlers de eventos específicos
-│   │   ├── services/          # Integrações (Google, Azure, Firebase)
-│   │   ├── scheduler/         # 5 tarefas agendadas (cron jobs)
+│   │   ├── commands/          # 20 comandos ativos do bot
+│   │   ├── callbacks/         # 12 handlers de callbacks inline
+│   │   ├── handlers/          # 2 handlers especializados
+│   │   ├── services/          # 6 integrações (Google, Azure, Firebase)
+│   │   ├── scheduler/         # 7 tarefas agendadas (cron jobs)
 │   │   ├── utils/             # Utilitários e helpers
 │   │   ├── config/            # Configurações e tipos
 │   │   ├── credentials/       # Arquivos de credenciais (não versionados)
@@ -501,43 +521,49 @@ firebase functions:log --only functions:botFunction
 ## 📊 Estatísticas do Projeto Atual
 
 - **Versão**: 3.0.0
-- **28 Comandos** ativos implementados
-- **10 Callbacks** para interações inline
-- **5 Schedulers** para automações
+- **20 Comandos** ativos implementados
+- **12 Callbacks** para interações inline avançadas
+- **7 Schedulers** para automações completas
 - **6 Integrações** principais (Google APIs, Azure AI, Firebase)
-- **2 Handlers** especializados
-- **5 Serviços** externos
+- **2 Handlers** especializados (pagamentos e eventos)
+- **6 Serviços** externos especializados
 - **15+ Tipos de documentos** suportados
 - **Múltiplos grupos** de trabalho gerenciados
 - **Processamento em tempo real** de solicitações
 - **Backup automático** e sincronização contínua
+- **IA Integrada** para processamento de linguagem natural
+- **Scraping Automático** de portais governamentais
+- **Sistema de Notificações** inteligente e contextual
 
-## 🔄 Recursos Avançados
+### 📊 Recursos Avançados e Inteligência Artificial
 
-### Inteligência Artificial
-- **Processamento de Linguagem Natural**: Extração automática de dados de eventos a partir de texto livre usando GPT-3.5
-- **Transcrição Automática**: Conversão de áudios e vídeos em texto usando Azure Whisper
-- **Análise de Documentos**: Processamento inteligente de PDFs e extratos bancários com OCR
+#### 🤖 Processamento de Linguagem Natural
+- **Extração Automática de Eventos**: Converte texto livre em eventos estruturados do Google Calendar
+- **Sistema de Ajuda Inteligente**: IA identifica comandos baseado em descrições naturais
+- **Processamento de Documentos**: OCR e análise inteligente de PDFs e extratos bancários
 - **Geração de Conteúdo**: Criação automática de documentos, apresentações e formulários
 
-### Automações
+#### 🔍 Automação e Scraping
+- **Monitoramento de Portais**: Scraping automático de sites governamentais para pedidos de informação
 - **Reconciliação Bancária**: Matching automático entre extratos e planilhas financeiras
+- **Detecção de Contexto**: O assistente financeiro identifica automaticamente o tipo de arquivo e ação necessária
 - **Notificações Inteligentes**: Alertas contextuais baseados em prazos, eventos e status
-- **Backup Automático**: Sincronização contínua com Google Drive e Firebase
-- **Relatórios Automáticos**: Geração de relatórios financeiros e de atividades
-- **Agenda Inteligente**: Distribuição automática de eventos por grupos de trabalho
 
-### Monitoramento e Segurança
+#### 📈 Monitoramento e Relatórios
 - **Health Checks**: Verificação automática de APIs e serviços
-- **Logs Estruturados**: Sistema completo de logging para debugging e auditoria
 - **Métricas de Uso**: Acompanhamento de comandos mais utilizados e performance
-- **Error Tracking**: Captura e notificação de erros em tempo real
-- **Controle de Acesso**: Sistema de permissões por grupo e usuário
+- **Relatórios Automáticos**: Geração semanal de relatórios de atividades
 - **Auditoria Completa**: Log de todas as ações sensíveis com timestamp e usuário
 
-## 📝 Guia de Uso
+#### 🔄 Workflows Automatizados
+- **Sistema de Aprovação**: Workflow completo para pagamentos com notificações
+- **Gestão de Demandas**: Rastreamento automático com lembretes e atualizações
+- **Backup Automático**: Sincronização contínua com Google Drive e Firebase
+- **Agenda Inteligente**: Distribuição automática de eventos por grupos de trabalho
 
-### Primeiros Passos
+### 📝 Guia de Uso Detalhado
+
+#### Primeiros Passos
 
 1. **Configuração Inicial**:
    - Adicione o bot aos grupos de trabalho da Ameciclo
@@ -546,52 +572,102 @@ firebase functions:log --only functions:botFunction
 
 2. **Comandos Básicos**:
    ```
-   /help - Lista todos os comandos disponíveis
+   /ajuda - Lista todos os comandos disponíveis com IA
    /versao - Versão atual e changelog
    /quem_sou_eu - Suas informações e permissões
    ```
 
-### Fluxos de Trabalho Principais
+#### Fluxos de Trabalho Principais
 
-#### 💰 Solicitação de Pagamento
+##### 💰 Gestão Financeira Unificada
 ```
-1. /pagamento
-2. Preencha os dados solicitados
-3. Aguarde aprovação dos coordenadores
-4. Acompanhe o status na planilha
+1. /ajudante_financeiro
+2. Responda a um arquivo (PDF/CSV) ou use sem arquivo
+3. Selecione a ação desejada no menu interativo
+4. Acompanhe o processamento automático
 ```
 
-#### 📅 Criação de Evento
+**Ações disponíveis:**
+- **Arquivar Comprovante**: `/ajudante_financeiro [id_transacao]` (respondendo a arquivo)
+- **Recibo de Ressarcimento**: `/ajudante_financeiro [id_ressarcimento]` (respondendo a PDF)
+- **Arquivar Extrato PDF**: Detecta automaticamente extratos bancários
+- **Processar Extrato CSV**: Reconciliação automática com planilhas
+- **Atualizar Pendências**: Monitora status de projetos
+- **Atualizar Projetos**: Sincroniza dados no Firebase
+
+##### 📅 Criação de Eventos com IA
 ```
 1. /evento Reunião da diretoria amanhã às 14h na sede
-2. Bot extrai dados automaticamente
-3. Confirme os detalhes
+2. IA extrai dados automaticamente (data, hora, local)
+3. Confirme os detalhes extraídos
 4. Evento criado no Google Calendar
+5. Atribuição automática ou manual a grupos
 ```
 
-#### 📄 Gestão de Documentos
+##### 📄 Gestão de Documentos
 ```
 1. /documento Ata da Reunião de Janeiro
 2. Google Docs criado automaticamente
-3. Arquivo movido para pasta do grupo
-4. Link compartilhado no chat
+3. Escolha a pasta de destino
+4. Arquivo movido e link compartilhado
 ```
 
-### Grupos de Trabalho
+**Outros comandos de documentos:**
+- `/apresentacao` - Google Slides
+- `/planilha` - Google Sheets  
+- `/formulario` - Google Forms com monitoramento
+- `/modelo` - Clona documentos de templates
+
+##### 📊 Pedidos de Informação Pública
+```
+1. /pedido_de_informacao
+2. Preencha os dados do pedido
+3. Sistema faz scraping automático do portal
+4. Monitoramento diário de status
+5. Notificações de respostas e prazos
+6. Opção de recurso automático
+```
+
+##### 📋 Gestão de Demandas
+```
+1. /demanda
+2. Descreva a demanda e prazo
+3. Sistema cria rastreamento automático
+4. Lembretes periódicos
+5. Atualizações de status
+```
+
+#### Grupos de Trabalho
 
 O bot reconhece diferentes grupos de trabalho:
 - **Secretaria** - Gestão geral e administrativa
-- **Financeiro** - Controle financeiro e pagamentos
-- **Projetos** - Gestão de projetos específicos
-- **Comunicação** - Marketing e comunicação
+- **Financeiro** - Controle financeiro e pagamentos (restrições especiais)
+- **Captação** - Captação de recursos e parcerias
 - **Advocacy** - Ações de advocacy e políticas públicas
+- **Comunicação** - Marketing e comunicação
 
-### Permissões e Segurança
+#### Permissões e Segurança
 
-- Comandos financeiros restritos a coordenadores
+- Comandos financeiros restritos ao grupo Financeiro
 - Validação de grupos para comandos sensíveis
 - Log completo de todas as ações
 - Backup automático de dados importantes
+- Sistema de aprovação para pagamentos
+
+#### Automações Ativas
+
+**Diárias:**
+- 16:20 - Agenda do dia seguinte para cada grupo
+- 19:00 - Verificação de pedidos de informação
+- A cada 30min - Lembretes de eventos próximos
+
+**Semanais:**
+- Domingos - Agenda semanal completa
+- Segundas 8h - Relatório semanal de atividades
+
+**Periódicas:**
+- A cada 2h - Verificação de formulários
+- Seg/Qua/Sex 8h - Pagamentos agendados
 
 ## 🔄 Recursos Avançados
 
@@ -765,22 +841,25 @@ Para mais informações sobre a licença AGPL-3.0, visite: https://www.gnu.org/l
 - [PLANO_UNIFORMIZACAO_COMANDOS.md](PLANO_UNIFORMIZACAO_COMANDOS.md) - Plano de uniformização
 - [.github/workflows/deploy.yml](.github/workflows/deploy.yml) - Pipeline CI/CD
 
-## 🎆 Roadmap Futuro
+### 🔄 Roadmap e Melhorias
 
-### Em Desenvolvimento
+#### Em Desenvolvimento
 - [ ] Interface web administrativa completa
 - [ ] API REST pública para integrações externas
 - [ ] Sistema de plugins para comandos customizados
 - [ ] Dashboard de métricas e analytics em tempo real
 - [ ] Integração com WhatsApp Business API
+- [ ] Expansão do sistema de scraping para mais portais
 
-### Melhorias Planejadas
+#### Melhorias Planejadas
 - [ ] Cache inteligente Redis para melhor performance
 - [ ] Sistema de backup incremental automatizado
 - [ ] Notificações push personalizadas por usuário
 - [ ] Integração com sistemas ERP de terceiros
 - [ ] Modo offline para comandos críticos
 - [ ] Machine Learning para predição de demandas
+- [ ] Sistema de aprovação multi-nível
+- [ ] Relatórios avançados com gráficos
 
 ---
 
