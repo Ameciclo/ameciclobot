@@ -1,5 +1,5 @@
 import { Context, Telegraf } from "telegraf";
-import { sendChatCompletion } from "../services/azure";
+import { sendChatCompletion } from "../services/groq";
 import workgroups from "../credentials/workgroupsfolders.json";
 
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));

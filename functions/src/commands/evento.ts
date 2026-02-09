@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { Markup } from "telegraf";
-import { sendChatCompletion } from "../services/azure";
+import { sendChatCompletion } from "../services/groq";
 import { getEventById, addEventAttachment, uploadFile } from "../services/google";
 import { formatDate, escapeMarkdownV2 } from "../utils/utils";
 import { buildEventMessage } from "../utils/eventMessages";
