@@ -39,10 +39,19 @@ import { runWeeklyFrequencyScheduler } from "./scheduler/weekly_frequency_schedu
 
 import { registerAllCommands, setTelegramCommands } from "./commandsRegister";
 import { registerAllCallbacks } from "./callbacksRegister";
+import { handleAutoTranscription } from "./commands/transcrever";
+import { message } from 'telegraf/filters';
 import { BOT_VERSION } from "./config/version";
+
+
+
+// Registra handler de auto-transcrição (forma moderna)
+bot.on(message('voice'), handleAutoTranscription);
+
 
 registerAllCommands(bot);
 registerAllCallbacks(bot);
+
 
 setTelegramCommands(bot);
 

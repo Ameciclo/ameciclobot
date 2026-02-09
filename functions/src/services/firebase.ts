@@ -485,7 +485,13 @@ export interface TranscriptionSettings {
 export async function getTranscriptionSettings(chatId: number): Promise<TranscriptionSettings> {
   try {
     const snapshot = await admin.database().ref(`transcription_settings/${chatId}`).once('value');
-    return snapshot.val() || { auto_enabled: false, max_minutes: 6 };
+    const data = snapshot.val();
+    
+    // Retorna valores padrão se não existir ou se max_minutes for undefined/null
+    return {
+      auto_enabled: data?.auto_enabled || false,
+      max_minutes: (data?.max_minutes !== undefined && data?.max_minutes !== null) ? data.max_minutes : 6
+    };
   } catch (error) {
     console.error('Erro ao buscar configurações de transcrição:', error);
     return { auto_enabled: false, max_minutes: 6 };

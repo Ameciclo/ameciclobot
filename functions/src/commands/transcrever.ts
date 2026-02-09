@@ -42,31 +42,31 @@ async function processTranscription(ctx: Context, voice: any): Promise<void> {
   }
 }
 
-export function registerTranscreverCommand(bot: Telegraf) {
-  // Handler para transcrição automática
-  bot.on('voice', async (ctx: Context) => {
-    try {
-      const chatId = ctx.chat?.id;
-      if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
-        return; // Ignora grupos não autorizados
-      }
-
-      const settings = await getTranscriptionSettings(chatId);
-      if (!settings.auto_enabled) {
-        return; // Auto-transcrição desabilitada
-      }
-
-      const msg = ctx.message as any;
-      const voice = msg.voice;
-      if (voice && voice.file_id) {
-        console.log("[transcrever] Auto-transcrição ativada para áudio");
-        await processTranscription(ctx, voice);
-      }
-    } catch (error) {
-      console.error("[transcrever] Erro na auto-transcrição:", error);
+// Handler para transcrição automática (exportado para uso no index.ts)
+export async function handleAutoTranscription(ctx: Context) {
+  try {
+    const chatId = ctx.chat?.id;
+    if (!chatId || !ALLOWED_GROUPS.includes(Number(chatId))) {
+      return; // Ignora grupos não autorizados
     }
-  });
 
+    const settings = await getTranscriptionSettings(chatId);
+    if (!settings.auto_enabled) {
+      return; // Auto-transcrição desabilitada
+    }
+
+    // Com filtros, ctx.message.voice já tem tipagem correta
+    const voice = (ctx.message as any).voice;
+    if (voice && voice.file_id) {
+      console.log("[transcrever] Auto-transcrição ativada para áudio");
+      await processTranscription(ctx, voice);
+    }
+  } catch (error) {
+    console.error("[transcrever] Erro na auto-transcrição:", error);
+  }
+}
+
+export function registerTranscreverCommand(bot: Telegraf) {
   bot.command("transcrever", async (ctx: Context) => {
     try {
       console.log("[transcrever] Comando iniciado.");
