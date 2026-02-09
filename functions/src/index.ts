@@ -33,12 +33,9 @@ import workgroups from "./credentials/workgroupsfolders.json";
 import projectsSpreadsheet from "./credentials/projectsSpreadsheet.json";
 
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { checkGoogleForms } from "./scheduler/checkForms";
-import { checkScheduledPayments } from "./scheduler/checkScheduledPayments";
-import { checkEvents } from "./scheduler/checkEvents";
-import { checkUpcomingEvents } from "./scheduler/checkUpcomingEvents";
-import { checkPedidosInformacao } from "./scheduler/checkPedidosInformacao";
-import { sendWeeklyReport } from "./scheduler/weeklyReport";
+import { runHighFrequencyScheduler } from "./scheduler/high_frequency_scheduler_index";
+import { runDailyScheduler } from "./scheduler/daily_scheduler_index";
+import { runWeeklyFrequencyScheduler } from "./scheduler/weekly_frequency_scheduler_index";
 
 import { registerAllCommands, setTelegramCommands } from "./commandsRegister";
 import { registerAllCallbacks } from "./callbacksRegister";
@@ -78,91 +75,38 @@ export const createCalendarEvent = onValueCreated(
   }
 );
 
-export const scheduledCheckGoogleForms = onSchedule(
+// Scheduler de alta frequência - a cada 30 minutos
+export const highFrequencyScheduler = onSchedule(
   {
-    schedule: "every 2 hours",
+    schedule: "every 30 minutes",
     region: "us-central1"
   },
   async (context) => {
-    console.log(
-      "RUN: scheduledCheckGoogleForms disparado em",
-      new Date().toISOString()
-    );
-    await checkGoogleForms(bot);
+    await runHighFrequencyScheduler(bot);
   }
 );
 
-export const scheduledCheckScheduledPayments = onSchedule(
-  { 
-    schedule: "0 8 * * 1,3,5", 
-    timeZone: "America/Recife",
-    region: "us-central1"
-  },
-  async (context) => {
-    console.log(
-      "RUN: scheduledCheckScheduledPayments disparado em",
-      new Date().toISOString()
-    );
-    await checkScheduledPayments(bot);
-  }
-);
-
-export const scheduledCheckEvents = onSchedule(
+// Scheduler diário - às 16:20
+export const dailyScheduler = onSchedule(
   { 
     schedule: "20 16 * * *", 
     timeZone: "America/Recife",
     region: "us-central1"
   },
   async (context) => {
-    console.log(
-      "RUN: scheduledCheckEvents disparado em",
-      new Date().toISOString()
-    );
-    await checkEvents(bot);
+    await runDailyScheduler(bot);
   }
 );
 
-export const scheduledCheckPedidosInformacao = onSchedule(
+// Scheduler semanal - seg/qua/sex às 8h (+ relatório semanal nas segundas)
+export const weeklyFrequencyScheduler = onSchedule(
   { 
-    schedule: "0 19 * * *", 
+    schedule: "0 8 * * 1,3,5", 
     timeZone: "America/Recife",
     region: "us-central1"
   },
   async (context) => {
-    console.log(
-      "RUN: scheduledCheckPedidosInformacao disparado em",
-      new Date().toISOString()
-    );
-    await checkPedidosInformacao(bot);
-  }
-);
-
-export const scheduledCheckUpcomingEvents = onSchedule(
-  {
-    schedule: "every 30 minutes",
-    region: "us-central1"
-  },
-  async (context) => {
-    console.log(
-      "RUN: scheduledCheckUpcomingEvents disparado em",
-      new Date().toISOString()
-    );
-    await checkUpcomingEvents(bot);
-  }
-);
-
-export const scheduledWeeklyReport = onSchedule(
-  {
-    schedule: "0 8 * * 1",
-    timeZone: "America/Recife",
-    region: "us-central1"
-  },
-  async (context) => {
-    console.log(
-      "RUN: scheduledWeeklyReport disparado em",
-      new Date().toISOString()
-    );
-    await sendWeeklyReport(bot);
+    await runWeeklyFrequencyScheduler(bot);
   }
 );
 
