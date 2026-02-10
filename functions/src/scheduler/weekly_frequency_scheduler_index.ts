@@ -1,12 +1,13 @@
 /*
  * Ameciclo Bot - Weekly Frequency Scheduler Index
  * Executa seg/qua/sex às 8h: checkScheduledPayments
- * Se for segunda-feira, também executa: sendWeeklyReport
+ * Se for segunda-feira, também executa: sendWeeklyReport + updateFolderStructures
  */
 
 import { Telegraf } from "telegraf";
 import { checkScheduledPayments } from "./checkScheduledPayments";
 import { sendWeeklyReport } from "./weeklyReport";
+import { updateFolderStructures } from "./updateFolderStructures";
 
 export async function runWeeklyFrequencyScheduler(bot: Telegraf): Promise<void> {
   const now = new Date();
@@ -20,12 +21,15 @@ export async function runWeeklyFrequencyScheduler(bot: Telegraf): Promise<void> 
     console.log("Executando checkScheduledPayments...");
     await checkScheduledPayments(bot);
 
-    // Se for segunda-feira (dayOfWeek === 1), executa também o relatório semanal
+    // Se for segunda-feira (dayOfWeek === 1), executa também o relatório semanal e atualização de pastas
     if (dayOfWeek === 1) {
       console.log("É segunda-feira! Executando sendWeeklyReport...");
       await sendWeeklyReport(bot);
+      
+      console.log("Executando updateFolderStructures...");
+      await updateFolderStructures(bot);
     } else {
-      console.log("Não é segunda-feira, pulando sendWeeklyReport");
+      console.log("Não é segunda-feira, pulando sendWeeklyReport e updateFolderStructures");
     }
 
     console.log("Weekly Frequency Scheduler concluído com sucesso");

@@ -5,7 +5,7 @@ import workgroups from "../credentials/workgroupsfolders.json";
 export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
   bot.command("ajudante_financeiro", async (ctx: Context) => {
     try {
-      console.log("[ajudante_financeiro] Comando /ajudante_financeiro executado");
+      console.log("[ajudante_financeiro] Comando /ajudante_financeiro executado - v2");
       console.log("[ajudante_financeiro] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
       
       // Validação do grupo financeiro primeiro

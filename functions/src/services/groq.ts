@@ -11,7 +11,7 @@ export async function sendChatCompletion(messages: Array<{ role: string; content
       messages: messages as any,
       model: "llama-3.1-8b-instant",
       temperature: 1,
-      max_completion_tokens: 1024,
+      max_tokens: 1024,
       top_p: 1,
       stream: false,
       stop: null

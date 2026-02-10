@@ -12,6 +12,7 @@ import { registerPendenciasCallbacks } from "./callbacks/pendenciasCallback";
 import { registerNovoArquivoCallback } from "./callbacks/novoArquivoCallback";
 import { registerAjudanteFinanceiroCallback } from "./callbacks/ajudanteFinanceiroCallback";
 import { registerConsumoCallback } from "./callbacks/consumoCallback";
+import { registerFolderNavigationCallbacks } from "./callbacks/folderNavigationCallback";
 
 export function registerAllCallbacks(bot: Telegraf) {
   console.log("Registrando callbacks...");
@@ -29,6 +30,7 @@ export function registerAllCallbacks(bot: Telegraf) {
   registerNovoArquivoCallback(bot);
   registerAjudanteFinanceiroCallback(bot);
   registerConsumoCallback(bot);
+  registerFolderNavigationCallbacks(bot);
   
   console.log("Callbacks registrados");
 }
