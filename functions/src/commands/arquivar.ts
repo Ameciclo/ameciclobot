@@ -66,7 +66,11 @@ export async function registerArquivarCommand(bot: Telegraf) {
       }
 
       // Verifica se o grupo está configurado
-      const chatId = ctx.chat.id;
+      const chatId = ctx.chat?.id;
+      if (!chatId) {
+        await ctx.reply("Erro: não foi possível identificar o chat.");
+        return;
+      }
       const groupName = getGroupName(chatId);
       const folderId = getGroupFolderId(chatId);
 
