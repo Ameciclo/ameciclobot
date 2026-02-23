@@ -17,12 +17,7 @@ function registerResumoCommand(bot: Telegraf) {
         return;
       }
 
-      // Extrai limite de caracteres do comando
-      const text = ctx.text || "";
-      const args = text.split(" ").slice(1);
-      const customLimit = args.length > 0 && !isNaN(Number(args[0])) ? Number(args[0]) : 300;
-      
-      // Obtém o texto da mensagem
+      // Obtém o texto da mensagem (APENAS de reply)
       let messageText: string | undefined;
       const msg = ctx.message as any;
       if (msg?.reply_to_message?.text) {
@@ -31,18 +26,18 @@ function registerResumoCommand(bot: Telegraf) {
       } else if (msg?.reply_to_message?.caption) {
         messageText = msg.reply_to_message.caption;
         console.log("[resumo] Texto obtido da legenda da imagem respondida.");
-      } else if (msg?.text) {
-        messageText = msg.text.replace(/\/resumo(\s+\d+)?/, "").trim();
-        console.log("[resumo] Texto obtido da própria mensagem.");
-      } else if (msg?.caption) {
-        messageText = msg.caption.replace(/\/resumo(\s+\d+)?/, "").trim();
-        console.log("[resumo] Texto obtido da legenda da imagem.");
       }
 
+      // Extrai limite de caracteres do comando
+      const text = ctx.text || "";
+      const args = text.split(" ").slice(1);
+      const customLimit = args.length > 0 && !isNaN(Number(args[0])) ? Number(args[0]) : 300;
+
       if (!messageText) {
-        console.log("[resumo] Texto não fornecido.");
+        console.log("[resumo] Comando usado sem resposta a mensagem.");
         await ctx.reply(
-          "Por favor, forneça o texto para resumir (ou responda a uma mensagem/imagem com esse texto)."
+          "📝 *Como usar o /resumo:*\n\n1️⃣ Responda a uma mensagem com texto\n2️⃣ Digite `/resumo` ou `/resumo [número]`\n\n*Exemplos:*\n• `/resumo` - 300 caracteres\n• `/resumo 150` - 150 caracteres\n\n✨ *Resultado:* Resumo + 3 hashtags",
+          { parse_mode: "Markdown" }
         );
         return;
       }
@@ -109,7 +104,7 @@ Texto para resumir:
       // Verifica se o resumo excede o limite
       const finalResumo = resumoText.length > customLimit ? resumoText.substring(0, customLimit - 3) + "..." : resumoText;
       
-      const responseMessage = `📝 **Resumo gerado:**\n\n${finalResumo}\n\n${keywords}\n\n_Caracteres: ${finalResumo.length}/${customLimit}_`;
+      const responseMessage = `📝 *Resumo gerado:*\n\n${finalResumo}\n\n${keywords}\n\n_Caracteres: ${finalResumo.length}/${customLimit}_`;
 
       await ctx.reply(responseMessage, { parse_mode: "Markdown" });
       console.log("[resumo] Comando /resumo concluído com sucesso.");

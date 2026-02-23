@@ -4,7 +4,7 @@ import {
   updatePaymentRequest,
   getWorkgroupId,
 } from "../services/firebase";
-import { findRowByRequestId, updateSpreadsheetCell } from "../services/google";
+import { findRowByRequestId, updateSpreadsheetCell, uploadInvoice } from "../services/google";
 import { formatDate } from "../utils/utils";
 
 function sanitizeFileName(text: string, maxLength = 50): string {
@@ -15,6 +15,25 @@ function sanitizeFileName(text: string, maxLength = 50): string {
   return sanitized.length > maxLength
     ? sanitized.substring(0, maxLength)
     : sanitized;
+}
+
+// Função para extrair dados da mensagem
+function extractDataFromMessage(ctx: any) {
+  const messageText = ctx.callbackQuery?.message?.text;
+  
+  if (!messageText) {
+    return { id: null, fileId: null };
+  }
+  
+  // Extrai ID da transação
+  const idMatch = messageText.match(/ID da transação:\s*([-\w]+)/);
+  const id = idMatch ? idMatch[1] : null;
+  
+  // Extrai File ID
+  const fileIdMatch = messageText.match(/File ID:\s*([A-Za-z0-9_-]+)/);
+  const fileId = fileIdMatch ? fileIdMatch[1] : null;
+  
+  return { id, fileId };
 }
 
 export async function registerReceiptTypeCallback(
@@ -45,10 +64,49 @@ export async function registerReceiptTypeCallback(
       };
       const receiptType = typeMap[typeCode];
 
+      // Extrai fileId da mensagem
+      const { fileId } = extractDataFromMessage(ctx);
+      if (!fileId) {
+        await ctx.answerCbQuery("File ID não encontrado na mensagem.");
+        return;
+      }
+
       const requestData = await getRequestData(requestId);
       if (!requestData) {
         await ctx.answerCbQuery("Solicitação não encontrada.");
         return;
+      }
+
+      if (requestData.status !== "confirmed") {
+        await ctx.answerCbQuery("Pagamento não confirmado.");
+        return;
+      }
+
+      // Processa o arquivo se ainda não foi processado
+      if (!requestData.receipt_url) {
+        await ctx.editMessageText("🔄 Arquivando comprovante...");
+        
+        const folderId = requestData.project.folder_id;
+        if (!folderId) {
+          await ctx.answerCbQuery(`Projeto ${requestData.project.name} sem pasta configurada.`);
+          return;
+        }
+        
+        const fileLink = await ctx.telegram.getFileLink(fileId);
+        const response = await fetch(fileLink.href);
+        const fileBuffer = await response.arrayBuffer();
+        
+        const date = formatDate(new Date());
+        const fileName = `${date} - ${requestData.project.name} - ${requestData.value} - ${requestData.supplier.nickname} - ${sanitizeFileName(requestData.description)}`;
+        
+        const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
+        if (!uploadResponse) {
+          await ctx.answerCbQuery("Erro no upload do arquivo.");
+          return;
+        }
+        
+        await updatePaymentRequest(requestId, { receipt_url: uploadResponse });
+        requestData.receipt_url = uploadResponse;
       }
 
       const rowNumber = await findRowByRequestId(
