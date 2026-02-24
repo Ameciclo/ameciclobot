@@ -101,7 +101,9 @@ async function handleArquivarMode(ctx: Context) {
     mode: 'archive',
     fileId: document.file_id,
     fileName: fileName,
-    workgroupId: workgroupId
+    workgroupId: workgroupId,
+    currentPath: [],
+    currentFolderId: groupConfig.folderId
   }, 300);
 
   const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
@@ -187,7 +189,9 @@ export async function handleFileCreation(ctx: Context, fileType: string, title: 
       documentId,
       documentType,
       documentTitle: fullTitle,
-      workgroupId: workgroupId
+      workgroupId: workgroupId,
+      currentPath: [],
+      currentFolderId: groupConfig.folderId
     }, 300);
 
     const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
