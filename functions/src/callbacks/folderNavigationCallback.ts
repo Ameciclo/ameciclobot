@@ -51,10 +51,10 @@ export function createFolderNavigationKeyboard(
     buttons.push(row);
   }
   
-  // Botão atualizar e nova pasta
+  // Botão atualizar e ver pasta
   buttons.push([
     { text: "🔄 Atualizar Pastas", callback_data: `upd_fld:${tempId}` },
-    { text: "➕ Nova Pasta", callback_data: `new_fld:${tempId}` }
+    { text: "📁 Ver Pasta", url: `https://drive.google.com/drive/folders/${node.id}` }
   ]);
   
   return buttons;
@@ -118,10 +118,11 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       const keyboard = createFolderNavigationKeyboard(selectedChild, tempId, newPath.join('/'));
       
       const breadcrumb = newPath.length > 0 ? ` > ${newPath.join(' > ')}` : '';
+      const createCommand = `/criar_pasta ${selectedChild.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
-        { reply_markup: { inline_keyboard: keyboard } }
+        `Para criar pasta: \`${createCommand}\`\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
       );
       
     } catch (error) {
@@ -170,10 +171,11 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       const keyboard = createFolderNavigationKeyboard(parentNode, tempId, parentPath.join('/'));
       
       const breadcrumb = parentPath.length > 0 ? ` > ${parentPath.join(' > ')}` : '';
+      const createCommand = `/criar_pasta ${parentNode.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
-        { reply_markup: { inline_keyboard: keyboard } }
+        `Para criar pasta: \`${createCommand}\`\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
       );
       
     } catch (error) {
@@ -242,9 +244,11 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       
       const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
       
+      const createCommand = `/criar_pasta ${rootNode.id} [nome da pasta]`;
+      
       await ctx.editMessageText(
-        "✅ Pastas atualizadas!\n📁 Escolha uma pasta:",
-        { reply_markup: { inline_keyboard: keyboard } }
+        `Para criar pasta: \`${createCommand}\`\n\n✅ Pastas atualizadas!\n📁 Escolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
       );
       
     } catch (error) {

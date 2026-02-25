@@ -108,9 +108,11 @@ async function handleArquivarMode(ctx: Context) {
 
   const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
   
+  const createCommand = `/criar_pasta ${groupConfig.folderId} [nome da pasta]`;
+  
   return ctx.reply(
-    `📁 Arquivar: ${fileName}\nEscolha a pasta:`,
-    { reply_markup: { inline_keyboard: keyboard } }
+    `Para criar pasta: \`${createCommand}\`\n\n📁 Arquivar: ${fileName}\nEscolha a pasta:`,
+    { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
   );
 }
 
@@ -196,9 +198,11 @@ export async function handleFileCreation(ctx: Context, fileType: string, title: 
 
     const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
     
+    const createCommand = `/criar_pasta ${groupConfig.folderId} [nome da pasta]`;
+    
     return ctx.editMessageText(
-      `${documentType} "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
-      { reply_markup: { inline_keyboard: keyboard } }
+      `Para criar pasta: \`${createCommand}\`\n\n${documentType} "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
+      { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
     );
   } catch (error) {
     console.error(`Erro ao criar ${fileType}:`, error);
