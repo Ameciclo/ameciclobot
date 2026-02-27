@@ -475,3 +475,48 @@ export async function addSubscriber(telegramUser: TelegramUserInfo): Promise<boo
     return false;
   }
 }
+
+// Configurações de transcrição
+export interface TranscriptionSettings {
+  auto_enabled: boolean;
+  max_minutes: number;
+}
+
+export async function getTranscriptionSettings(chatId: number): Promise<TranscriptionSettings> {
+  try {
+    const snapshot = await admin.database().ref(`transcription_settings/${chatId}`).once('value');
+    const data = snapshot.val();
+    
+    // Retorna valores padrão se não existir ou se max_minutes for undefined/null
+    return {
+      auto_enabled: data?.auto_enabled || false,
+      max_minutes: (data?.max_minutes !== undefined && data?.max_minutes !== null) ? data.max_minutes : 6
+    };
+  } catch (error) {
+    console.error('Erro ao buscar configurações de transcrição:', error);
+    return { auto_enabled: false, max_minutes: 6 };
+  }
+}
+
+export async function setAutoTranscription(chatId: number, enabled: boolean): Promise<boolean> {
+  try {
+    await admin.database().ref(`transcription_settings/${chatId}/auto_enabled`).set(enabled);
+    return true;
+  } catch (error) {
+    console.error('Erro ao definir auto-transcrição:', error);
+    return false;
+  }
+}
+
+export async function setMaxDuration(chatId: number, minutes: number): Promise<boolean> {
+  try {
+    if (minutes < 1 || minutes > 10) {
+      throw new Error('Duração deve estar entre 1 e 10 minutos');
+    }
+    await admin.database().ref(`transcription_settings/${chatId}/max_minutes`).set(minutes);
+    return true;
+  } catch (error) {
+    console.error('Erro ao definir duração máxima:', error);
+    return false;
+  }
+}

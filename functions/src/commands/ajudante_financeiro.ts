@@ -5,7 +5,7 @@ import workgroups from "../credentials/workgroupsfolders.json";
 export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
   bot.command("ajudante_financeiro", async (ctx: Context) => {
     try {
-      console.log("[ajudante_financeiro] Comando /ajudante_financeiro executado");
+      console.log("[ajudante_financeiro] Comando /ajudante_financeiro executado - v2");
       console.log("[ajudante_financeiro] Mensagem original:", ctx.message && "text" in ctx.message ? ctx.message.text : "N/A");
       
       // Validação do grupo financeiro primeiro
@@ -26,14 +26,21 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
         const match = text.match(/\/ajudante_financeiro(?:@\w+)?\s+(.+)/);
         const fileId = message.reply_to_message.document.file_id;
         
-        // Se tem ID após o comando, pergunta se quer arquivar comprovante ou fazer recibo
+        // Se tem ID após o comando, mostra tipos de comprovante diretamente
         if (match && match[1]) {
           const requestId = match[1].trim();
           
           const keyboard = Markup.inlineKeyboard([
             [
-              Markup.button.callback("📎 Arquivar Comprovante", "arquivar_comprovante"),
-              Markup.button.callback("📄 Recibo Ressarcimento", "recibo_ressarcimento")
+              Markup.button.callback("📄 Arquivar como Nota Fiscal", `rt_${requestId}_nf`),
+              Markup.button.callback("🧾 Arquivar como Cupom Fiscal", `rt_${requestId}_cf`)
+            ],
+            [
+              Markup.button.callback("📋 Arquivar como Recibo", `rt_${requestId}_r`),
+              Markup.button.callback("📎 Arquivar como Outro", `rt_${requestId}_o`)
+            ],
+            [
+              Markup.button.callback("📄 Gerar Recibo de Ressarcimento", "recibo_ressarcimento")
             ],
             [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
           ]);
@@ -44,9 +51,12 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
             `📁 *Arquivo com ID detectado!*\n\n` +
             `ID da transação: \`${requestId}\`\n` +
             `File ID: \`${fileId}\`\n\n` +
-            `O que você deseja fazer?\n\n` +
-            `• *Arquivar Comprovante*: Arquiva comprovante de pagamento\n` +
-            `• *Recibo Ressarcimento*: Gera recibo de ressarcimento com notas fiscais`,
+            `Escolha o tipo de comprovante:\n\n` +
+            `• *Nota Fiscal*: Arquiva como nota fiscal\n` +
+            `• *Cupom Fiscal*: Arquiva como cupom fiscal\n` +
+            `• *Recibo*: Arquiva como recibo\n` +
+            `• *Outro*: Arquiva como outro tipo de comprovante\n` +
+            `• *Gerar Recibo de Ressarcimento*: Cria recibo de ressarcimento`,
             { ...keyboard, parse_mode: "Markdown" }
           );
         }

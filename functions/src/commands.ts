@@ -14,9 +14,11 @@ import { resumoCommand } from "./commands/resumo";
 import { testarRotinasCommand } from "./commands/testar_rotinas";
 import { ajudanteFinanceiroCommand } from "./commands/ajudante_financeiro";
 import { denunciaCommand } from "./commands/denuncia";
+import { arquivarCommand } from "./commands/arquivar";
 
 export const commandsList = [
   ajudanteFinanceiroCommand,
+  arquivarCommand,
   clippingCommand,
   demandaCommand,
   denunciaCommand,

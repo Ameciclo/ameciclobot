@@ -4,6 +4,7 @@ import { iniciarCommand, registerStartCommand } from "./commands/start";
 import { ajudaCommand, registerHelpCommand } from "./commands/help";
 import { pagamentoCommand } from "./archived_commands/canceled/pagamento";
 import { consumoCommand } from "./commands/consumo";
+import { criarPastaCommand } from "./commands/criar_pasta";
 
 export function registerAllCommands(bot: Telegraf) {
   console.log(`Registrando comandos... Total no array: ${commandsList.length}`);
@@ -29,6 +30,7 @@ export function registerAllCommands(bot: Telegraf) {
     registerStartCommand(bot);
     pagamentoCommand.register(bot);
     consumoCommand.register(bot);
+    criarPastaCommand.register(bot);
     console.log("✅ Comandos especiais registrados");
   } catch (error) {
     console.error("❌ Erro ao registrar comandos especiais:", error);

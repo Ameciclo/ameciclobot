@@ -139,6 +139,32 @@ export async function listModelsFromFolder(
   }
 }
 
+export async function createFolder(
+  folderName: string,
+  parentFolderId: string
+): Promise<{ id: string; name: string } | null> {
+  const drive = google.drive({ version: "v3", auth });
+  try {
+    const response = await drive.files.create({
+      requestBody: {
+        name: folderName,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentFolderId],
+      },
+      fields: "id, name",
+    });
+    
+    console.log(`Pasta "${folderName}" criada com sucesso`);
+    return {
+      id: response.data.id!,
+      name: response.data.name!,
+    };
+  } catch (error) {
+    console.error("Erro ao criar pasta:", error);
+    return null;
+  }
+}
+
 export async function listFolders(
   parentFolderId: string
 ): Promise<{ id: string; name: string }[]> {

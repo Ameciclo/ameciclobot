@@ -1,5 +1,5 @@
 import { Context, Telegraf } from "telegraf";
-import { sendChatCompletion } from "../services/azure";
+import { sendChatCompletion } from "../services/groq";
 import workgroups from "../credentials/workgroupsfolders.json";
 
 const ALLOWED_GROUPS = workgroups.map((group: any) => Number(group.value));
@@ -17,7 +17,7 @@ function registerResumoCommand(bot: Telegraf) {
         return;
       }
 
-      // Obtém o texto da mensagem
+      // Obtém o texto da mensagem (APENAS de reply)
       let messageText: string | undefined;
       const msg = ctx.message as any;
       if (msg?.reply_to_message?.text) {
@@ -26,18 +26,18 @@ function registerResumoCommand(bot: Telegraf) {
       } else if (msg?.reply_to_message?.caption) {
         messageText = msg.reply_to_message.caption;
         console.log("[resumo] Texto obtido da legenda da imagem respondida.");
-      } else if (msg?.text) {
-        messageText = msg.text.replace("/resumo", "").trim();
-        console.log("[resumo] Texto obtido da própria mensagem.");
-      } else if (msg?.caption) {
-        messageText = msg.caption.replace("/resumo", "").trim();
-        console.log("[resumo] Texto obtido da legenda da imagem.");
       }
 
+      // Extrai limite de caracteres do comando
+      const text = ctx.text || "";
+      const args = text.split(" ").slice(1);
+      const customLimit = args.length > 0 && !isNaN(Number(args[0])) ? Number(args[0]) : 300;
+
       if (!messageText) {
-        console.log("[resumo] Texto não fornecido.");
+        console.log("[resumo] Comando usado sem resposta a mensagem.");
         await ctx.reply(
-          "Por favor, forneça o texto para resumir (ou responda a uma mensagem/imagem com esse texto)."
+          "📝 *Como usar o /resumo:*\n\n1️⃣ Responda a uma mensagem com texto\n2️⃣ Digite `/resumo` ou `/resumo [número]`\n\n*Exemplos:*\n• `/resumo` - 300 caracteres\n• `/resumo 150` - 150 caracteres\n\n✨ *Resultado:* Resumo + 3 hashtags",
+          { parse_mode: "Markdown" }
         );
         return;
       }
@@ -75,31 +75,36 @@ function registerResumoCommand(bot: Telegraf) {
       };
 
       const instructions = getInstructions(contentType);
-      const prompt = `${instructions} O resumo deve ter no máximo 300 caracteres.
+      const prompt = `${instructions} O resumo deve ter no máximo ${customLimit} caracteres. Além do resumo, gere também 3 palavras-chave relevantes no formato #palavra_chave (use underscore para palavras compostas).
 
 Texto para resumir:
 "${messageText}"`;
 
       console.log("[resumo] Enviando prompt para sendChatCompletion...");
-      const azureResponse = await sendChatCompletion([
+      const groqResponse = await sendChatCompletion([
         {
           role: "system",
-          content: "Você é um assistente da Ameciclo que cria resumos concisos e informativos. Sempre respeite o limite de caracteres solicitado."
+          content: "Você é um assistente da Ameciclo que cria resumos concisos e informativos. Sempre respeite o limite de caracteres solicitado. Retorne o resumo seguido das 3 palavras-chave em linhas separadas."
         },
         { role: "user", content: prompt }
       ]);
 
-      const resumo = azureResponse.choices?.[0]?.message?.content;
-      if (!resumo) {
-        console.log("[resumo] Azure não retornou conteúdo.");
+      const response = groqResponse.choices?.[0]?.message?.content;
+      if (!response) {
+        console.log("[resumo] Groq não retornou conteúdo.");
         await ctx.reply("Não foi possível gerar o resumo. Tente novamente.");
         return;
       }
 
-      // Verifica se o resumo excede 300 caracteres
-      const finalResumo = resumo.length > 300 ? resumo.substring(0, 297) + "..." : resumo;
+      // Separa resumo e palavras-chave
+      const lines = response.split('\n').filter(line => line.trim());
+      const resumoText = lines.find(line => !line.startsWith('#')) || lines[0];
+      const keywords = lines.filter(line => line.startsWith('#')).join(' ');
       
-      const responseMessage = `📝 **Resumo gerado:**\n\n${finalResumo}\n\n_Caracteres: ${finalResumo.length}/300_`;
+      // Verifica se o resumo excede o limite
+      const finalResumo = resumoText.length > customLimit ? resumoText.substring(0, customLimit - 3) + "..." : resumoText;
+      
+      const responseMessage = `📝 *Resumo gerado:*\n\n${finalResumo}\n\n${keywords}\n\n_Caracteres: ${finalResumo.length}/${customLimit}_`;
 
       await ctx.reply(responseMessage, { parse_mode: "Markdown" });
       console.log("[resumo] Comando /resumo concluído com sucesso.");
@@ -114,6 +119,6 @@ Texto para resumir:
 export const resumoCommand = {
   register: registerResumoCommand,
   name: () => "/resumo",
-  help: () => "Use o comando `/resumo` em resposta a uma mensagem de texto ou digitando `/resumo [texto]` para gerar um resumo de até 300 caracteres.",
+  help: () => "Use `/resumo` ou `/resumo [número]` em resposta a uma mensagem para gerar resumo com palavras-chave. Exemplo: `/resumo 150` para 150 caracteres.",
   description: () => "📝 Resumir texto usando IA."
 };

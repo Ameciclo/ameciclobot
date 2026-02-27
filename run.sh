@@ -140,6 +140,23 @@ continuos_start_bot() {
 #####################################
 # Menu interativo de opções
 #####################################
+
+# Se um argumento foi passado, executa diretamente
+if [ $# -eq 1 ]; then
+    choice=$1
+    case $choice in
+        1) start_ngrok; exit 0 ;;
+        2) set_webhook_from_file; exit 0 ;;
+        3) start_firebase; exit 0 ;;
+        4) restart_firebase; exit 0 ;;
+        5) start_bot; exit 0 ;;
+        6) change_node; exit 0 ;;
+        7) deploy_production; exit 0 ;;
+        8) continuos_start_bot; exit 0 ;;
+        *) echo "Opção inválida: $choice"; exit 1 ;;
+    esac
+fi
+
 while true; do
     echo ""
     echo "============$(date '+%H:%M:%S')============================ "
