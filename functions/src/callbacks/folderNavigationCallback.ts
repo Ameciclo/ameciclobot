@@ -32,23 +32,32 @@ export function createFolderNavigationKeyboard(
   }
   
   // Subpastas (2 por linha) - usando índices
-  const children = Object.values(node.children);
+  const children = Object.values(node.children || {});
   for (let i = 0; i < children.length; i += 2) {
     const row = [];
     
-    row.push({
-      text: `📂 ${children[i].name.substring(0, 20)}`,
-      callback_data: `nav_to:${tempId}:${i}`
-    });
-    
-    if (i + 1 < children.length) {
+    // Só adiciona botão se a pasta tem filhos ou é navegável
+    const child1 = children[i];
+    if (child1) {
       row.push({
-        text: `📂 ${children[i + 1].name.substring(0, 20)}`,
-        callback_data: `nav_to:${tempId}:${i + 1}`
+        text: `📂 ${child1.name.substring(0, 20)}`,
+        callback_data: `nav_to:${tempId}:${i}`
       });
     }
     
-    buttons.push(row);
+    if (i + 1 < children.length) {
+      const child2 = children[i + 1];
+      if (child2) {
+        row.push({
+          text: `📂 ${child2.name.substring(0, 20)}`,
+          callback_data: `nav_to:${tempId}:${i + 1}`
+        });
+      }
+    }
+    
+    if (row.length > 0) {
+      buttons.push(row);
+    }
   }
   
   // Botão atualizar e ver pasta
@@ -91,7 +100,7 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       const currentPath = tempData.currentPath || [];
       let currentNode = rootNode;
       for (const pathPart of currentPath) {
-        currentNode = currentNode.children[pathPart];
+        currentNode = currentNode.children?.[pathPart];
         if (!currentNode) {
           await ctx.editMessageText("❌ Pasta não encontrada.");
           return;
@@ -99,14 +108,14 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       }
       
       // Obtém a pasta filha pelo índice
-      const children = Object.values(currentNode.children);
+      const children = Object.values(currentNode.children || {});
       if (childIndex >= children.length) {
         await ctx.editMessageText("❌ Pasta não encontrada.");
         return;
       }
       
       const selectedChild = children[childIndex];
-      const newPath = [...currentPath, Object.keys(currentNode.children)[childIndex]];
+      const newPath = [...currentPath, Object.keys(currentNode.children || {})[childIndex]];
       
       // Atualiza o path no tempData
       await setTempData(tempId, {
@@ -117,12 +126,21 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       
       const keyboard = createFolderNavigationKeyboard(selectedChild, tempId, newPath.join('/'));
       
-      const breadcrumb = newPath.length > 0 ? ` > ${newPath.join(' > ')}` : '';
+      // Constrói breadcrumb com nomes das pastas
+      const breadcrumbNames = [];
+      let tempNode = rootNode;
+      for (const pathPart of newPath) {
+        tempNode = tempNode.children?.[pathPart];
+        if (tempNode) {
+          breadcrumbNames.push(tempNode.name);
+        }
+      }
+      const breadcrumb = breadcrumbNames.length > 0 ? ` → ${breadcrumbNames.join(' → ')}` : '';
       const createCommand = `/criar_pasta ${selectedChild.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: \`${createCommand}\`\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
-        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
+        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
       );
       
     } catch (error) {
@@ -158,7 +176,7 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       // Navega para o nó pai
       let parentNode = rootNode;
       for (const pathPart of parentPath) {
-        parentNode = parentNode.children[pathPart];
+        parentNode = parentNode.children?.[pathPart];
       }
       
       // Atualiza o path no tempData
@@ -170,12 +188,21 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       
       const keyboard = createFolderNavigationKeyboard(parentNode, tempId, parentPath.join('/'));
       
-      const breadcrumb = parentPath.length > 0 ? ` > ${parentPath.join(' > ')}` : '';
+      // Constrói breadcrumb com nomes das pastas
+      const breadcrumbNames = [];
+      let tempNode = rootNode;
+      for (const pathPart of parentPath) {
+        tempNode = tempNode.children?.[pathPart];
+        if (tempNode) {
+          breadcrumbNames.push(tempNode.name);
+        }
+      }
+      const breadcrumb = breadcrumbNames.length > 0 ? ` → ${breadcrumbNames.join(' → ')}` : '';
       const createCommand = `/criar_pasta ${parentNode.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: \`${createCommand}\`\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
-        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
+        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
       );
       
     } catch (error) {
@@ -247,8 +274,8 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       const createCommand = `/criar_pasta ${rootNode.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: \`${createCommand}\`\n\n✅ Pastas atualizadas!\n📁 Escolha uma pasta:`,
-        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
+        `Para criar pasta: <code>${createCommand}</code>\n\n✅ Pastas atualizadas!\n📁 Escolha uma pasta:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
       );
       
     } catch (error) {
