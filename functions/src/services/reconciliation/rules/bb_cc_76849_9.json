@@ -1,0 +1,130 @@
+{
+  "sourceId": "bb_cc_76849_9",
+  "accountFilter": "76.849-9",
+  "classificationRules": [
+    {
+      "when": { "narrativeIncludes": "BB Rende Fácil", "type": "D" },
+      "then": { 
+        "kind": "INVESTMENT_APPLY", 
+        "subtype": "BB_RENDE_FACIL",
+        "projectDefault": "Movimentação Bancária",
+        "commentDefault": "Investimento BB Rende Fácil"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "BB Rende Fácil", "type": "C" },
+      "then": { 
+        "kind": "INVESTMENT_REDEEM", 
+        "subtype": "BB_RENDE_FACIL",
+        "projectDefault": "Movimentação Bancária",
+        "commentDefault": "Resgate BB Rende Fácil"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "Pix-Envio devolvido" },
+      "then": { 
+        "kind": "INTERNAL_TRANSFER", 
+        "subtype": "PIX_RETURNED",
+        "projectDefault": "Transferências erradas, devoluções bancárias e outras",
+        "commentDefault": "PIX DEVOLVIDO EXPLICAR"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "Pix Automatico Recebido" },
+      "then": { 
+        "kind": "INTERNAL_TRANSFER", 
+        "subtype": "PIX_RETURNED",
+        "projectDefault": "Transferências erradas, devoluções bancárias e outras",
+        "commentDefault": "PIX DEVOLVIDO EXPLICAR"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "AMECICL" },
+      "then": { 
+        "kind": "INTERNAL_TRANSFER", 
+        "subtype": "INTERNAL_MOVEMENT",
+        "projectDefault": "Movimentação Bancária",
+        "commentDefault": "ATENÇÃO, DETALHAR"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "TARIFA" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "SERVICE_FEE",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "CESTA" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "SERVICE_FEE",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "PACOTE" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "SERVICE_FEE",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "IOF" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "TAX",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "JUROS" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "INTEREST",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "narrativeIncludes": "ESTORNO" },
+      "then": { 
+        "kind": "BANK_FEE", 
+        "subtype": "REVERSAL",
+        "projectDefault": "",
+        "commentDefault": "Taxa Bancária"
+      }
+    },
+    {
+      "when": { "type": "C" },
+      "then": { 
+        "kind": "INCOME", 
+        "subtype": "INCOMING",
+        "projectDefault": "Recursos Independentes 2025 (2o Semestre)",
+        "commentDefault": "REVISAR PROJETO"
+      }
+    },
+    {
+      "when": { "type": "D" },
+      "then": { 
+        "kind": "PAYMENT", 
+        "subtype": "OUTGOING"
+      }
+    }
+  ],
+  "internalCounterparties": [
+    "AMECICLO",
+    "ASSOCIACAO METROPOLITANA",
+    "ASSOC METROPOLITANA"
+  ],
+  "payeeExtraction": {
+    "pixPattern": "Pix\\s*-\\s*(?:Enviado|Recebido).*?\\d{2}[:/]\\d{2}(?:\\s+\\d{2}:\\d{2})?\\s+(.+)$",
+    "fallbackPattern": "([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ ]{3,})$"
+  }
+}
