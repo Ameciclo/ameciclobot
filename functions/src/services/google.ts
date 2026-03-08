@@ -186,6 +186,27 @@ export async function listFolders(
   }
 }
 
+export async function checkFolderExists(
+  parentFolderId: string,
+  folderName: string
+): Promise<{ exists: boolean; folderId?: string }> {
+  try {
+    const folders = await listFolders(parentFolderId);
+    const existingFolder = folders.find(folder => 
+      folder.name.toLowerCase() === folderName.toLowerCase()
+    );
+    
+    if (existingFolder) {
+      return { exists: true, folderId: existingFolder.id };
+    }
+    
+    return { exists: false };
+  } catch (error) {
+    console.error("Erro ao verificar se pasta existe:", error);
+    return { exists: false };
+  }
+}
+
 export async function getFileMetadata(
   fileId: string
 ): Promise<{ name: string }> {

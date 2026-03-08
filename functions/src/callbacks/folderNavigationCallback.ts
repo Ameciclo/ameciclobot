@@ -2,7 +2,7 @@ import { Context, Telegraf } from "telegraf";
 import { 
   FolderNode, 
   getFolderTree, 
-  updateFolderTree
+  forceUpdateFolderTree
 } from "../services/folderService";
 import { getTempData, setTempData } from "../services/firebase";
 import { moveDocumentToFolder, uploadInvoice } from "../services/google";
@@ -254,7 +254,10 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       }
       
       const workgroupId = tempData.workgroupId || String(ctx.chat?.id);
-      await updateFolderTree(workgroupId);
+      
+      // Força atualização completa limpando cache
+      console.log(`[upd_fld] Forçando atualização completa para workgroup ${workgroupId}`);
+      await forceUpdateFolderTree(workgroupId);
       
       const rootNode = await getFolderTree(workgroupId);
       if (!rootNode) {
