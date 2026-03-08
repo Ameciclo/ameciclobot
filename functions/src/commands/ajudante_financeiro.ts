@@ -1,6 +1,7 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 import workgroups from "../credentials/workgroupsfolders.json";
+import { processExtratoCallback, processPdfInteligenteCallback } from "../callbacks/ajudanteFinanceiroCallback";
 
 export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
   bot.command("ajudante_financeiro", async (ctx: Context) => {
@@ -25,6 +26,7 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
         const text = ctx.text || "";
         const match = text.match(/\/ajudante_financeiro(?:@\w+)?\s+(.+)/);
         const fileId = message.reply_to_message.document.file_id;
+        const fileName = message.reply_to_message.document.file_name || "";
         
         // Se tem ID após o comando, mostra tipos de comprovante diretamente
         if (match && match[1]) {
@@ -61,27 +63,30 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
           );
         }
         
-        // Se não tem ID, pergunta o que fazer com o arquivo
-        const keyboard = Markup.inlineKeyboard([
-          [
-            Markup.button.callback("📊 Arquivar Extrato PDF", "arquivar_extrato"),
-            Markup.button.callback("💰 Processar Extrato", "processar_extrato")
-          ],
-          [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
-        ]);
+        // Processamento automático baseado no tipo de arquivo
+        const isCSV = fileName.toLowerCase().endsWith('.csv');
+        const isTXT = fileName.toLowerCase().endsWith('.txt');
+        const isPDF = fileName.toLowerCase().endsWith('.pdf');
         
-        console.log(`[ajudante_financeiro] Arquivo detectado sem ID, File ID: ${fileId}`);
+        console.log(`[ajudante_financeiro] Arquivo detectado - Tipo: ${isCSV ? 'CSV' : isTXT ? 'TXT' : isPDF ? 'PDF' : 'OUTRO'}, File ID: ${fileId}`);
         
-        return ctx.reply(
-          `📁 *Arquivo detectado!*\n\n` +
-          `File ID: \`${fileId}\`\n\n` +
-          "O que você deseja fazer com este arquivo?\n\n" +
-          "• *Arquivar Extrato PDF*: Arquiva um extrato bancário em PDF no Google Drive\n" +
-          "• *Processar Extrato*: Processa extratos CSV/TXT e adiciona na planilha financeira\n\n" +
-          "💡 *Dica*: Para arquivar comprovante ou gerar recibo de ressarcimento, use:\n" +
-          "`/ajudante_financeiro [id_transacao]`",
-          { ...keyboard, parse_mode: "Markdown" }
-        );
+        // CSV: Processa automaticamente como extrato CC
+        if (isCSV) {
+          return processExtratoCallback(ctx, fileId);
+        }
+        
+        // TXT: Processa automaticamente como extrato FI  
+        if (isTXT) {
+          return processExtratoCallback(ctx, fileId);
+        }
+        
+        // PDF: Tenta detectar automaticamente, senão mostra opções
+        if (isPDF) {
+          return processPdfInteligenteCallback(ctx, fileId);
+        }
+        
+        // Outros tipos de arquivo
+        return ctx.reply("❌ Tipo de arquivo não suportado. Use PDF, CSV ou TXT.");
       }
       
       // Se não é resposta a arquivo, mostra opções principais
