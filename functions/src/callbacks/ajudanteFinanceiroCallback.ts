@@ -20,6 +20,8 @@ import iconv from "iconv-lite";
 import pdfParse from "pdf-parse";
 import { reconcileExtract } from "../services/reconciliation";
 import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
+import { detectBankCSV } from "../services/reconciliation/bank_detector";
+import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
 
 // Função para extrair dados da mensagem
 function extractDataFromMessage(ctx: any) {
@@ -691,34 +693,76 @@ async function processExtratoCsv(fileUrl: string) {
   const fileBuffer = Buffer.from(response.data);
   const fileContent = iconv.decode(fileBuffer, "latin1");
   
+  // Detecta automaticamente o tipo de banco
+  const detection = detectBankCSV(fileContent);
+  console.log(`[processExtratoCsv] Banco detectado: ${detection.bank} (confiança: ${detection.confidence})`);
+  
   const confirmedRequests = await getAllRequests();
   const requestsArray = Object.values(confirmedRequests).filter((request: any) => request.status === "confirmed") as PaymentRequest[];
   
-  const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
-  const { results } = reconcileExtract(entries, requestsArray);
+  let result;
   
-  const statements = entries.map((entry, i) => {
-    const result = results[i];
-    const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-    const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
-    let type = entry.type === "C" ? "Entrada" : "Saída";
+  if (detection.bank === 'cora') {
+    // Processa CSV do Cora
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseCoraCSV(fileContent, "cora_cc");
+    const { results } = reconcileExtract(entries, requestsArray);
     
-    if (result.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
-      type = entry.type === "D" ? "Investido" : "Desinvestido";
-    } else if (result.comment === "PIX DEVOLVIDO EXPLICAR") {
-      type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
-    } else if (result.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
-      type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
-    }
+    const statements = entries.map((entry, i) => {
+      const reconcileResult = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
+      const formattedValue = `R$ ${entry.amount.toFixed(2)}`; // Mantém ponto decimal
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+      
+      // Classificações específicas do Cora
+      if (entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (entry.narrative.includes("Cora SCFI")) {
+        // Classifica faturas de cartão automaticamente
+        return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
+      }
+      
+      return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
+    });
     
-    return [formattedDate, formattedValue, type, entry.narrative, result.comment, result.project];
-  });
+    const matchedAccount = getAccounts.find((acc: any) => 
+      acc.number === rawAccount && acc.type === "Conta Corrente" && acc.input_file_type === "csv"
+    ) || {
+      number: rawAccount, 
+      sheet: "EXTRATO CC Cora", // Aba específica do Cora
+      fulltext: `Conta Corrente (Cora) ${rawAccount}`
+    };
+    
+    result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
+  } else {
+    // Processa CSV do BB (código original)
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+    const { results } = reconcileExtract(entries, requestsArray);
+    
+    const statements = entries.map((entry, i) => {
+      const reconcileResult = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
+      const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+      
+      if (reconcileResult.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (reconcileResult.comment === "PIX DEVOLVIDO EXPLICAR") {
+        type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
+      } else if (reconcileResult.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+        type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
+      }
+      
+      return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
+    });
+    
+    const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
+      number: rawAccount, sheet: "desconhecido"
+    };
+    
+    result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
+  }
   
-  const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
-    number: rawAccount, sheet: "desconhecido"
-  };
-  
-  return { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
+  return result;
 }
 
 async function processExtratoTxt(fileUrl: string) {
