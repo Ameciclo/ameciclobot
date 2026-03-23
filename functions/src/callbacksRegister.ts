@@ -3,7 +3,6 @@ import { registerEventParticipationCallback } from "./callbacks/confirmEventPart
 import { registerConfirmPaymentCallback } from "./callbacks/confirmPaymentCallback";
 import { registerCancelPaymentCallback } from "./callbacks/cancelPaymentCallback";
 import { registerModeloUseCallback } from "./callbacks/modeloChooserCallback";
-import { registerAssignWorkgroupCallback } from "./callbacks/assignWorkgroup";
 import { registerFolderChooserCallback } from "./callbacks/folderChooserCallback";
 import { registerEventCallback } from "./callbacks/eventCallback";
 import { registerReceiptTypeCallback } from "./callbacks/receiptTypeCallback";
@@ -23,7 +22,6 @@ export function registerAllCallbacks(bot: Telegraf) {
   registerConfirmPaymentCallback(bot);
   registerEventCallback(bot);
   registerReceiptTypeCallback(bot);
-  registerAssignWorkgroupCallback(bot);
   registerInformationRequestCallback(bot);
   registerFolderChooserCallback(bot);
   registerPendenciasCallbacks(bot);

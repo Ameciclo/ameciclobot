@@ -1,8 +1,9 @@
 import { Context, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { sendChatCompletion } from "../services/groq";
-import { getEventById, addEventAttachment, uploadFile, updateEventWorkgroup } from "../services/google";
-import { formatDate } from "../utils/utils";
-import { buildEventMessage, buildDailyAgendaMessage } from "../utils/eventMessages";
+import { getEventById, addEventAttachment, uploadFile } from "../services/google";
+import { formatDate, escapeMarkdownV2 } from "../utils/utils";
+import { buildEventMessage } from "../utils/eventMessages";
 import workgroups from "../credentials/workgroupsfolders.json";
 import calendars from "../credentials/calendars.json";
 
@@ -81,57 +82,41 @@ function registerEventoCommand(bot: Telegraf) {
           !("reply_to_message" in ctx.message) ||
           !ctx.message.reply_to_message
         ) {
-          // Nova funcionalidade: transferir evento para o grupo atual
-          const chatId = ctx.chat?.id;
-          const isValidGroup = chatId && ALLOWED_GROUPS.includes(Number(chatId));
+          // Verifica se está no grupo da secretaria
+          const isSecretariaGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
           
-          if (isValidGroup) {
-            console.log("[evento] Transferindo evento para grupo atual:", chatId);
-            
-            // Encontra o grupo atual
-            const currentGroup = workgroups.find(g => Number(g.value) === Number(chatId));
-            if (!currentGroup) {
-              await ctx.reply("❌ Grupo não encontrado na configuração.");
-              return;
-            }
-            
-            // Verifica se já está atribuído ao grupo atual
+          if (isSecretariaGroup) {
+            // Verifica se já está atribuído
             const currentWorkgroup = event.extendedProperties?.private?.workgroup;
-            if (currentWorkgroup === chatId?.toString()) {
-              await ctx.reply(`⚠️ Este evento já pertence ao grupo **${currentGroup.label}**.\n\n💡 Para complementar o evento com texto ou imagem, responda a uma mensagem contendo o conteúdo desejado.`, {
+            if (currentWorkgroup) {
+              const group = workgroups.find(g => g.value.toString() === currentWorkgroup);
+              const groupName = group ? group.label : "Grupo desconhecido";
+              await ctx.reply(`⚠️ Este evento já está atribuído ao grupo: **${groupName}**\n\n💡 Para complementar o evento com texto ou imagem, responda a uma mensagem contendo o conteúdo desejado.`, {
                 parse_mode: "Markdown"
               });
               return;
             }
-            
-            // Atualiza o workgroup do evento
-            const success = await updateEventWorkgroup(eventId, chatId.toString());
-            
-            if (success) {
-              const eventTitle = event.summary || "Evento sem título";
-              
-              // Publica o evento no grupo atual
-              const eventMessage = buildDailyAgendaMessage([event]);
-              await ctx.reply(eventMessage, {
-                parse_mode: "MarkdownV2",
-                link_preview_options: { is_disabled: true }
-              });
-              
-              // Confirma a transferência
-              const previousGroup = currentWorkgroup ? 
-                workgroups.find(g => g.value.toString() === currentWorkgroup)?.label || "Grupo anterior" :
-                "Nenhum grupo";
-              
-              await ctx.reply(
-                `✅ **Evento transferido com sucesso!**\n\n` +
-                `📝 **Evento:** ${eventTitle}\n` +
-                `📤 **De:** ${previousGroup}\n` +
-                `📥 **Para:** ${currentGroup.label}`,
-                { parse_mode: "Markdown" }
+
+            // Criar teclado com grupos de trabalho + opção cancelar
+            const buttons = workgroups.map(group => {
+              const callbackData = `asg|${group.value}|${eventId}`;
+              return Markup.button.callback(
+                `📋 ${group.label}`,
+                callbackData
               );
-            } else {
-              await ctx.reply("❌ Erro ao transferir o evento. Tente novamente.");
-            }
+            });
+            
+            buttons.push(Markup.button.callback("❌ Cancelar", `cancel|${eventId}`));
+            
+            const keyboard = Markup.inlineKeyboard(buttons, { columns: 2 });
+
+            const eventTitle = event.summary || "Evento sem título";
+            const message = `🎯 **Atribuindo evento a um grupo de trabalho**\n\n📝 **Evento:** ${escapeMarkdownV2(eventTitle)}\n\n👥 Selecione o grupo de trabalho:\n\n💡 **Outras funções disponíveis:**\n• Responda a um texto para alterar a descrição\n• Responda a uma imagem para anexar ao evento`;
+
+            await ctx.reply(message, {
+              parse_mode: "MarkdownV2",
+              reply_markup: keyboard.reply_markup
+            });
             return;
           } else {
             await ctx.reply(
@@ -437,23 +422,23 @@ export const eventoCommand = {
   help: () => `
 📅 *Comando Evento*
 
-Comando unificado para criar, complementar e transferir eventos.
+Comando unificado para criar, complementar e atribuir eventos.
 
 *Usos:*
 \`/evento\` - Criar novo evento
-\`/evento <ID>\` - Complementar ou transferir evento existente
+\`/evento <ID>\` - Complementar ou atribuir evento existente
 
 *Funcionalidades:*
 • **Criar evento:** Responda a um texto descritivo ou digite após o comando
 • **Complementar com texto:** \`/evento <ID>\` respondendo a um texto
 • **Complementar com imagem:** \`/evento <ID>\` respondendo a uma imagem
-• **Transferir para grupo:** \`/evento <ID>\` sem resposta (puxa evento para o grupo atual)
+• **Atribuir a grupo:** \`/evento <ID>\` sem resposta (apenas em grupos)
 
 *Exemplos:*
 \`/evento\` (respondendo a "Reunião amanhã às 14h")
 \`/evento abc123\` (respondendo a nova descrição)
 \`/evento abc123\` (respondendo a imagem)
-\`/evento abc123\` (transfere evento para este grupo)
+\`/evento abc123\` (sem resposta, para atribuir)
   `,
-  description: () => "📅 Criar, complementar e transferir eventos.",
+  description: () => "📅 Criar, complementar e atribuir eventos.",
 };

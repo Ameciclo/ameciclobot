@@ -38,8 +38,11 @@ async function handleModeloSelection(ctx: Context, title: string) {
     });
 
     return ctx.editMessageText(
-      `Qual o modelo de documento você quer clonar?\nTítulo do documento: ${title}`,
-      Markup.inlineKeyboard(buttons)
+      `Qual o modelo de documento você quer clonar?\nTítulo do documento: ${title}\n\n💡 **Adicionar novos modelos:**\nVocê pode adicionar novos modelos na pasta: [📁 Modelos Ameciclo](https://drive.google.com/drive/folders/1xYWUMDsamike4q3_CrHAZNKNsq6gsUUb)`,
+      {
+        reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
+        parse_mode: "Markdown"
+      }
     );
   } catch (error) {
     console.error("Erro ao listar modelos:", error);
