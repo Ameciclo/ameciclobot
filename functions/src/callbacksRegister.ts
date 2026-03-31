@@ -12,6 +12,7 @@ import { registerNovoArquivoCallback } from "./callbacks/novoArquivoCallback";
 import { registerAjudanteFinanceiroCallback } from "./callbacks/ajudanteFinanceiroCallback";
 import { registerConsumoCallback } from "./callbacks/consumoCallback";
 import { registerFolderNavigationCallbacks } from "./callbacks/folderNavigationCallback";
+import { handleSaleConfirmationCallback } from "./callbacks/saleConfirmationCallback";
 
 export function registerAllCallbacks(bot: Telegraf) {
   console.log("Registrando callbacks...");
@@ -29,6 +30,9 @@ export function registerAllCallbacks(bot: Telegraf) {
   registerAjudanteFinanceiroCallback(bot);
   registerConsumoCallback(bot);
   registerFolderNavigationCallbacks(bot);
+  
+  // Callback para confirmação de vendas
+  bot.action(/^sale[CR]_/, handleSaleConfirmationCallback);
   
   console.log("Callbacks registrados");
 }
