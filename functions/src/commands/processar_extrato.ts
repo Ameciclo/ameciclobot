@@ -1,7 +1,7 @@
 // src/commands/processarExtrato.ts
-import { Context, Telegraf } from "telegraf";
+import { reconcileExtract } from "../services/reconciliation";
+import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
 import axiosInstance from "../config/httpService";
-import { parse } from "csv-parse/sync";
 import getAccounts from "../credentials/accounts.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 import {
@@ -14,71 +14,31 @@ import workgroups from "../credentials/workgroupsfolders.json";
 import iconv from "iconv-lite";
 import { getAllRequests } from "../services/firebase";
 import { PaymentRequest } from "../config/types";
-import { reconcileExtract, ExtractEntry } from "../services/reconciliation";
 
-// ======= Funções para Conta Corrente (CSV) =======
-function removeLeadingZeros(str: string): string {
-  return str.replace(/^0+/, "");
-}
-
-
-
-async function convertCSVtoStatementsData(csvData: any[]): Promise<any[]> {
+import { Context, Telegraf } from "telegraf";
+async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
   const data: any[] = [];
   const confirmedRequests = await getConfirmedPaymentRequests();
   
-  // Converte CSV para formato de entrada do reconciliador
-  const extractEntries: ExtractEntry[] = [];
+  // Parse CSV using new deterministic parser
+  const { entries } = parseBBCSV(fileContent, "bb_cc_76849_9");
   
-  // Pula primeira linha (cabeçalho) e última linha (saldo final)
-  for (let i = 1; i < csvData.length - 1; i++) {
-    const row = csvData[i];
-    
-    // Pula linha de saldo anterior
-    if (row[9] && row[9].includes("Saldo Anterior")) {
-      continue;
-    }
-    
-    // Parse da data (formato DD.MM.YYYY)
-    const dateStr: string = row[3];
-    const [day, month, year] = dateStr.split(".");
-    const postDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    
-    // Parse do valor (formato com vírgula, já em centavos)
-    const valueStr = row[10].replace(",", ".");
-    const amount = parseFloat(valueStr);
-    
-    // Tipo baseado na coluna D/C
-    const type = row[11] as "D" | "C";
-    
-    // Informação original do extrato
-    const narrative = `${row[8]} ${row[9]} ${row[12]}`.trim();
-    
-    extractEntries.push({
-      postDate,
-      amount: Math.abs(amount),
-      type,
-      narrative,
-      originalData: row
-    });
-  }
-  
-  // Executa reconciliação
-  const { results, summary } = reconcileExtract(extractEntries, confirmedRequests);
+  // Execute deterministic reconciliation
+  const { results, summary } = reconcileExtract(entries, confirmedRequests);
   
   console.log(`[RECONCILIATION] Resumo: ✅ ${summary.ok} ok | 🔗 ${summary.split} split | ⚠️ ${summary.ambiguous} ambíguo | ❓ ${summary.not_found} não encontrados`);
   
-  // Converte resultados para formato da planilha
-  for (let i = 0; i < extractEntries.length; i++) {
-    const entry = extractEntries[i];
+  // Convert results to spreadsheet format
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     const result = results[i];
     
     const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
     const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
     let type = entry.type === "C" ? "Entrada" : "Saída";
     
-    // Ajusta tipo para movimentações especiais
-    if (result.comment === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+    // Adjust type based on classification
+    if (result.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
       type = entry.type === "D" ? "Investido" : "Desinvestido";
     } else if (result.comment === "PIX DEVOLVIDO EXPLICAR") {
       type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
@@ -106,32 +66,9 @@ async function processExtratoCsv(fileUrl: string) {
   const fileBuffer = Buffer.from(response.data);
   const fileContent = iconv.decode(fileBuffer, "latin1");
 
-  const csvData = parse(fileContent, {
-    delimiter: ";",
-    trim: true,
-  });
-
-  // Extrai mês e ano da primeira transação (não do saldo)
-  let monthStr = "";
-  let yearStr = "";
-  
-  for (let i = 1; i < csvData.length; i++) {
-    const row = csvData[i];
-    if (row[3] && !row[9]?.includes("Saldo Anterior")) {
-      const dateStr = row[3];
-      const [, month, year] = dateStr.split(".");
-      monthStr = month;
-      yearStr = year;
-      break;
-    }
-  }
-
-  const statementsData = await convertCSVtoStatementsData(csvData);
-
-  if (csvData.length < 2) {
-    throw new Error("CSV sem dados suficientes.");
-  }
-  const rawAccount = removeLeadingZeros(csvData[1][1]);
+  // Use new deterministic parser
+  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+  const statementsData = await convertCSVtoStatementsData(fileContent);
 
   const accounts = getAccounts.filter(
     (acc: any) => acc.type === "Conta Corrente"

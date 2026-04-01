@@ -1,0 +1,67 @@
+{
+  "sourceId": "cora_cc",
+  "accountFilter": "5.697.526-5",
+  "classificationRules": [
+    {
+      "when": {
+        "type": "C",
+        "narrativeIncludes": "ASSOCIACAO M C G R - AME"
+      },
+      "then": {
+        "kind": "INTERNAL_TRANSFER",
+        "subtype": "bank_transfer",
+        "commentDefault": "Transferência da conta principal"
+      }
+    },
+    {
+      "when": {
+        "type": "D",
+        "narrativeIncludes": "Cartão de Crédito"
+      },
+      "then": {
+        "kind": "INTERNAL_TRANSFER",
+        "subtype": "credit_card",
+        "commentDefault": "Pagamento cartão de crédito"
+      }
+    },
+    {
+      "when": {
+        "narrativeIncludes": "Cora SCFI"
+      },
+      "then": {
+        "kind": "INTERNAL_TRANSFER",
+        "subtype": "credit_card",
+        "commentDefault": "Fatura cartão de crédito",
+        "projectDefault": "Movimentação Bancária"
+      }
+    },
+    {
+      "when": {
+        "type": "D",
+        "historyCode": "DEBIT"
+      },
+      "then": {
+        "kind": "PAYMENT",
+        "subtype": "expense"
+      }
+    },
+    {
+      "when": {
+        "type": "C",
+        "historyCode": "CREDIT"
+      },
+      "then": {
+        "kind": "INCOME",
+        "subtype": "receipt"
+      }
+    }
+  ],
+  "internalCounterparties": [
+    "ASSOCIACAO M C G R - AME",
+    "Cartão de Crédito",
+    "Cora SCFI"
+  ],
+  "payeeExtraction": {
+    "fallbackPattern": "^(.+)$"
+  }
+}

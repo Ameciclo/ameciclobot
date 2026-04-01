@@ -27,6 +27,7 @@ import { PaymentRequest } from "./config/types";
 
 import { sendPaymentRequestHandler } from "./handlers/paymentRequestHandler";
 import { handleCreateEvent } from "./handlers/createEventHandler";
+import { handleSalePaymentConfirmed } from "./handlers/salePaymentHandler";
 
 import { getCoordinators } from "./services/firebase";
 import workgroups from "./credentials/workgroupsfolders.json";
@@ -81,6 +82,17 @@ export const createCalendarEvent = onValueCreated(
   },
   async (event) => {
     await handleCreateEvent(event, bot);
+  }
+);
+
+// Trigger para notificar pagamentos de vendas confirmados
+export const onSalePaymentConfirmed = onValueCreated(
+  {
+    ref: "/resources/sales/{saleId}/paidAt",
+    region: "us-central1"
+  },
+  async (event) => {
+    await handleSalePaymentConfirmed(event, bot);
   }
 );
 

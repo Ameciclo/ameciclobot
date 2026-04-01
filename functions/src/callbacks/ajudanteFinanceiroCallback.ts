@@ -9,18 +9,19 @@ import {
   uploadCSVToDrive,
 } from "../services/google";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
-
 import getAccounts from "../credentials/accounts.json";
 import { sendProjectsToDB, getRequestData, updatePaymentRequest, getAllRequests } from "../services/firebase";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { PaymentRequest } from "../config/types";
 import { formatDate, getMonthNamePortuguese } from "../utils/utils";
 import axiosInstance from "../config/httpService";
-import { parse } from "csv-parse/sync";
 import iconv from "iconv-lite";
 // @ts-ignore
 import pdfParse from "pdf-parse";
-import { reconcileExtract, ExtractEntry } from "../services/reconciliation";
+import { reconcileExtract } from "../services/reconciliation";
+import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
+import { detectBankCSV } from "../services/reconciliation/bank_detector";
+import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
 
 // Função para extrair dados da mensagem
 function extractDataFromMessage(ctx: any) {
@@ -50,15 +51,14 @@ function extractDataFromMessage(ctx: any) {
 
 export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
   // Callback para arquivar comprovante
-  bot.action("arquivar_comprovante", async (ctx) => {
+  bot.action("arquivar_comprovante", async (ctx): Promise<void> => {
     console.log("[arquivar_comprovante] Callback acionado");
-    console.log("[arquivar_comprovante] ctx.callbackQuery.data:", 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : 'N/A');
     await ctx.answerCbQuery();
     const { id, fileId } = extractDataFromMessage(ctx);
-    console.log("[arquivar_comprovante] Dados extraídos - ID:", id, "FileID:", fileId);
     
     if (!id || !fileId) {
-      return ctx.editMessageText("❌ Dados não encontrados na mensagem.");
+      await ctx.editMessageText("❌ Dados não encontrados na mensagem.");
+      return;
     }
     
     try {
@@ -66,16 +66,19 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       
       const requestData = await getRequestData(id);
       if (!requestData) {
-        return ctx.editMessageText(`❌ Solicitação ${id} não encontrada.`);
+        await ctx.editMessageText(`❌ Solicitação ${id} não encontrada.`);
+        return;
       }
       
       if (requestData.status !== "confirmed") {
-        return ctx.editMessageText("❌ Pagamento não confirmado.");
+        await ctx.editMessageText("❌ Pagamento não confirmado.");
+        return;
       }
       
       const folderId = requestData.project.folder_id;
       if (!folderId) {
-        return ctx.editMessageText(`Projeto ${requestData.project.name} sem pasta configurada.`);
+        await ctx.editMessageText(`Projeto ${requestData.project.name} sem pasta configurada.`);
+        return;
       }
       
       const fileLink = await ctx.telegram.getFileLink(fileId);
@@ -87,7 +90,8 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       
       const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
       if (!uploadResponse) {
-        return ctx.editMessageText("❌ Erro no upload.");
+        await ctx.editMessageText("❌ Erro no upload.");
+        return;
       }
       
       await updatePaymentRequest(id, { receipt_url: uploadResponse });
@@ -107,22 +111,19 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       );
     } catch (error) {
       console.error("[arquivar_comprovante] Erro:", error);
-      console.error("[arquivar_comprovante] Stack:", error instanceof Error ? error.stack : 'N/A');
       await ctx.editMessageText("❌ Erro ao arquivar comprovante.");
     }
-    return;
   });
 
   // Callback para recibo de ressarcimento
-  bot.action("recibo_ressarcimento", async (ctx) => {
+  bot.action("recibo_ressarcimento", async (ctx): Promise<void> => {
     console.log("[recibo_ressarcimento] Callback acionado");
-    console.log("[recibo_ressarcimento] ctx.callbackQuery.data:", 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : 'N/A');
     await ctx.answerCbQuery();
     const { id, fileId } = extractDataFromMessage(ctx);
-    console.log("[recibo_ressarcimento] Dados extraídos - ID:", id, "FileID:", fileId);
     
     if (!id || !fileId) {
-      return ctx.editMessageText("❌ Dados não encontrados na mensagem.");
+      await ctx.editMessageText("❌ Dados não encontrados na mensagem.");
+      return;
     }
     
     try {
@@ -130,21 +131,19 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       
       const requestData = await getRequestData(id);
       if (!requestData) {
-        return ctx.editMessageText(`❌ Transação ${id} não encontrada.`);
+        await ctx.editMessageText(`❌ Transação ${id} não encontrada.`);
+        return;
       }
       
       if (!requestData.isRefund) {
-        return ctx.editMessageText("❌ Não é ressarcimento.");
+        await ctx.editMessageText("❌ Não é ressarcimento.");
+        return;
       }
       
       const refundSupplier = typeof requestData.refundSupplier === 'string' ? null : requestData.refundSupplier;
       if (!refundSupplier?.name) {
-        return ctx.editMessageText("❌ Dados do beneficiário não encontrados.");
-      }
-      
-      if (!refundSupplier.address || refundSupplier.address.trim() === '') {
-        await ctx.editMessageText("⚠️ Atenção: Endereço do beneficiário não encontrado. O recibo será gerado com campo em branco.");
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await ctx.editMessageText("❌ Dados do beneficiário não encontrados.");
+        return;
       }
       
       const fileLink = await ctx.telegram.getFileLink(fileId);
@@ -175,79 +174,19 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       await ctx.editMessageText("✅ Recibo gerado com sucesso!");
     } catch (error) {
       console.error("[recibo_ressarcimento] Erro:", error);
-      console.error("[recibo_ressarcimento] Stack:", error instanceof Error ? error.stack : 'N/A');
       await ctx.editMessageText("❌ Erro ao gerar recibo.");
     }
-    return;
-  });
-
-  // Callback para arquivar extrato PDF
-  bot.action("arquivar_extrato", async (ctx) => {
-    console.log("[arquivar_extrato] Callback acionado");
-    console.log("[arquivar_extrato] ctx.callbackQuery.data:", 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : 'N/A');
-    await ctx.answerCbQuery();
-    const { fileId } = extractDataFromMessage(ctx);
-    console.log("[arquivar_extrato] FileID extraído:", fileId);
-    
-    if (!fileId) {
-      return ctx.editMessageText("❌ File ID não encontrado.");
-    }
-    
-    try {
-      await ctx.editMessageText("🔄 Processando PDF...");
-      
-      const fileLink = await ctx.telegram.getFileLink(fileId);
-      const response = await fetch(fileLink.href);
-      const fileBuffer = await response.arrayBuffer();
-      
-      const buffer = Buffer.from(fileBuffer);
-      const data = await pdfParse(buffer);
-      const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
-      
-      if (!conta || !mesAno) {
-        return ctx.editMessageText("❌ Não foi possível identificar conta/mês.");
-      }
-      
-      const folderId = getFolderIdForAccount(conta, isFund);
-      if (!folderId) {
-        return ctx.editMessageText(`❌ Pasta não configurada para conta ${conta}.`);
-      }
-      
-      const fileName = formatFileName(mesAno, isFund, conta);
-      const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
-      
-      if (!uploadResponse) {
-        return ctx.editMessageText("❌ Erro no upload.");
-      }
-      
-      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
-      const keyboard = Markup.inlineKeyboard([
-        [Markup.button.url("📄 Ver Extrato", uploadResponse)],
-        [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
-      ]);
-      
-      await ctx.editMessageText(
-        `✅ Extrato arquivado!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${conta}`,
-        keyboard
-      );
-    } catch (error) {
-      console.error("[arquivar_extrato] Erro:", error);
-      console.error("[arquivar_extrato] Stack:", error instanceof Error ? error.stack : 'N/A');
-      await ctx.editMessageText("❌ Erro ao processar PDF.");
-    }
-    return;
   });
 
   // Callback para processar extrato
-  bot.action("processar_extrato", async (ctx) => {
+  bot.action("processar_extrato", async (ctx): Promise<void> => {
     console.log("[processar_extrato] Callback acionado");
-    console.log("[processar_extrato] ctx.callbackQuery.data:", 'data' in ctx.callbackQuery ? ctx.callbackQuery.data : 'N/A');
     await ctx.answerCbQuery();
     const { fileId } = extractDataFromMessage(ctx);
-    console.log("[processar_extrato] FileID extraído:", fileId);
     
     if (!fileId) {
-      return ctx.editMessageText("❌ File ID não encontrado.");
+      await ctx.editMessageText("❌ File ID não encontrado.");
+      return;
     }
     
     try {
@@ -260,7 +199,8 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       const isTXT = file.file_path?.includes('.txt');
       
       if (!isCSV && !isTXT) {
-        return ctx.editMessageText("❌ Arquivo deve ser CSV ou TXT.");
+        await ctx.editMessageText("❌ Arquivo deve ser CSV ou TXT.");
+        return;
       }
       
       if (isCSV) {
@@ -304,10 +244,8 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       }
     } catch (error) {
       console.error("[processar_extrato] Erro:", error);
-      console.error("[processar_extrato] Stack:", error instanceof Error ? error.stack : 'N/A');
       await ctx.editMessageText("❌ Erro ao processar extrato.");
     }
-    return;
   });
 
   // Callback para atualizar pendências
@@ -365,7 +303,6 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
     );
 
     try {
-
       const summaryData = await getSummaryData(projectsSpreadsheet.id);
       const headers = projectsSpreadsheet.headers;
       const projectsJson: { [key: string]: any } = {};
@@ -404,6 +341,156 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
     }
   });
 
+  // Callback para processar PDF inteligente
+  bot.action("processar_pdf_inteligente", async (ctx): Promise<void> => {
+    console.log("[processar_pdf_inteligente] Callback acionado");
+    await ctx.answerCbQuery();
+    const { fileId } = extractDataFromMessage(ctx);
+    
+    if (!fileId) {
+      await ctx.editMessageText("❌ File ID não encontrado.");
+      return;
+    }
+    
+    try {
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      const response = await fetch(fileLink.href);
+      const fileBuffer = await response.arrayBuffer();
+      
+      const buffer = Buffer.from(fileBuffer);
+      const data = await pdfParse(buffer);
+      const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+      
+      // Se conseguiu extrair tudo, arquiva automaticamente
+      if (conta && mesAno) {
+        await ctx.editMessageText("🔄 Dados detectados! Arquivando automaticamente...");
+        
+        const folderId = getFolderIdForAccount(conta, isFund);
+        if (!folderId) {
+          await ctx.editMessageText(`❌ Pasta não configurada para conta ${conta}.`);
+          return;
+        }
+        
+        const fileName = formatFileName(mesAno, isFund, conta);
+        const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
+        
+        if (!uploadResponse) {
+          await ctx.editMessageText("❌ Erro no upload.");
+          return;
+        }
+        
+        const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+        const keyboard = Markup.inlineKeyboard([
+          [Markup.button.url("📄 Ver Extrato", uploadResponse)],
+          [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
+        ]);
+        
+        await ctx.editMessageText(
+          `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${conta}`,
+          keyboard
+        );
+        return;
+      }
+      
+      // Se não conseguiu extrair, mostra opções de mês/tipo
+      const now = new Date();
+      const months = [];
+      
+      for (let i = 0; i < 3; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthName = date.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
+        const year = date.getFullYear();
+        const monthYear = `${monthName}/${year}`;
+        months.push({ monthYear, month: date.getMonth() + 1, year });
+      }
+      
+      const keyboard = Markup.inlineKeyboard([
+        ...months.map(m => [
+          Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
+          Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
+        ]),
+        [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
+      ]);
+      
+      await ctx.editMessageText(
+        `⚠️ *Não foi possível detectar automaticamente*\n\n` +
+        `Conta detectada: ${conta || 'Não identificada'}\n` +
+        `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
+        `Escolha o mês e tipo de conta:\n\n` +
+        `• *FI* = Fundo de Investimento\n` +
+        `• *CC* = Conta Corrente`,
+        { ...keyboard, parse_mode: "Markdown" }
+      );
+    } catch (error) {
+      console.error("[processar_pdf_inteligente] Erro:", error);
+      await ctx.editMessageText("❌ Erro ao processar PDF.");
+    }
+  });
+
+  // Callback para arquivar PDF manualmente
+  bot.action(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/, async (ctx): Promise<void> => {
+    await ctx.answerCbQuery();
+    
+    const match = ctx.callbackQuery && 'data' in ctx.callbackQuery ? 
+      ctx.callbackQuery.data.match(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/) : null;
+    
+    if (!match) {
+      await ctx.editMessageText("❌ Dados inválidos.");
+      return;
+    }
+    
+    const [, fileId, month, year, type] = match;
+    const isFund = type === 'fi';
+    
+    try {
+      await ctx.editMessageText("🔄 Arquivando PDF...");
+      
+      const fileLink = await ctx.telegram.getFileLink(fileId);
+      const response = await fetch(fileLink.href);
+      const fileBuffer = await response.arrayBuffer();
+      
+      // Gera nome do arquivo baseado na seleção
+      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+      const monthName = monthNames[parseInt(month) - 1];
+      const mesAno = `${monthName}/${year}`;
+      
+      // Tenta detectar conta do PDF, senão usa padrão
+      const buffer = Buffer.from(fileBuffer);
+      const data = await pdfParse(buffer);
+      const { conta } = extractInfoFromPDF(data.text);
+      const accountNumber = conta || 'CONTA_NAO_IDENTIFICADA';
+      
+      const folderId = getFolderIdForAccount(accountNumber, isFund);
+      if (!folderId) {
+        await ctx.editMessageText(`❌ Pasta não configurada para ${isFund ? 'Fundo de Investimento' : 'Conta Corrente'}.`);
+        return;
+      }
+      
+      const fileName = formatFileName(mesAno, isFund, accountNumber);
+      const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
+      
+      if (!uploadResponse) {
+        await ctx.editMessageText("❌ Erro no upload.");
+        return;
+      }
+      
+      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url("📄 Ver Extrato", uploadResponse)],
+        [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
+      ]);
+      
+      await ctx.editMessageText(
+        `✅ Extrato arquivado!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${accountNumber}`,
+        keyboard
+      );
+    } catch (error) {
+      console.error("[pdf_manual] Erro:", error);
+      await ctx.editMessageText("❌ Erro ao arquivar PDF.");
+    }
+  });
+
   // Callback para cancelar
   bot.action("ajudante_cancel", async (ctx) => {
     await ctx.answerCbQuery();
@@ -411,7 +498,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
   });
 }
 
-// Funções auxiliares dos comandos originais
+// Funções auxiliares
 function formatCurrency(value: string): string {
   const numValue = parseFloat(value.replace(/[R$\s]/g, '').replace(',', '.'));
   return numValue.toLocaleString('pt-BR', { 
@@ -505,19 +592,7 @@ async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Arr
   const projectName = requestData.project.name || 'NOME_DO_PROJETO';
   const currentDate = getCurrentDate();
   
-  const reciboText = `Eu, ${supplierName}, inscrito no CPF sob o nº ${supplierCpf}, com domicílio na ${supplierAddress}, declaro que recebi da Associação Metropolitana de Ciclistas do Recife - Ameciclo, inscrita no CNPJ nº 19.297.825/0001-48, com sede na Rua da Aurora, nº 529, Loja 2, no bairro de Santo Amaro, na cidade do Recife - PE, CEP: 50.050-145, a quantia de ${value} (${valueInWords}), referente ao ressarcimento de ${description} para o projeto ${projectName}.
-
-
-O comprovante fiscal das compras estão anexados a este recibo.
-
-
-
-Recife, ${currentDate}.
-
-
-
-
-`;
+  const reciboText = `Eu, ${supplierName}, inscrito no CPF sob o nº ${supplierCpf}, com domicílio na ${supplierAddress}, declaro que recebi da Associação Metropolitana de Ciclistas do Recife - Ameciclo, inscrita no CNPJ nº 19.297.825/0001-48, com sede na Rua da Aurora, nº 529, Loja 2, no bairro de Santo Amaro, na cidade do Recife - PE, CEP: 50.050-145, a quantia de ${value} (${valueInWords}), referente ao ressarcimento de ${description} para o projeto ${projectName}.\n\n\nO comprovante fiscal das compras estão anexados a este recibo.\n\n\n\nRecife, ${currentDate}.\n\n\n\n\n`;
   
   const lines = reciboText.split('\n');
   let yPosition = height - 150;
@@ -617,43 +692,77 @@ async function processExtratoCsv(fileUrl: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const fileBuffer = Buffer.from(response.data);
   const fileContent = iconv.decode(fileBuffer, "latin1");
-  const csvData = parse(fileContent, { delimiter: ";", trim: true });
+  
+  // Detecta automaticamente o tipo de banco
+  const detection = detectBankCSV(fileContent);
+  console.log(`[processExtratoCsv] Banco detectado: ${detection.bank} (confiança: ${detection.confidence})`);
   
   const confirmedRequests = await getAllRequests();
   const requestsArray = Object.values(confirmedRequests).filter((request: any) => request.status === "confirmed") as PaymentRequest[];
   
-  const extractEntries: ExtractEntry[] = [];
-  for (let i = 1; i < csvData.length - 1; i++) {
-    const row = csvData[i];
-    if (row[9]?.includes("Saldo Anterior")) continue;
+  let result;
+  
+  if (detection.bank === 'cora') {
+    // Processa CSV do Cora
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseCoraCSV(fileContent, "cora_cc");
+    const { results } = reconcileExtract(entries, requestsArray);
     
-    const [day, month, year] = row[3].split(".");
-    const postDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const amount = Math.abs(parseFloat(row[10].replace(",", ".")));
-    const type = row[11] as "D" | "C";
-    const narrative = `${row[8]} ${row[9]} ${row[12]}`.trim();
+    const statements = entries.map((entry, i) => {
+      const reconcileResult = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
+      const formattedValue = `R$ ${entry.amount.toFixed(2)}`; // Mantém ponto decimal
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+      
+      // Classificações específicas do Cora
+      if (entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (entry.narrative.includes("Cora SCFI")) {
+        // Classifica faturas de cartão automaticamente
+        return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
+      }
+      
+      return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
+    });
     
-    extractEntries.push({ postDate, amount, type, narrative, originalData: row });
+    const matchedAccount = getAccounts.find((acc: any) => 
+      acc.number === rawAccount && acc.type === "Conta Corrente" && acc.input_file_type === "csv"
+    ) || {
+      number: rawAccount, 
+      sheet: "EXTRATO CC Cora", // Aba específica do Cora
+      fulltext: `Conta Corrente (Cora) ${rawAccount}`
+    };
+    
+    result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
+  } else {
+    // Processa CSV do BB (código original)
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+    const { results } = reconcileExtract(entries, requestsArray);
+    
+    const statements = entries.map((entry, i) => {
+      const reconcileResult = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
+      const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+      
+      if (reconcileResult.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (reconcileResult.comment === "PIX DEVOLVIDO EXPLICAR") {
+        type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
+      } else if (reconcileResult.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+        type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
+      }
+      
+      return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
+    });
+    
+    const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
+      number: rawAccount, sheet: "desconhecido"
+    };
+    
+    result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
   }
   
-  const { results } = reconcileExtract(extractEntries, requestsArray);
-  
-  const statements = extractEntries.map((entry, i) => {
-    const result = results[i];
-    const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-    const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
-    const type = entry.type === "C" ? "Entrada" : "Saída";
-    
-    return [formattedDate, formattedValue, type, entry.narrative, result.comment, result.project];
-  });
-  
-  const [, month, year] = csvData[1][3].split(".");
-  const rawAccount = csvData[1][1].replace(/^0+/, "");
-  const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
-    number: rawAccount, sheet: "desconhecido"
-  };
-  
-  return { account: matchedAccount.number, statements, fileContent, month, year, matchedAccount };
+  return result;
 }
 
 async function processExtratoTxt(fileUrl: string) {
@@ -700,4 +809,143 @@ async function processExtratoTxt(fileUrl: string) {
 
 function generateExtratoFilename(account: any, month: string, year: string, extension: string): string {
   return `Extrato - ${year}.${month} - ${account.fulltext || account.number}.${extension}`;
+}
+
+// Funções exportadas para uso direto
+export async function processExtratoCallback(ctx: any, fileId: string) {
+  console.log("[processar_extrato] Processamento direto");
+  
+  try {
+    await ctx.reply("🔄 Processando extrato...");
+    
+    const fileLink = await ctx.telegram.getFileLink(fileId);
+    const file = await ctx.telegram.getFile(fileId);
+    
+    const isCSV = file.file_path?.includes('.csv');
+    const isTXT = file.file_path?.includes('.txt');
+    
+    if (!isCSV && !isTXT) {
+      return ctx.reply("❌ Arquivo deve ser CSV ou TXT.");
+    }
+    
+    if (isCSV) {
+      const result = await processExtratoCsv(fileLink.href);
+      
+      const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "csv");
+      const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
+      
+      const monthName = getMonthNamePortuguese(parseInt(result.month));
+      const summaryRow = ["MÊS", monthName, result.year, uploadedFileLink];
+      
+      await appendExtratoRow(projectsSpreadsheet.id, result.matchedAccount.sheet, summaryRow);
+      
+      if (result.statements?.length > 0) {
+        await appendExtratoData(projectsSpreadsheet.id, result.matchedAccount.sheet, result.statements);
+      }
+      
+      const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
+      const totalCount = result.statements.length;
+      
+      await ctx.reply(
+        `✅ Extrato CC processado!\n\nConta: ${result.matchedAccount.number}\n✅ ${identifiedCount}/${totalCount} identificados`
+      );
+    } else {
+      const result = await processExtratoTxt(fileLink.href);
+      
+      const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "txt");
+      const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
+      
+      const summaryRow = [
+        result.reference,
+        ...result.summary,
+        '=INDIRECT("R[0]C[-3]";FALSE) - INDIRECT("R[0]C[-2]";FALSE) - INDIRECT("R[0]C[-1]";FALSE)',
+        '=SUM(INDIRECT("R[0]C[-7]";FALSE);INDIRECT("R[0]C[-6]";FALSE);-INDIRECT("R[0]C[-5]";FALSE);INDIRECT("R[0]C[-4]";FALSE);-INDIRECT("R[0]C[-3]";FALSE);-INDIRECT("R[0]C[-2]";FALSE))',
+        uploadedFileLink,
+      ];
+      
+      await appendExtratoRow(projectsSpreadsheet.id, result.matchedAccount.sheet, summaryRow);
+      
+      await ctx.reply(`✅ Extrato FI processado!\n\nConta: ${result.matchedAccount.number}`);
+    }
+  } catch (error) {
+    console.error("[processar_extrato] Erro:", error);
+    await ctx.reply("❌ Erro ao processar extrato.");
+  }
+}
+
+export async function processPdfInteligenteCallback(ctx: any, fileId: string) {
+  console.log("[processar_pdf_inteligente] Processamento direto");
+  
+  try {
+    await ctx.reply("🔄 Analisando PDF...");
+    
+    const fileLink = await ctx.telegram.getFileLink(fileId);
+    const response = await fetch(fileLink.href);
+    const fileBuffer = await response.arrayBuffer();
+    
+    const buffer = Buffer.from(fileBuffer);
+    const data = await pdfParse(buffer);
+    const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+    
+    // Se conseguiu extrair tudo, arquiva automaticamente
+    if (conta && mesAno) {
+      await ctx.reply("🔄 Dados detectados! Arquivando automaticamente...");
+      
+      const folderId = getFolderIdForAccount(conta, isFund);
+      if (!folderId) {
+        return ctx.reply(`❌ Pasta não configurada para conta ${conta}.`);
+      }
+      
+      const fileName = formatFileName(mesAno, isFund, conta);
+      const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
+      
+      if (!uploadResponse) {
+        return ctx.reply("❌ Erro no upload.");
+      }
+      
+      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const keyboard = Markup.inlineKeyboard([
+        [Markup.button.url("📄 Ver Extrato", uploadResponse)],
+        [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
+      ]);
+      
+      return ctx.reply(
+        `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${conta}`,
+        keyboard
+      );
+    }
+    
+    // Se não conseguiu extrair, mostra opções de mês/tipo
+    const now = new Date();
+    const months = [];
+    
+    for (let i = 0; i < 3; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
+      const year = date.getFullYear();
+      const monthYear = `${monthName}/${year}`;
+      months.push({ monthYear, month: date.getMonth() + 1, year });
+    }
+    
+    const keyboard = Markup.inlineKeyboard([
+      ...months.map(m => [
+        Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
+        Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
+      ]),
+      [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
+    ]);
+    
+    await ctx.reply(
+      `⚠️ *Não foi possível detectar automaticamente*\n\n` +
+      `Conta detectada: ${conta || 'Não identificada'}\n` +
+      `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
+      `Escolha o mês e tipo de conta:\n\n` +
+      `• *FI* = Fundo de Investimento\n` +
+      `• *CC* = Conta Corrente`,
+      { ...keyboard, parse_mode: "Markdown" }
+    );
+  } catch (error) {
+    console.error("[processar_pdf_inteligente] Erro:", error);
+    await ctx.reply("❌ Erro ao processar PDF.");
+  }
 }

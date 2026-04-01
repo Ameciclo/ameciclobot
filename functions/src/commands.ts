@@ -11,10 +11,12 @@ import { registrarPlanilhaCommand } from "./commands/registrar_planilha";
 import { transcreverCommand } from "./commands/transcrever";
 import { unirPdfsCommand } from "./commands/unir_pdfs";
 import { resumoCommand } from "./commands/resumo";
-import { testarRotinasCommand } from "./commands/testar_rotinas";
+
 import { ajudanteFinanceiroCommand } from "./commands/ajudante_financeiro";
 import { denunciaCommand } from "./commands/denuncia";
 import { arquivarCommand } from "./commands/arquivar";
+import { limparCachePastasCommand } from "./commands/limpar_cache_pastas";
+import { consumoCommand } from "./commands/consumo";
 
 export const commandsList = [
   ajudanteFinanceiroCommand,
@@ -32,6 +34,11 @@ export const commandsList = [
   registrarPlanilhaCommand, 
   resumoCommand,
   transcreverCommand,
-  testarRotinasCommand, 
   unirPdfsCommand,
+];
+
+// Comandos ocultos (não aparecem na lista principal)
+export const hiddenCommandsList = [
+  limparCachePastasCommand,
+  consumoCommand,
 ];

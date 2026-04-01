@@ -70,7 +70,16 @@ export function escapeMarkdownV2(text: string): string {
 }
 
 export function escapeMarkdown(text: string): string {
-  return text.replace(/([_*[\]()~`>#+-=|{}.!])/g, "\\$1");
+  if (!text) return '';
+  // Escapa apenas os caracteres que realmente causam problemas no Markdown
+  return text.toString().replace(/([_*\[\]()~`>#+=|{}.!-])/g, "\\$1");
+}
+
+// Função mais conservadora para textos que não devem ter escape excessivo
+export function escapeMarkdownSafe(text: string): string {
+  if (!text) return '';
+  // Escapa apenas underscores, asteriscos e backticks que são mais problemáticos
+  return text.toString().replace(/([_*`])/g, "\\$1");
 }
 
 export const toDays = (): number => {
