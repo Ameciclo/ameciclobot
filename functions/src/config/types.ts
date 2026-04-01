@@ -40,6 +40,19 @@ export interface TelegramUserInfo {
   email?: string;
 }
 
+export interface ExtraParticipant {
+  input: string;
+  name: string;
+  identifierType: "username" | "email" | "cpf" | "name";
+  matchedUserId?: number;
+  matchType?: "username" | "email" | "cpf";
+  username?: string;
+  email?: string;
+  cpf?: string;
+  addedBy: TelegramUserInfo;
+  addedAt: string;
+}
+
 export interface CalendarEventData {
   id: string;
   calendarId: string;
@@ -52,8 +65,10 @@ export interface CalendarEventData {
   workgroup: number;
   htmlLink: string;
   calendarEventId?: string;
+  groupMessageId?: number;
   participants?: { [key: number]: TelegramUserInfo };
   notGoing?: { [key: number]: TelegramUserInfo };
+  extraParticipants?: { [key: string]: ExtraParticipant };
 }
 
 // /config/types.ts (ou um arquivo similar)

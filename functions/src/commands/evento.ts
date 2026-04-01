@@ -2,9 +2,10 @@ import { Context, Telegraf } from "telegraf";
 import { sendChatCompletion } from "../services/groq";
 import { getEventById, addEventAttachment, uploadFile, updateEventWorkgroup } from "../services/google";
 import { formatDate } from "../utils/utils";
-import { buildEventMessage, buildDailyAgendaMessage } from "../utils/eventMessages";
+import { buildEventButtons, buildEventMessage, buildDailyAgendaMessage } from "../utils/eventMessages";
 import workgroups from "../credentials/workgroupsfolders.json";
 import calendars from "../credentials/calendars.json";
+import { formatExtraParticipantsSummary, registerExtraParticipants } from "../services/eventParticipants";
 
 
 // Converte a lista de workgroups para um array de IDs numéricos
@@ -55,6 +56,63 @@ function sanitizeFileName(text: string, maxLength = 80): string {
     : sanitized;
 }
 
+function parseEventoCommandText(text: string): {
+  eventId: string | null;
+  manualParticipantsPayload: string;
+} {
+  const textWithoutCommand = text.replace(/\/evento(@\w+)?/i, "").trim();
+  if (!textWithoutCommand) {
+    return {
+      eventId: null,
+      manualParticipantsPayload: "",
+    };
+  }
+
+  const firstWhitespaceIndex = textWithoutCommand.search(/\s/);
+  if (firstWhitespaceIndex === -1) {
+    return {
+      eventId: textWithoutCommand,
+      manualParticipantsPayload: "",
+    };
+  }
+
+  const eventId = textWithoutCommand.slice(0, firstWhitespaceIndex).trim();
+  const rawRest = textWithoutCommand.slice(firstWhitespaceIndex).trim();
+
+  if (!rawRest) {
+    return {
+      eventId,
+      manualParticipantsPayload: "",
+    };
+  }
+
+  if (rawRest.toLowerCase().startsWith("presentes ")) {
+    return {
+      eventId,
+      manualParticipantsPayload: rawRest.slice("presentes".length).trim(),
+    };
+  }
+
+  if (rawRest === "@") {
+    return {
+      eventId,
+      manualParticipantsPayload: "",
+    };
+  }
+
+  if (rawRest.startsWith("@ ")) {
+    return {
+      eventId,
+      manualParticipantsPayload: rawRest.slice(1).trim(),
+    };
+  }
+
+  return {
+    eventId,
+    manualParticipantsPayload: rawRest,
+  };
+}
+
 function registerEventoCommand(bot: Telegraf) {
   bot.command("evento", async (ctx: Context) => {
     try {
@@ -62,12 +120,40 @@ function registerEventoCommand(bot: Telegraf) {
       
       // Verifica se tem ID após o comando
       const text = ctx.text || "";
-      const args = text.split(" ").slice(1);
-      const eventId = args.length === 1 ? args[0] : null;
+      const { eventId, manualParticipantsPayload } = parseEventoCommandText(text);
       
       // Se tem ID, é para complementar evento
       if (eventId) {
         console.log("[evento] Modo complementar evento com ID:", eventId);
+
+        if (manualParticipantsPayload) {
+          const result = await registerExtraParticipants(
+            eventId,
+            manualParticipantsPayload,
+            ctx.from!
+          );
+          const summary = formatExtraParticipantsSummary(result.added, result.duplicates);
+
+          if (result.eventData.workgroup && result.eventData.groupMessageId) {
+            try {
+              await ctx.telegram.editMessageText(
+                result.eventData.workgroup,
+                result.eventData.groupMessageId,
+                undefined,
+                buildEventMessage(result.eventData),
+                {
+                  parse_mode: "MarkdownV2",
+                  reply_markup: buildEventButtons(result.eventData).reply_markup,
+                }
+              );
+            } catch (error) {
+              console.error("[evento] Erro ao atualizar mensagem do evento:", error);
+            }
+          }
+
+          await ctx.reply(summary || "Nenhum participante novo foi adicionado.");
+          return;
+        }
         
         const event = await getEventById(eventId);
         if (!event) {
@@ -442,18 +528,25 @@ Comando unificado para criar, complementar e transferir eventos.
 *Usos:*
 \`/evento\` - Criar novo evento
 \`/evento <ID>\` - Complementar ou transferir evento existente
+\`/evento <ID> presentes <lista>\` - Registrar participantes extras
 
 *Funcionalidades:*
 • **Criar evento:** Responda a um texto descritivo ou digite após o comando
 • **Complementar com texto:** \`/evento <ID>\` respondendo a um texto
 • **Complementar com imagem:** \`/evento <ID>\` respondendo a uma imagem
 • **Transferir para grupo:** \`/evento <ID>\` sem resposta (puxa evento para o grupo atual)
+• **Registrar participantes:** \`/evento <ID> presentes Ana, João\`
+• **Registrar participantes com @:** \`/evento <ID> @dvalenca, Ana\`
+• **Registrar participantes direto:** \`/evento <ID> Ana, João\`
 
 *Exemplos:*
 \`/evento\` (respondendo a "Reunião amanhã às 14h")
 \`/evento abc123\` (respondendo a nova descrição)
 \`/evento abc123\` (respondendo a imagem)
 \`/evento abc123\` (transfere evento para este grupo)
+\`/evento abc123 presentes Ana, João\`
+\`/evento abc123 @dvalenca, Barbara\`
+\`/evento abc123 Ana, Barbara, Cássio\`
   `,
   description: () => "📅 Criar, complementar e transferir eventos.",
 };

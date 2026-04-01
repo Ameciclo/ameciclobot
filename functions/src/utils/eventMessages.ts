@@ -1,6 +1,6 @@
 // messages/eventMessages.ts
 import { escapeMarkdownV2 } from "./utils";
-import { CalendarEventData, TelegramUserInfo } from "../config/types";
+import { CalendarEventData, ExtraParticipant, TelegramUserInfo } from "../config/types";
 import calendars from "../credentials/calendars.json";
 
 function getDuration(start: string, end: string): string {
@@ -43,15 +43,20 @@ function getCalendarNameById(calendarId: string) {
 
 function buildParticipantsList(participants: {
   [key: number]: TelegramUserInfo;
-}, notGoing: { [key: number]: TelegramUserInfo } = {}): string {
+}, notGoing: { [key: number]: TelegramUserInfo } = {},
+extraParticipants: { [key: string]: ExtraParticipant } = {}): string {
   let result = "";
   
   const goingList = Object.values(participants)
-    .map((p: any) => `✅ ${p.first_name}`)
+    .map((p: any) => `✅ ${escapeMarkdownV2(p.first_name)}`)
     .join("\n");
   
   const notGoingList = Object.values(notGoing)
-    .map((p: any) => `❌ ${p.first_name}`)
+    .map((p: any) => `❌ ${escapeMarkdownV2(p.first_name)}`)
+    .join("\n");
+
+  const extraList = Object.values(extraParticipants)
+    .map((participant) => `➕ ${escapeMarkdownV2(participant.name)}`)
     .join("\n");
   
   if (goingList) {
@@ -61,6 +66,11 @@ function buildParticipantsList(participants: {
   if (notGoingList) {
     if (result) result += "\n\n";
     result += `**Não vão:**\n${notGoingList}`;
+  }
+
+  if (extraList) {
+    if (result) result += "\n\n";
+    result += `**Participantes extras:**\n${extraList}`;
   }
   
   return result;
@@ -88,8 +98,12 @@ export function buildEventMessage(data: CalendarEventData): string {
   ];
 
   let message = messageParts.join("\n");
-  if (data.participants || data.notGoing) {
-    const participantsList = buildParticipantsList(data.participants || {}, data.notGoing || {});
+  if (data.participants || data.notGoing || data.extraParticipants) {
+    const participantsList = buildParticipantsList(
+      data.participants || {},
+      data.notGoing || {},
+      data.extraParticipants || {}
+    );
     if (participantsList) {
       message += `\n\n${participantsList}`;
     }
