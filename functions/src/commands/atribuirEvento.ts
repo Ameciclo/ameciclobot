@@ -31,7 +31,7 @@ export const atribuirEventoCommand = {
         // Verificar se já está atribuído
         const currentWorkgroup = event.extendedProperties?.private?.workgroup;
         if (currentWorkgroup) {
-          const group = workgroups.find(g => g.value.toString() === currentWorkgroup);
+          const group = workgroups.find((g: any) => g.value.toString() === currentWorkgroup);
           const groupName = group ? group.label : "Grupo desconhecido";
           await ctx.reply(`⚠️ Este evento já está atribuído ao grupo: **${groupName}**`, {
             parse_mode: "Markdown"
@@ -40,7 +40,7 @@ export const atribuirEventoCommand = {
         }
 
         // Criar teclado com grupos de trabalho
-        const buttons = workgroups.map(group => 
+        const buttons = workgroups.map((group: any) =>
           Markup.button.callback(
             `📋 ${group.label}`,
             `assign_to_${group.value}_${eventId}`
@@ -70,7 +70,7 @@ export const atribuirEventoCommand = {
       const eventId = match[2];
       
       try {
-        const group = workgroups.find(g => g.value.toString() === groupId);
+        const group = workgroups.find((g: any) => g.value.toString() === groupId);
         if (!group) {
           await ctx.answerCbQuery("❌ Grupo não encontrado");
           return;

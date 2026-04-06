@@ -30,7 +30,10 @@ async function handleModeloSelection(ctx: Context, title: string) {
     await setTempData(tempId, {
       newTitle: title,
       parentFolderId: groupConfig.folderId,
-      documentType: "Documento"
+      documentType: "Documento",
+      workgroupId: String(chat.id),
+      currentPath: [],
+      currentFolderId: groupConfig.folderId
     }, 300);
 
     const buttons = [];

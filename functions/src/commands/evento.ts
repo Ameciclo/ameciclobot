@@ -175,7 +175,7 @@ function registerEventoCommand(bot: Telegraf) {
             console.log("[evento] Transferindo evento para grupo atual:", chatId);
             
             // Encontra o grupo atual
-            const currentGroup = workgroups.find(g => Number(g.value) === Number(chatId));
+            const currentGroup = workgroups.find((g: any) => Number(g.value) === Number(chatId));
             if (!currentGroup) {
               await ctx.reply("❌ Grupo não encontrado na configuração.");
               return;
@@ -205,7 +205,7 @@ function registerEventoCommand(bot: Telegraf) {
               
               // Confirma a transferência
               const previousGroup = currentWorkgroup ? 
-                workgroups.find(g => g.value.toString() === currentWorkgroup)?.label || "Grupo anterior" :
+                workgroups.find((g: any) => g.value.toString() === currentWorkgroup)?.label || "Grupo anterior" :
                 "Nenhum grupo";
               
               await ctx.reply(

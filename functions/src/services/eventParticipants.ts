@@ -204,7 +204,10 @@ export async function registerExtraParticipants(
   }
 
   const subscribers = await getSubscribersSnapshot();
-  const extraParticipants = eventData.extraParticipants || {};
+  const extraParticipants = (eventData.extraParticipants || {}) as Record<
+    string,
+    ExtraParticipant
+  >;
   const existingSignatures = new Set(
     Object.values(extraParticipants).map((participant: ExtraParticipant) =>
       getParticipantSignature(participant)

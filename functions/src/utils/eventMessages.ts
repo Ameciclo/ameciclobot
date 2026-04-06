@@ -33,7 +33,7 @@ function getLocaleDate(startDate: string) {
 }
 
 function getCalendarById(calendarId: string) {
-  return calendars.find((c) => c.id === calendarId);
+  return calendars.find((c: any) => c.id === calendarId);
 }
 
 function getCalendarNameById(calendarId: string) {
