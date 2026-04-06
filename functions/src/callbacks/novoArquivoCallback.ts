@@ -4,6 +4,9 @@ import { setTempData, getTempData } from "../services/firebase";
 import { getPreviewTitle } from "../utils/utils";
 import workgroups from "../credentials/workgroupsfolders.json";
 
+const MODELOS_FOLDER_ID = "1xYWUMDsamike4q3_CrHAZNKNsq6gsUUb";
+const MODELOS_FOLDER_URL = `https://drive.google.com/drive/folders/${MODELOS_FOLDER_ID}`;
+
 async function handleModeloSelection(ctx: Context, title: string) {
   const chat = ctx.callbackQuery?.message?.chat;
   if (!chat || (chat.type !== "group" && chat.type !== "supergroup")) {
@@ -18,7 +21,7 @@ async function handleModeloSelection(ctx: Context, title: string) {
   }
 
   try {
-    const models = await listModelsFromFolder("1xYWUMDsamike4q3_CrHAZNKNsq6gsUUb");
+    const models = await listModelsFromFolder(MODELOS_FOLDER_ID);
     if (!models || models.length === 0) {
       return ctx.reply("Nenhum modelo disponível.");
     }
@@ -30,15 +33,26 @@ async function handleModeloSelection(ctx: Context, title: string) {
       documentType: "Documento"
     }, 300);
 
-    const buttons = models.map((model) => {
-      return [{
-        text: getPreviewTitle(model.name, title),
-        callback_data: `modelo_${model.id}_${tempId}`,
-      }];
-    });
+    const buttons = [];
+    for (const model of models) {
+      try {
+        buttons.push([{
+          text: getPreviewTitle(model.name, title),
+          callback_data: `modelo_${model.id}_${tempId}`,
+        }]);
+      } catch (error) {
+        console.error(`Nome de modelo inválido: "${model.name}"`, error);
+        return ctx.reply(
+          `Há um arquivo na pasta de modelos com o nome fora do padrão: "${model.name}".\n\n` +
+          `Renomeie o arquivo usando o formato:\n` +
+          `Tipo de documento - AAAA.MM.DD - Descrição\n\n` +
+          `Pasta de modelos: ${MODELOS_FOLDER_URL}`
+        );
+      }
+    }
 
     return ctx.editMessageText(
-      `Qual o modelo de documento você quer clonar?\nTítulo do documento: ${title}\n\n💡 **Adicionar novos modelos:**\nVocê pode adicionar novos modelos na pasta: [📁 Modelos Ameciclo](https://drive.google.com/drive/folders/1xYWUMDsamike4q3_CrHAZNKNsq6gsUUb)`,
+      `Qual o modelo de documento você quer clonar?\nTítulo do documento: ${title}\n\n💡 **Adicionar novos modelos:**\nVocê pode adicionar novos modelos na pasta: [📁 Modelos Ameciclo](${MODELOS_FOLDER_URL})`,
       {
         reply_markup: Markup.inlineKeyboard(buttons).reply_markup,
         parse_mode: "Markdown"
