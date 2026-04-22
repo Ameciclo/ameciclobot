@@ -72,12 +72,12 @@ export function registerAjudanteFinanceiroCommand(bot: Telegraf) {
         
         // CSV: Processa automaticamente como extrato CC
         if (isCSV) {
-          return processExtratoCallback(ctx, fileId);
+          return processExtratoCallback(ctx, fileId, fileName);
         }
         
         // TXT: Processa automaticamente como extrato FI  
         if (isTXT) {
-          return processExtratoCallback(ctx, fileId);
+          return processExtratoCallback(ctx, fileId, fileName);
         }
         
         // PDF: Tenta detectar automaticamente, senão mostra opções

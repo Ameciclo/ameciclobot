@@ -18,18 +18,41 @@ import workgroups from "../credentials/workgroupsfolders.json";
 import { getAllRequests } from "../services/firebase";
 import { PaymentRequest } from "../config/types";
 
-import { Context, Telegraf } from "telegraf";
+import { Context, Markup, Telegraf } from "telegraf";
 
 function formatSpreadsheetCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
-async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
+const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
+  "EXTRATO CC 76": "684262481",
+  "EXTRATO FI 76": "478565062",
+  "EXTRATO CC 90": "410167064",
+  "EXTRATO CC 106": "1954691645",
+  "EXTRATO CC 131": "1183431137",
+  "EXTRATO CD 2393": "183100216",
+  "EXTRATO CC 2666": "1928472763",
+};
+
+function getAccountingSheetUrl(sheet?: string): string | null {
+  if (!sheet) {
+    return null;
+  }
+
+  const gid = ACCOUNTING_SHEET_GIDS[sheet];
+  if (!gid) {
+    return null;
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${projectsSpreadsheet.id}/edit?gid=${gid}#gid=${gid}`;
+}
+
+async function convertCSVtoStatementsData(fileContent: string, sourceFileName?: string): Promise<any[]> {
   const data: any[] = [];
   const confirmedRequests = await getConfirmedPaymentRequests();
   
   // Parse CSV using new deterministic parser
-  const { entries } = parseBBCSV(fileContent, "bb_cc");
+  const { entries } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
   
   // Execute deterministic reconciliation
   const { results, summary } = reconcileExtract(entries, confirmedRequests);
@@ -67,7 +90,7 @@ async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
   return data;
 }
 
-async function processExtratoCsv(fileUrl: string) {
+async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
   const response = await axiosInstance.get(fileUrl, {
     responseType: "arraybuffer",
   });
@@ -110,6 +133,7 @@ async function processExtratoCsv(fileUrl: string) {
     });
 
     const matchedAccount = getAccounts.find((acc: any) =>
+      acc.bank === "Cora" &&
       acc.number === rawAccount &&
       acc.type === accountType &&
       acc.input_file_type === "csv"
@@ -135,11 +159,11 @@ async function processExtratoCsv(fileUrl: string) {
   }
 
   // Use new deterministic parser
-  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc");
-  const statementsData = await convertCSVtoStatementsData(fileContent);
+  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
+  const statementsData = await convertCSVtoStatementsData(fileContent, sourceFileName);
 
   const accounts = getAccounts.filter(
-    (acc: any) => acc.type === "Conta Corrente"
+    (acc: any) => acc.bank === "Banco do Brasil" && acc.type === "Conta Corrente"
   );
   let matchedAccount = accounts.find((acc: any) => {
     const cleanAccNumber = acc.number.replace(/[^\d]/g, "");
@@ -328,7 +352,7 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
 
       if (isCSV) {
         // Processa extrato de conta corrente
-        const result = await processExtratoCsv(fileLink.href);
+        const result = await processExtratoCsv(fileLink.href, document.file_name || "");
         console.log("[processar_extrato] Extrato CC processado");
 
         const filename = generateExtratoFilename(
@@ -364,11 +388,17 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
         const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
         const ambiguousCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4].startsWith("❓")).length;
         const totalCount = result.statements.length;
+        const accountingSheetUrl = getAccountingSheetUrl(result.matchedAccount.sheet);
         
         await ctx.reply(
           `Extrato de conta corrente processado com sucesso para a conta ${result.matchedAccount.number}. ` +
           `Dados adicionados na aba ${result.matchedAccount.sheet}.\n\n` +
-          `📊 Reconciliação: ✅ ${identifiedCount} identificados | ❓ ${ambiguousCount} pendentes | Total: ${totalCount} lançamentos`
+          `📊 Reconciliação: ✅ ${identifiedCount} identificados | ❓ ${ambiguousCount} pendentes | Total: ${totalCount} lançamentos`,
+          accountingSheetUrl
+            ? Markup.inlineKeyboard([
+                [Markup.button.url("📊 Acompanhamento de gastos", accountingSheetUrl)],
+              ])
+            : undefined
         );
       } else {
         // Processa extrato de fundo de investimento

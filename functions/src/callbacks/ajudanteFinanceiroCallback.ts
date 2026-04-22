@@ -205,7 +205,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       }
       
       if (isCSV) {
-        const result = await processExtratoCsv(fileLink.href);
+        const result = await processExtratoCsv(fileLink.href, file.file_path || "");
         
         const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "csv");
         const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
@@ -707,7 +707,30 @@ function formatSpreadsheetCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
-async function processExtratoCsv(fileUrl: string) {
+const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
+  "EXTRATO CC 76": "684262481",
+  "EXTRATO FI 76": "478565062",
+  "EXTRATO CC 90": "410167064",
+  "EXTRATO CC 106": "1954691645",
+  "EXTRATO CC 131": "1183431137",
+  "EXTRATO CD 2393": "183100216",
+  "EXTRATO CC 2666": "1928472763",
+};
+
+function getAccountingSheetUrl(sheet?: string): string | null {
+  if (!sheet) {
+    return null;
+  }
+
+  const gid = ACCOUNTING_SHEET_GIDS[sheet];
+  if (!gid) {
+    return null;
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${projectsSpreadsheet.id}/edit?gid=${gid}#gid=${gid}`;
+}
+
+async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const fileBuffer = Buffer.from(response.data);
   const fileContent = decodeTextFile(fileBuffer);
@@ -749,7 +772,10 @@ async function processExtratoCsv(fileUrl: string) {
     });
     
     const matchedAccount = getAccounts.find((acc: any) => 
-      acc.number === rawAccount && acc.type === accountType && acc.input_file_type === "csv"
+      acc.bank === "Cora" &&
+      acc.number === rawAccount &&
+      acc.type === accountType &&
+      acc.input_file_type === "csv"
     ) || {
       number: rawAccount, 
       sheet: isCreditStatement ? "EXTRATO CC 2666" : "EXTRATO CD 2393",
@@ -759,7 +785,7 @@ async function processExtratoCsv(fileUrl: string) {
     result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
   } else {
     // Processa CSV do BB (código original)
-    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc");
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
     const { results } = reconcileExtract(entries, requestsArray);
     
     const statements = entries.map((entry, i) => {
@@ -780,6 +806,7 @@ async function processExtratoCsv(fileUrl: string) {
     });
     
     const matchedAccount = getAccounts.find((acc: any) =>
+      acc.bank === "Banco do Brasil" &&
       acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "") &&
       acc.type === "Conta Corrente" &&
       acc.input_file_type === "csv"
@@ -840,7 +867,7 @@ function generateExtratoFilename(account: any, month: string, year: string, exte
 }
 
 // Funções exportadas para uso direto
-export async function processExtratoCallback(ctx: any, fileId: string) {
+export async function processExtratoCallback(ctx: any, fileId: string, sourceFileName?: string) {
   console.log("[processar_extrato] Processamento direto");
   
   try {
@@ -857,7 +884,7 @@ export async function processExtratoCallback(ctx: any, fileId: string) {
     }
     
     if (isCSV) {
-      const result = await processExtratoCsv(fileLink.href);
+      const result = await processExtratoCsv(fileLink.href, sourceFileName || file.file_path || "");
       
       const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "csv");
       const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
@@ -873,9 +900,15 @@ export async function processExtratoCallback(ctx: any, fileId: string) {
       
       const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
       const totalCount = result.statements.length;
+      const accountingSheetUrl = getAccountingSheetUrl(result.matchedAccount.sheet);
       
       await ctx.reply(
-        `✅ Extrato CC processado!\n\nConta: ${result.matchedAccount.number}\n✅ ${identifiedCount}/${totalCount} identificados`
+        `✅ Extrato CC processado!\n\nConta: ${result.matchedAccount.number}\n✅ ${identifiedCount}/${totalCount} identificados`,
+        accountingSheetUrl
+          ? Markup.inlineKeyboard([
+              [Markup.button.url("📊 Acompanhamento de gastos", accountingSheetUrl)],
+            ])
+          : undefined
       );
     } else {
       const result = await processExtratoTxt(fileLink.href);

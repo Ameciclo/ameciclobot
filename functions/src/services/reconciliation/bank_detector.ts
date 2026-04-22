@@ -8,12 +8,22 @@ export interface BankDetectionResult {
   statementType?: 'current' | 'credit';
 }
 
+function normalizeHeader(line: string): string {
+  return String(line || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/�/g, "")
+    .replace(/"/g, "")
+    .toLowerCase();
+}
+
 export function detectBankCSV(fileContent: string): BankDetectionResult {
   // Tenta detectar pelo cabeçalho primeiro
   const firstLine = fileContent.split('\n')[0];
+  const normalizedFirstLine = normalizeHeader(firstLine);
   
   // Cora crédito: cabeçalho da fatura/cartão
-  if (firstLine.includes('Data,Nome no Cartão,Final do Cartão,Categoria,Descrição')) {
+  if (normalizedFirstLine.includes('data,nome no cartao,final do cartao,categoria,descricao')) {
     return {
       bank: 'cora',
       confidence: 1.0,
@@ -24,12 +34,25 @@ export function detectBankCSV(fileContent: string): BankDetectionResult {
   }
 
   // Cora: cabeçalho específico com vírgulas
-  if (firstLine.includes('Data,Transação,Tipo Transação,Identificação,Valor')) {
+  if (normalizedFirstLine.includes('data,transacao,tipo transacao,identificacao,valor')) {
     return {
       bank: 'cora',
       confidence: 1.0,
       delimiter: ',',
       account: '5.697.526-5', // Conta Cora padrão
+      statementType: 'current'
+    };
+  }
+
+  // BB: novo layout CSV com vírgulas e aspas
+  if (
+    normalizedFirstLine.includes('data,lancamento,detalhes') &&
+    normalizedFirstLine.includes('valor,tipo lancamento')
+  ) {
+    return {
+      bank: 'bb',
+      confidence: 1.0,
+      delimiter: ',',
       statementType: 'current'
     };
   }
