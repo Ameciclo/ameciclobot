@@ -5,19 +5,32 @@ export interface BankDetectionResult {
   confidence: number;
   delimiter: string;
   account?: string;
+  statementType?: 'current' | 'credit';
 }
 
 export function detectBankCSV(fileContent: string): BankDetectionResult {
   // Tenta detectar pelo cabeçalho primeiro
   const firstLine = fileContent.split('\n')[0];
   
+  // Cora crédito: cabeçalho da fatura/cartão
+  if (firstLine.includes('Data,Nome no Cartão,Final do Cartão,Categoria,Descrição')) {
+    return {
+      bank: 'cora',
+      confidence: 1.0,
+      delimiter: ',',
+      account: '5.697.526-5',
+      statementType: 'credit'
+    };
+  }
+
   // Cora: cabeçalho específico com vírgulas
   if (firstLine.includes('Data,Transação,Tipo Transação,Identificação,Valor')) {
     return {
       bank: 'cora',
       confidence: 1.0,
       delimiter: ',',
-      account: '5.697.526-5' // Conta Cora padrão
+      account: '5.697.526-5', // Conta Cora padrão
+      statementType: 'current'
     };
   }
   
@@ -57,7 +70,8 @@ export function detectBankCSV(fileContent: string): BankDetectionResult {
             bank: 'cora',
             confidence: 0.8,
             delimiter: ',',
-            account: '5.697.526-5'
+            account: '5.697.526-5',
+            statementType: 'current'
           };
         }
       }

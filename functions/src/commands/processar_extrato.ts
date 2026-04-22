@@ -1,6 +1,9 @@
 // src/commands/processarExtrato.ts
 import { reconcileExtract } from "../services/reconciliation";
 import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
+import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
+import { parseCoraCreditCSV } from "../services/reconciliation/parsers/cora_credit_csv_parser";
+import { detectBankCSV } from "../services/reconciliation/bank_detector";
 import axiosInstance from "../config/httpService";
 import getAccounts from "../credentials/accounts.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
@@ -10,12 +13,17 @@ import {
   uploadCSVToDrive,
 } from "../services/google";
 import { getMonthNamePortuguese } from "../utils/utils";
+import { decodeTextFile } from "../utils/decodeTextFile";
 import workgroups from "../credentials/workgroupsfolders.json";
-import iconv from "iconv-lite";
 import { getAllRequests } from "../services/firebase";
 import { PaymentRequest } from "../config/types";
 
 import { Context, Telegraf } from "telegraf";
+
+function formatSpreadsheetCurrency(value: number): string {
+  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+}
+
 async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
   const data: any[] = [];
   const confirmedRequests = await getConfirmedPaymentRequests();
@@ -64,7 +72,67 @@ async function processExtratoCsv(fileUrl: string) {
     responseType: "arraybuffer",
   });
   const fileBuffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(fileBuffer, "latin1");
+  const fileContent = decodeTextFile(fileBuffer);
+
+  const detection = detectBankCSV(fileContent);
+
+  if (detection.bank === "cora") {
+    const confirmedRequests = await getConfirmedPaymentRequests();
+    const isCreditStatement = detection.statementType === "credit";
+    const parser = isCreditStatement ? parseCoraCreditCSV : parseCoraCSV;
+    const sourceId = isCreditStatement ? "cora_cd" : "cora_cc";
+    const accountType = isCreditStatement ? "Conta Crédito" : "Conta Corrente";
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parser(fileContent, sourceId);
+    const { results, summary } = reconcileExtract(entries, confirmedRequests);
+
+    console.log(`[RECONCILIATION] Resumo: ✅ ${summary.ok} ok | 🔗 ${summary.split} split | ⚠️ ${summary.ambiguous} ambíguo | ❓ ${summary.not_found} não encontrados`);
+
+    const statementsData = entries.map((entry, i) => {
+      const result = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, "0")}/${(entry.postDate.getMonth() + 1).toString().padStart(2, "0")}/${entry.postDate.getFullYear()}`;
+      const formattedValue = formatSpreadsheetCurrency(entry.amount);
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+
+      if (!isCreditStatement && entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (!isCreditStatement && entry.narrative.includes("Cora SCFI")) {
+        return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
+      }
+
+      return [
+        formattedDate,
+        formattedValue,
+        type,
+        entry.narrative,
+        result.comment,
+        result.project
+      ];
+    });
+
+    const matchedAccount = getAccounts.find((acc: any) =>
+      acc.number === rawAccount &&
+      acc.type === accountType &&
+      acc.input_file_type === "csv"
+    ) || {
+      bank: "desconhecido",
+      bank_number: "desconhecido",
+      number: rawAccount,
+      type: accountType,
+      fulltext: `${accountType} (Cora) ${rawAccount}`,
+      sheet: isCreditStatement ? "EXTRATO CC 2666" : "EXTRATO CD 2393",
+      input_file_type: "csv",
+      folder_id: "desconhecido",
+    };
+
+    return {
+      account: matchedAccount.number,
+      statements: statementsData,
+      fileContent,
+      month: monthStr,
+      year: yearStr,
+      matchedAccount,
+    };
+  }
 
   // Use new deterministic parser
   const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc");
@@ -107,7 +175,7 @@ async function processExtratoTxt(fileUrl: string) {
     responseType: "arraybuffer",
   });
   const buffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(buffer, "latin1");
+  const fileContent = decodeTextFile(buffer);
 
   const lines = fileContent.split(/\r?\n/);
 

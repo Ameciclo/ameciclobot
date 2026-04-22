@@ -1,0 +1,28 @@
+{
+  "sourceId": "cora_cd",
+  "accountFilter": "5.697.526-5",
+  "classificationRules": [
+    {
+      "when": {
+        "type": "D"
+      },
+      "then": {
+        "kind": "PAYMENT",
+        "subtype": "credit_card_expense"
+      }
+    },
+    {
+      "when": {
+        "type": "C"
+      },
+      "then": {
+        "kind": "INCOME",
+        "subtype": "credit_card_reversal"
+      }
+    }
+  ],
+  "internalCounterparties": [],
+  "payeeExtraction": {
+    "fallbackPattern": "^(.+?)(?:\\s+-\\s+.+)?$"
+  }
+}

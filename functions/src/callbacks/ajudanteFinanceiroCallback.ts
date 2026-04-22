@@ -14,14 +14,15 @@ import { sendProjectsToDB, getRequestData, updatePaymentRequest, getAllRequests 
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { PaymentRequest } from "../config/types";
 import { formatDate, getMonthNamePortuguese } from "../utils/utils";
+import { decodeTextFile } from "../utils/decodeTextFile";
 import axiosInstance from "../config/httpService";
-import iconv from "iconv-lite";
 // @ts-ignore
 import pdfParse from "pdf-parse";
 import { reconcileExtract } from "../services/reconciliation";
 import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
 import { detectBankCSV } from "../services/reconciliation/bank_detector";
 import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
+import { parseCoraCreditCSV } from "../services/reconciliation/parsers/cora_credit_csv_parser";
 
 // Função para extrair dados da mensagem
 function extractDataFromMessage(ctx: any) {
@@ -359,19 +360,19 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       
       const buffer = Buffer.from(fileBuffer);
       const data = await pdfParse(buffer);
-      const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+      const { conta, mesAno, accountType } = extractInfoFromPDF(data.text);
       
       // Se conseguiu extrair tudo, arquiva automaticamente
       if (conta && mesAno) {
         await ctx.editMessageText("🔄 Dados detectados! Arquivando automaticamente...");
         
-        const folderId = getFolderIdForAccount(conta, isFund);
+        const folderId = getFolderIdForAccount(conta, accountType);
         if (!folderId) {
           await ctx.editMessageText(`❌ Pasta não configurada para conta ${conta}.`);
           return;
         }
         
-        const fileName = formatFileName(mesAno, isFund, conta);
+        const fileName = formatFileName(mesAno, accountType, conta);
         const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
         
         if (!uploadResponse) {
@@ -379,7 +380,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
           return;
         }
         
-        const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+        const tipoConta = getAccountTypeLabel(accountType);
         const keyboard = Markup.inlineKeyboard([
           [Markup.button.url("📄 Ver Extrato", uploadResponse)],
           [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
@@ -407,7 +408,8 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       const keyboard = Markup.inlineKeyboard([
         ...months.map(m => [
           Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
-          Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
+          Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`),
+          Markup.button.callback(`${m.monthYear} - CD`, `pdf_manual_${fileId}_${m.month}_${m.year}_cd`)
         ]),
         [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
       ]);
@@ -418,7 +420,8 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
         `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
         `Escolha o mês e tipo de conta:\n\n` +
         `• *FI* = Fundo de Investimento\n` +
-        `• *CC* = Conta Corrente`,
+        `• *CC* = Conta Corrente\n` +
+        `• *CD* = Conta Crédito`,
         { ...keyboard, parse_mode: "Markdown" }
       );
     } catch (error) {
@@ -428,19 +431,18 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
   });
 
   // Callback para arquivar PDF manualmente
-  bot.action(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/, async (ctx): Promise<void> => {
+  bot.action(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc|cd)$/, async (ctx): Promise<void> => {
     await ctx.answerCbQuery();
     
     const match = ctx.callbackQuery && 'data' in ctx.callbackQuery ? 
-      ctx.callbackQuery.data.match(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/) : null;
+      ctx.callbackQuery.data.match(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc|cd)$/) : null;
     
     if (!match) {
       await ctx.editMessageText("❌ Dados inválidos.");
       return;
     }
     
-    const [, fileId, month, year, type] = match;
-    const isFund = type === 'fi';
+    const [, fileId, month, year, accountType] = match;
     
     try {
       await ctx.editMessageText("🔄 Arquivando PDF...");
@@ -461,13 +463,13 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       const { conta } = extractInfoFromPDF(data.text);
       const accountNumber = conta || 'CONTA_NAO_IDENTIFICADA';
       
-      const folderId = getFolderIdForAccount(accountNumber, isFund);
+      const folderId = getFolderIdForAccount(accountNumber, accountType as "fi" | "cc" | "cd");
       if (!folderId) {
-        await ctx.editMessageText(`❌ Pasta não configurada para ${isFund ? 'Fundo de Investimento' : 'Conta Corrente'}.`);
+        await ctx.editMessageText(`❌ Pasta não configurada para ${getAccountTypeLabel(accountType as "fi" | "cc" | "cd")}.`);
         return;
       }
       
-      const fileName = formatFileName(mesAno, isFund, accountNumber);
+      const fileName = formatFileName(mesAno, accountType as "fi" | "cc" | "cd", accountNumber);
       const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
       
       if (!uploadResponse) {
@@ -475,7 +477,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
         return;
       }
       
-      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const tipoConta = getAccountTypeLabel(accountType as "fi" | "cc" | "cd");
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.url("📄 Ver Extrato", uploadResponse)],
         [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
@@ -658,7 +660,7 @@ async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Arr
   return await pdfDoc.save();
 }
 
-function extractInfoFromPDF(text: string): { conta: string | null; mesAno: string | null; isFund: boolean } {
+function extractInfoFromPDF(text: string): { conta: string | null; mesAno: string | null; accountType: "fi" | "cc" | "cd" } {
   const norm = text.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s+/g, " ");
   
   let conta = null;
@@ -670,28 +672,45 @@ function extractInfoFromPDF(text: string): { conta: string | null; mesAno: strin
   if (mesAnoMatch) mesAno = mesAnoMatch[1];
   
   const isFund = /extratos?\s*-\s*investimentos?\s+fundos?/i.test(norm);
-  
-  return { conta, mesAno, isFund };
+  const isCredit = /(fatura|cart[aã]o de cr[eé]dito|nome no cart[aã]o|final do cart[aã]o)/i.test(norm);
+
+  return { conta, mesAno, accountType: isFund ? "fi" : isCredit ? "cd" : "cc" };
 }
 
-function formatFileName(mesAno: string, isFund: boolean, conta: string): string {
+function formatFileName(mesAno: string, accountType: "fi" | "cc" | "cd", conta: string): string {
   const [mesNome, ano] = mesAno.split("/");
-  const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+  const tipoConta = getAccountTypeLabel(accountType);
   return `Extrato - ${ano}.${mesNome} - ${tipoConta} ${conta}.pdf`;
 }
 
-function getFolderIdForAccount(conta: string, isFund: boolean): string | null {
-  const tipoExtrato = isFund ? "Fundo de Investimento - Conta" : "Conta Corrente";
+function getAccountTypeLabel(accountType: "fi" | "cc" | "cd"): string {
+  if (accountType === "fi") return "Fundo de Investimento";
+  if (accountType === "cd") return "Conta Crédito";
+  return "Conta Corrente";
+}
+
+function getAccountConfigType(accountType: "fi" | "cc" | "cd"): string {
+  if (accountType === "fi") return "Fundo de Investimento - Conta";
+  if (accountType === "cd") return "Conta Crédito";
+  return "Conta Corrente";
+}
+
+function getFolderIdForAccount(conta: string, accountType: "fi" | "cc" | "cd"): string | null {
+  const tipoExtrato = getAccountConfigType(accountType);
   const matchedAccount = getAccounts.find((acc: any) => 
     acc.number === conta && acc.type === tipoExtrato && acc.input_file_type === "pdf"
   );
   return matchedAccount?.folder_id || null;
 }
 
+function formatSpreadsheetCurrency(value: number): string {
+  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+}
+
 async function processExtratoCsv(fileUrl: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const fileBuffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(fileBuffer, "latin1");
+  const fileContent = decodeTextFile(fileBuffer);
   
   // Detecta automaticamente o tipo de banco
   const detection = detectBankCSV(fileContent);
@@ -703,20 +722,25 @@ async function processExtratoCsv(fileUrl: string) {
   let result;
   
   if (detection.bank === 'cora') {
+    const isCreditStatement = detection.statementType === "credit";
+    const parser = isCreditStatement ? parseCoraCreditCSV : parseCoraCSV;
+    const sourceId = isCreditStatement ? "cora_cd" : "cora_cc";
+    const accountType = isCreditStatement ? "Conta Crédito" : "Conta Corrente";
+
     // Processa CSV do Cora
-    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseCoraCSV(fileContent, "cora_cc");
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parser(fileContent, sourceId);
     const { results } = reconcileExtract(entries, requestsArray);
     
     const statements = entries.map((entry, i) => {
       const reconcileResult = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-      const formattedValue = `R$ ${entry.amount.toFixed(2)}`; // Mantém ponto decimal
+      const formattedValue = formatSpreadsheetCurrency(entry.amount);
       let type = entry.type === "C" ? "Entrada" : "Saída";
       
-      // Classificações específicas do Cora
-      if (entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+      // Classificações específicas do Cora corrente
+      if (!isCreditStatement && entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
         type = entry.type === "D" ? "Investido" : "Desinvestido";
-      } else if (entry.narrative.includes("Cora SCFI")) {
+      } else if (!isCreditStatement && entry.narrative.includes("Cora SCFI")) {
         // Classifica faturas de cartão automaticamente
         return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
       }
@@ -725,11 +749,11 @@ async function processExtratoCsv(fileUrl: string) {
     });
     
     const matchedAccount = getAccounts.find((acc: any) => 
-      acc.number === rawAccount && acc.type === "Conta Corrente" && acc.input_file_type === "csv"
+      acc.number === rawAccount && acc.type === accountType && acc.input_file_type === "csv"
     ) || {
       number: rawAccount, 
-      sheet: "EXTRATO CC Cora", // Aba específica do Cora
-      fulltext: `Conta Corrente (Cora) ${rawAccount}`
+      sheet: isCreditStatement ? "EXTRATO CC 2666" : "EXTRATO CD 2393",
+      fulltext: `${accountType} (Cora) ${rawAccount}`
     };
     
     result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
@@ -772,7 +796,7 @@ async function processExtratoCsv(fileUrl: string) {
 async function processExtratoTxt(fileUrl: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const buffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(buffer, "latin1");
+  const fileContent = decodeTextFile(buffer);
   const lines = fileContent.split(/\r?\n/);
   
   let accountRaw = "";
@@ -889,25 +913,25 @@ export async function processPdfInteligenteCallback(ctx: any, fileId: string) {
     
     const buffer = Buffer.from(fileBuffer);
     const data = await pdfParse(buffer);
-    const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+    const { conta, mesAno, accountType } = extractInfoFromPDF(data.text);
     
     // Se conseguiu extrair tudo, arquiva automaticamente
     if (conta && mesAno) {
       await ctx.reply("🔄 Dados detectados! Arquivando automaticamente...");
       
-      const folderId = getFolderIdForAccount(conta, isFund);
+      const folderId = getFolderIdForAccount(conta, accountType);
       if (!folderId) {
         return ctx.reply(`❌ Pasta não configurada para conta ${conta}.`);
       }
       
-      const fileName = formatFileName(mesAno, isFund, conta);
+      const fileName = formatFileName(mesAno, accountType, conta);
       const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
       
       if (!uploadResponse) {
         return ctx.reply("❌ Erro no upload.");
       }
       
-      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const tipoConta = getAccountTypeLabel(accountType);
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.url("📄 Ver Extrato", uploadResponse)],
         [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
@@ -934,7 +958,8 @@ export async function processPdfInteligenteCallback(ctx: any, fileId: string) {
     const keyboard = Markup.inlineKeyboard([
       ...months.map(m => [
         Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
-        Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
+        Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`),
+        Markup.button.callback(`${m.monthYear} - CD`, `pdf_manual_${fileId}_${m.month}_${m.year}_cd`)
       ]),
       [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
     ]);
@@ -945,7 +970,8 @@ export async function processPdfInteligenteCallback(ctx: any, fileId: string) {
       `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
       `Escolha o mês e tipo de conta:\n\n` +
       `• *FI* = Fundo de Investimento\n` +
-      `• *CC* = Conta Corrente`,
+      `• *CC* = Conta Corrente\n` +
+      `• *CD* = Conta Crédito`,
       { ...keyboard, parse_mode: "Markdown" }
     );
   } catch (error) {
