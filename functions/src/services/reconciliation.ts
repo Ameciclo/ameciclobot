@@ -47,6 +47,8 @@ function normalizeText(text: string): string {
 
 // Converte valor monetário string para number
 function parseMonetaryValue(value: string): number {
+  if (!value) return 0;
+
   return parseFloat(
     value
       .replace("R$", "")
@@ -157,7 +159,7 @@ function normalizeRequest(request: PaymentRequest): {
   project: { name: string; account: string };
   supplierName: string;
 } {
-  const requestDateStr = request.paymentDate || request.date;
+  const requestDateStr = String(request.paymentDate || request.date || "");
   let requestDate: Date;
   
   try {
@@ -186,7 +188,10 @@ function normalizeRequest(request: PaymentRequest): {
     date: requestDate,
     value: parseMonetaryValue(request.value),
     description: request.description || "",
-    project: request.project,
+    project: {
+      name: request.project?.name || "",
+      account: request.project?.account || "",
+    },
     supplierName: normalizeText(supplierName)
   };
 }
@@ -228,7 +233,7 @@ export function reconcileExtractEntry(
   const confirmedRequests = requests
     .filter(r => r.status === "confirmed")
     .map(normalizeRequest)
-    .filter(r => r.project.account.includes("76.849-9")); // Filtra pela conta do extrato
+    .filter(r => r.project.account?.includes("76.849-9")); // Filtra pela conta do extrato
 
   // Extrai favorecido do extrato
   const payee = extractPayee(entry.narrative);
