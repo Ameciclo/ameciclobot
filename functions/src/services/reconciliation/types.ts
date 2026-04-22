@@ -3,6 +3,7 @@ export interface ExtractEntry {
   amount: number;
   type: "D" | "C";
   narrative: string;
+  accountFilter?: string;
   historyCode?: string;
   categoryCode?: string;
   documentNumber?: string;

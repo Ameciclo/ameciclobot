@@ -6,6 +6,8 @@ export interface ExtractEntry {
   amount: number;
   type: "D" | "C";
   narrative: string;
+  sourceId?: string;
+  accountFilter?: string;
   originalData: any[];
 }
 
@@ -24,6 +26,10 @@ interface ReconciliationConfig {
   minScore: number;
   splitMaxItems: number;
   supplierSimilarityMin: number;
+}
+
+function getAccountFilter(entry: ExtractEntry): string {
+  return entry.accountFilter || "";
 }
 
 const DEFAULT_CONFIG: ReconciliationConfig = {
@@ -229,11 +235,12 @@ export function reconcileExtractEntry(
     };
   }
 
+  const accountFilter = getAccountFilter(entry);
   // Filtra requests confirmados da mesma conta
   const confirmedRequests = requests
     .filter(r => r.status === "confirmed")
     .map(normalizeRequest)
-    .filter(r => r.project.account?.includes("76.849-9")); // Filtra pela conta do extrato
+    .filter(r => !accountFilter || r.project.account?.includes(accountFilter)); // Filtra pela conta do extrato
 
   // Extrai favorecido do extrato
   const payee = extractPayee(entry.narrative);

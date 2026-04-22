@@ -8,6 +8,10 @@ const DEFAULT_CONFIG: ReconciliationConfig = {
   incomeWindowDays: 7
 };
 
+function getAccountFilter(entry: ExtractEntry): string {
+  return entry.accountFilter || "";
+}
+
 function normalizeText(text: string): string {
   return text
     .toUpperCase()
@@ -100,10 +104,11 @@ function reconcilePayment(
   requests: PaymentRequest[], 
   config: ReconciliationConfig
 ): ReconciliationResult {
+  const accountFilter = getAccountFilter(entry);
   const confirmedRequests = requests
     .filter(r => r.status === "confirmed")
     .map(normalizeRequest)
-    .filter(r => r.project.account?.includes("76.849-9")); // Filter by account
+    .filter(r => !accountFilter || r.project.account?.includes(accountFilter)); // Filter by account
 
   // Step 1: Exact value + exact date
   const exactCandidates = confirmedRequests.filter(req => 

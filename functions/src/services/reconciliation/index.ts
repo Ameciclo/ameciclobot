@@ -18,10 +18,11 @@ export interface ExtractEntry {
 }
 
 // Convert legacy ExtractEntry to new format
-function convertLegacyEntry(entry: ExtractEntry, sourceId: string = "bb_cc_76849_9"): NewExtractEntry {
+function convertLegacyEntry(entry: ExtractEntry, sourceId: string = "bb_cc"): NewExtractEntry {
   return {
     ...entry,
-    sourceId,
+    sourceId: (entry as any).sourceId || sourceId,
+    accountFilter: (entry as any).accountFilter,
     historyCode: undefined,
     categoryCode: undefined,
     documentNumber: undefined,

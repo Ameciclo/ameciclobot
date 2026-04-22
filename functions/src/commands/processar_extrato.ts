@@ -21,7 +21,7 @@ async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
   const confirmedRequests = await getConfirmedPaymentRequests();
   
   // Parse CSV using new deterministic parser
-  const { entries } = parseBBCSV(fileContent, "bb_cc_76849_9");
+  const { entries } = parseBBCSV(fileContent, "bb_cc");
   
   // Execute deterministic reconciliation
   const { results, summary } = reconcileExtract(entries, confirmedRequests);
@@ -67,7 +67,7 @@ async function processExtratoCsv(fileUrl: string) {
   const fileContent = iconv.decode(fileBuffer, "latin1");
 
   // Use new deterministic parser
-  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc");
   const statementsData = await convertCSVtoStatementsData(fileContent);
 
   const accounts = getAccounts.filter(
@@ -76,7 +76,7 @@ async function processExtratoCsv(fileUrl: string) {
   let matchedAccount = accounts.find((acc: any) => {
     const cleanAccNumber = acc.number.replace(/[^\d]/g, "");
     const cleanResultAccount = rawAccount.replace(/[^\d]/g, "");
-    return cleanResultAccount === cleanAccNumber;
+    return cleanResultAccount === cleanAccNumber && acc.input_file_type === "csv";
   });
   if (!matchedAccount) {
     matchedAccount = {

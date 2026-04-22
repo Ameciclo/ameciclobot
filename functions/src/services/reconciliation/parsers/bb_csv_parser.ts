@@ -1,6 +1,20 @@
 import { ExtractEntry } from "../types";
 import { parse } from "csv-parse/sync";
 
+function formatBBAccount(rawAccount: string): string {
+  const digits = rawAccount.replace(/[^\d]/g, "");
+
+  if (digits.length < 2) {
+    return rawAccount.trim();
+  }
+
+  const accountDigits = digits.slice(0, -1);
+  const verifier = digits.slice(-1);
+  const formattedAccountDigits = accountDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  return `${formattedAccountDigits}-${verifier}`;
+}
+
 export function parseBBCSV(fileContent: string, sourceId: string): {
   entries: ExtractEntry[];
   month: string;
@@ -17,6 +31,7 @@ export function parseBBCSV(fileContent: string, sourceId: string): {
   }
 
   const rawAccount = csvData[1][1].replace(/^0+/, "");
+  const formattedAccount = formatBBAccount(rawAccount);
   
   let monthStr = "";
   let yearStr = "";
@@ -56,6 +71,7 @@ export function parseBBCSV(fileContent: string, sourceId: string): {
       amount,
       type,
       narrative,
+      accountFilter: formattedAccount,
       historyCode: row[8],
       categoryCode: undefined,
       documentNumber: row[7],

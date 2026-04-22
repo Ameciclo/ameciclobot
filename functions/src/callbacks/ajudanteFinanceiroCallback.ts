@@ -735,7 +735,7 @@ async function processExtratoCsv(fileUrl: string) {
     result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
   } else {
     // Processa CSV do BB (código original)
-    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc");
     const { results } = reconcileExtract(entries, requestsArray);
     
     const statements = entries.map((entry, i) => {
@@ -755,7 +755,11 @@ async function processExtratoCsv(fileUrl: string) {
       return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
     });
     
-    const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
+    const matchedAccount = getAccounts.find((acc: any) =>
+      acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "") &&
+      acc.type === "Conta Corrente" &&
+      acc.input_file_type === "csv"
+    ) || {
       number: rawAccount, sheet: "desconhecido"
     };
     
