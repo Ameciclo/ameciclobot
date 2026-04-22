@@ -11,7 +11,26 @@ import {
 } from "../../services/google";
 import { getMonthNamePortuguese } from "../../utils/utils";
 import workgroups from "../../credentials/workgroupsfolders.json";
+import bbStatementCodeEquivalences from "../../credentials/bbStatementCodeEquivalences.json";
 import iconv from "iconv-lite";
+
+type StatementType = "Entrada" | "Saída" | "Investido" | "Desinvestido";
+
+type StatementCodeEquivalence = {
+  type?: StatementType;
+};
+
+function getStatementType(code: string, debitCredit: string): StatementType {
+  const equivalence = (
+    bbStatementCodeEquivalences as Record<string, StatementCodeEquivalence>
+  )[code];
+
+  if (equivalence?.type) {
+    return equivalence.type;
+  }
+
+  return debitCredit === "C" ? "Entrada" : "Saída";
+}
 
 // ======= Funções Auxiliares para o CSV =========
 function removeLeadingZeros(str: string): string {
@@ -30,27 +49,15 @@ function convertCSVtoStatementsData(csv: any[][]): any[][] {
   const data: any[][] = [];
   for (let i = 0; i < csv.length; i++) {
     const row = csv[i];
-    const dateStr = row[3]; // Data no formato DDMMYYYY, ex: "31012025"
-    const day = Number(dateStr.substring(0, 2));
-    const month = Number(dateStr.substring(2, 4));
-    const year = Number(dateStr.substring(4, 8));
+    const dateStr = String(row[3]).trim(); // Data no formato DD.MM.YYYY, ex: "31.01.2026"
+    const [dayStr, monthStr, yearStr] = dateStr.split(".");
     // Formata a data como "DD/MM/YYYY"
-    const formattedDate =
-      ("0" + day).slice(-2) + "/" + ("0" + month).slice(-2) + "/" + year;
-    const value = Number(row[10]) / 100;
-    let type = "Saída";
-    const code = row[8];
-    if (code === "855" || code === "791" || code === "848") {
-      type = "Desinvestido";
-    } else if (code === "345") {
-      type = "Investido";
-    } else if (code === "900") {
-      type = "Entrada ERRO!";
-    } else if (row[11] === "C") {
-      type = "Entrada";
-    }
+    const formattedDate = `${dayStr}/${monthStr}/${yearStr}`;
+    const value = Number(String(row[10]).trim().replace(/\./g, "").replace(",", "."));
+    const code = String(row[8]).trim();
+    const type = getStatementType(code, String(row[11]).trim());
     // Converte a info usando latin1 para utf8
-    const info = row[8] + " " + row[9] + " " + row[12];
+    const info = `${row[8]} ${row[9]} ${row[12]}`.trim();
     data.push([formattedDate, value, type, info]);
   }
   return data;
@@ -88,9 +95,8 @@ async function processExtratoCsv(fileUrl: string): Promise<{
     // Extrai a data do saldo (última linha do CSV)
     const originalCsv = csvData.slice();
     const lastRow = originalCsv[originalCsv.length - 1];
-    const saldoDateStr: string = lastRow[3]; // Ex: "31012025"
-    const monthStr = saldoDateStr.substring(2, 4); // Ex: "01"
-    const yearStr = saldoDateStr.substring(4, 8); // Ex: "2025"
+    const saldoDateStr = String(lastRow[3]).trim(); // Ex: "31.01.2026"
+    const [, monthStr, yearStr] = saldoDateStr.split(".");
 
     const statementsData = convertCSVtoStatementsData(csvData);
 
