@@ -138,6 +138,17 @@ export async function updatePaymentRequestCoordinatorMessages(
   console.log(`Coordinator messages updated for request`);
 }
 
+export async function updatePaymentRequestWorkgroupMessages(
+  requestId: string,
+  workgroupMessages: Record<string, number>
+) {
+  await admin.database().ref(`requests/${requestId}`).update({
+    workgroup_messages: workgroupMessages,
+  });
+
+  console.log(`Workgroup messages updated for request`);
+}
+
 export async function updatCalendarEvent(event: any, createdEvent: any) {
   await admin.database().ref(`calendar/${event.params.eventId}`).update({
     googleEventId: createdEvent.id,

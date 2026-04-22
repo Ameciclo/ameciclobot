@@ -3,6 +3,7 @@ import { AmecicloUser, PaymentRequest } from "../config/types";
 import {
   updatePaymentRequestGroupMessage,
   updatePaymentRequestCoordinatorMessages,
+  updatePaymentRequestWorkgroupMessages,
   getWorkgroupId,
 } from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
@@ -80,8 +81,13 @@ export async function sendPaymentRequestHandler(
 
     for (const coordinator of coordinators) {
       try {
-        // Mensagem simplificada conforme solicitado: tipo de transação, valor, projeto
-        const simplifiedMessage = `💰${request.transactionType}\n💵${request.value}\n🗂${request.project.name}`;
+        // Mensagem simplificada para a coordenação com contexto suficiente para assinar no inbox
+        const simplifiedMessage =
+          `💰${request.transactionType}\n` +
+          `💵${request.value}\n` +
+          `🗂${request.project.name}\n` +
+          `📂 Item Orçamentário: ${request.budgetItem}\n` +
+          `🗒 Descrição: ${request.description}`;
         
         // Cria o botão de confirmação para o coordenador
         const confirmButton = Markup.button.callback(
@@ -123,9 +129,30 @@ export async function sendPaymentRequestHandler(
         
         if (workgroupId) {
           // Enviar uma versão simplificada da mensagem para o grupo de trabalho
-          const workgroupMessage = `💰 ${request.transactionType}\n💵 Valor: ${request.value}\n🗂 Projeto: ${request.project.name}\n📝 Descrição: ${request.description}`;
-          
-          await bot.telegram.sendMessage(workgroupId, workgroupMessage);
+          const workgroupMessage =
+            `💰 ${request.transactionType}\n` +
+            `💵 Valor: ${request.value}\n` +
+            `🗂 Projeto: ${request.project.name}\n` +
+            `📝 Descrição: ${request.description}`;
+
+          const workgroupKeyboard = Markup.inlineKeyboard([
+            [
+              Markup.button.url(
+                "📊 Ver planilha",
+                `https://docs.google.com/spreadsheets/d/${request.project.spreadsheet_id}`
+              ),
+            ],
+          ]);
+
+          const workgroupResult = await bot.telegram.sendMessage(
+            workgroupId,
+            workgroupMessage,
+            workgroupKeyboard
+          );
+
+          await updatePaymentRequestWorkgroupMessages(request.id, {
+            [workgroupId]: workgroupResult.message_id,
+          });
           console.log(`Mensagem enviada para o grupo de trabalho ${workgroupName} (ID: ${workgroupId})`);
         } else {
           console.log(`Grupo de trabalho não encontrado: ${workgroupName}`);

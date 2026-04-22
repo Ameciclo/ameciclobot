@@ -129,4 +129,5 @@ export interface PaymentRequest {
   confirmed_by: TelegramUserInfo[] | undefined | [];
   coordinator_messages?: { [key: number]: number }; // ID do coordenador -> ID da mensagem
   group_message_id?: number;
+  workgroup_messages?: { [key: string]: number }; // ID do grupo -> ID da mensagem
 }
