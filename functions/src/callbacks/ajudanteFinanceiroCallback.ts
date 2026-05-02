@@ -953,8 +953,20 @@ function getFolderIdForAccount(conta: string, accountType: "fi" | "cc" | "cd"): 
   return findPdfAccountConfig(conta, accountType)?.folder_id || null;
 }
 
-function formatSpreadsheetCurrency(value: number): string {
-  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+function parseSpreadsheetDecimal(value: string): number {
+  const normalizedValue = String(value || "")
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`Valor inválido no extrato: ${value}`);
+  }
+
+  return parsedValue;
 }
 
 const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
@@ -1005,7 +1017,7 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
     const statements = entries.map((entry, i) => {
       const reconcileResult = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-      const formattedValue = formatSpreadsheetCurrency(entry.amount);
+      const formattedValue = entry.amount;
       let type = entry.type === "C" ? "Entrada" : "Saída";
       
       // Classificações específicas do Cora corrente
@@ -1040,7 +1052,7 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
     const statements = entries.map((entry, i) => {
       const reconcileResult = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-      const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+      const formattedValue = entry.amount;
       let type = entry.type === "C" ? "Entrada" : "Saída";
       
       if (
@@ -1118,12 +1130,12 @@ async function processExtratoTxt(fileUrl: string) {
   };
   const refMonth = meses[refMonthName.toUpperCase()] || "00";
   
-  const summary: string[] = [];
+  const summary: number[] = [];
   const resumoIndex = lines.findIndex(line => line.toUpperCase().includes("RESUMO DO MÊS"));
   if (resumoIndex !== -1) {
     for (let i = resumoIndex + 1; i < lines.length && summary.length < 6; i++) {
       const match = lines[i].match(/([\d\.,]+)$/);
-      if (match) summary.push(match[1]);
+      if (match) summary.push(parseSpreadsheetDecimal(match[1]));
     }
   }
   

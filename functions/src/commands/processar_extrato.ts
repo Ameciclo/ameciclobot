@@ -20,8 +20,20 @@ import { PaymentRequest } from "../config/types";
 
 import { Context, Markup, Telegraf } from "telegraf";
 
-function formatSpreadsheetCurrency(value: number): string {
-  return `R$ ${value.toFixed(2).replace(".", ",")}`;
+function parseSpreadsheetDecimal(value: string): number {
+  const normalizedValue = String(value || "")
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`Valor inválido no extrato: ${value}`);
+  }
+
+  return parsedValue;
 }
 
 function normalizeLooseText(text: string): string {
@@ -96,7 +108,7 @@ async function convertCSVtoStatementsData(
     const result = results[i];
     
     const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-    const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+    const formattedValue = entry.amount;
     let type = entry.type === "C" ? "Entrada" : "Saída";
     
     // Adjust type based on classification
@@ -150,7 +162,7 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
     const statementsData = entries.map((entry, i) => {
       const result = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, "0")}/${(entry.postDate.getMonth() + 1).toString().padStart(2, "0")}/${entry.postDate.getFullYear()}`;
-      const formattedValue = formatSpreadsheetCurrency(entry.amount);
+      const formattedValue = entry.amount;
       let type = entry.type === "C" ? "Entrada" : "Saída";
 
       if (!isCreditStatement && isInternalTransferNarrative(entry.narrative)) {
@@ -301,13 +313,13 @@ async function processExtratoTxt(fileUrl: string) {
     throw new Error("Seção 'Resumo do mês' não encontrada.");
   }
 
-  const summary: string[] = [];
+  const summary: number[] = [];
   let i = resumoIndex + 1;
   while (summary.length < 6 && i < lines.length) {
     const line = lines[i].trim();
     const match = line.match(/([\d\.,]+)$/);
     if (match && match[1].trim() !== "") {
-      summary.push(match[1].trim());
+      summary.push(parseSpreadsheetDecimal(match[1].trim()));
     }
     i++;
   }
