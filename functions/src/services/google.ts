@@ -533,6 +533,26 @@ export async function updateSpreadsheetCell(
   }
 }
 
+function parseSpreadsheetCurrencyValue(value: string | number | undefined): number | string {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  const normalizedValue = String(value)
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : String(value);
+}
+
 export async function findRowByRequestId(
   spreadsheetId: string,
   requestId: string
@@ -562,6 +582,10 @@ export async function updateSpreadsheet(request: PaymentRequest) {
   const range = "DETALHAMENTO DAS DESPESAS!A1:M";
   const date = toDays();
   let comments = "";
+  const parsedUnitValue = parseSpreadsheetCurrencyValue(request.unitValue);
+  const parsedValue = parseSpreadsheetCurrencyValue(request.value);
+  const spreadsheetUnitValue =
+    parsedUnitValue === "" ? parsedValue : parsedUnitValue;
   if (request.transactionType === "Registrar Caixa Físico") {
     comments += `CAIXA FÍSICO ${request.project.account}\n`;
   }
@@ -583,8 +607,8 @@ export async function updateSpreadsheet(request: PaymentRequest) {
     request.description,
     request.quantity || "1",
     request.unitName || "unidade",
-    request.unitValue || request.value,
-    request.value,
+    spreadsheetUnitValue,
+    parsedValue,
     "⚠️PREENCHER",
     `📂 ID da Solicitação: ${request.id}`,
     date,
