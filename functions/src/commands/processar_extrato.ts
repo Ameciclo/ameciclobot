@@ -24,6 +24,34 @@ function formatSpreadsheetCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
+function normalizeLooseText(text: string): string {
+  return String(text || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isInternalTransferNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return [
+    "AMECICLO",
+    "ASSOCIACAO METROPOLITANA",
+    "ASSOCIACAO M C G R AME",
+    "ASSOC METROPOLITANA",
+  ].some((token) => normalizedNarrative.includes(token));
+}
+
+function isBbRendeFacilNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return (
+    normalizedNarrative.includes("BB RENDE FACIL") ||
+    /BB RENDE F\s*CIL/.test(normalizedNarrative) ||
+    /BB RENDE F\w*CIL/.test(normalizedNarrative)
+  );
+}
+
 const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
   "EXTRATO CC 76": "684262481",
   "EXTRATO FI 76": "478565062",
@@ -47,10 +75,13 @@ function getAccountingSheetUrl(sheet?: string): string | null {
   return `https://docs.google.com/spreadsheets/d/${projectsSpreadsheet.id}/edit?gid=${gid}#gid=${gid}`;
 }
 
-async function convertCSVtoStatementsData(fileContent: string, sourceFileName?: string): Promise<any[]> {
+async function convertCSVtoStatementsData(
+  fileContent: string,
+  confirmedRequests: PaymentRequest[],
+  sourceFileName?: string
+): Promise<any[]> {
   const data: any[] = [];
-  const confirmedRequests = await getConfirmedPaymentRequests();
-  
+
   // Parse CSV using new deterministic parser
   const { entries } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
   
@@ -69,11 +100,17 @@ async function convertCSVtoStatementsData(fileContent: string, sourceFileName?: 
     let type = entry.type === "C" ? "Entrada" : "Saída";
     
     // Adjust type based on classification
-    if (result.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+    if (
+      result.project === "Movimentação Bancária" &&
+      isBbRendeFacilNarrative(entry.narrative)
+    ) {
       type = entry.type === "D" ? "Investido" : "Desinvestido";
     } else if (result.comment === "PIX DEVOLVIDO EXPLICAR") {
       type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
-    } else if (result.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+    } else if (
+      result.project === "Movimentação Bancária" &&
+      isInternalTransferNarrative(entry.narrative)
+    ) {
       type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
     }
     
@@ -100,12 +137,12 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
   const detection = detectBankCSV(fileContent);
 
   if (detection.bank === "cora") {
-    const confirmedRequests = await getConfirmedPaymentRequests();
     const isCreditStatement = detection.statementType === "credit";
     const parser = isCreditStatement ? parseCoraCreditCSV : parseCoraCSV;
     const sourceId = isCreditStatement ? "cora_cd" : "cora_cc";
     const accountType = isCreditStatement ? "Conta Crédito" : "Conta Corrente";
     const { entries, month: monthStr, year: yearStr, account: rawAccount } = parser(fileContent, sourceId);
+    const confirmedRequests = await getConfirmedPaymentRequests(monthStr, yearStr);
     const { results, summary } = reconcileExtract(entries, confirmedRequests);
 
     console.log(`[RECONCILIATION] Resumo: ✅ ${summary.ok} ok | 🔗 ${summary.split} split | ⚠️ ${summary.ambiguous} ambíguo | ❓ ${summary.not_found} não encontrados`);
@@ -116,9 +153,9 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
       const formattedValue = formatSpreadsheetCurrency(entry.amount);
       let type = entry.type === "C" ? "Entrada" : "Saída";
 
-      if (!isCreditStatement && entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+      if (!isCreditStatement && isInternalTransferNarrative(entry.narrative)) {
         type = entry.type === "D" ? "Investido" : "Desinvestido";
-      } else if (!isCreditStatement && entry.narrative.includes("Cora SCFI")) {
+      } else if (!isCreditStatement && normalizeLooseText(entry.narrative).includes("CORA SCFI")) {
         return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
       }
 
@@ -160,7 +197,12 @@ async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
 
   // Use new deterministic parser
   const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
-  const statementsData = await convertCSVtoStatementsData(fileContent, sourceFileName);
+  const confirmedRequests = await getConfirmedPaymentRequests(monthStr, yearStr);
+  const statementsData = await convertCSVtoStatementsData(
+    fileContent,
+    confirmedRequests,
+    sourceFileName
+  );
 
   const accounts = getAccounts.filter(
     (acc: any) => acc.bank === "Banco do Brasil" && acc.type === "Conta Corrente"
@@ -443,9 +485,18 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
 }
 
 // Função para buscar requests confirmados
-async function getConfirmedPaymentRequests(): Promise<PaymentRequest[]> {
+async function getConfirmedPaymentRequests(
+  month?: string,
+  year?: string
+): Promise<PaymentRequest[]> {
   try {
-    const allRequests = await getAllRequests();
+    const monthKey =
+      year && month ? `${year}-${String(month).padStart(2, "0")}` : undefined;
+    const allRequests = await getAllRequests(
+      monthKey
+        ? { monthKeys: [monthKey], includeAdjacentMonths: true }
+        : undefined
+    );
     console.log("[DEBUG] Total requests encontrados:", Object.keys(allRequests || {}).length);
     
     const requestsArray = Object.values(allRequests).filter(

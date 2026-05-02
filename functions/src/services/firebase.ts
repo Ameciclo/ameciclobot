@@ -7,6 +7,149 @@ import {
   TelegramUserInfo,
 } from "../config/types";
 
+const REQUESTS_ROOT_PATH = "requests";
+const REQUESTS_BY_MONTH_PATH = "requests_by_month";
+const REQUEST_MONTH_INDEX_PATH = "request_month_index";
+
+export interface GetAllRequestsOptions {
+  monthKeys?: string[];
+  includeAdjacentMonths?: boolean;
+}
+
+function parseRequestDateString(value?: string | null): Date | null {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+    const parsed = new Date(`${rawValue}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const dateTimeMatch = rawValue.match(
+    /^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (dateTimeMatch) {
+    const [, dayRaw, monthRaw, yearRaw, hourRaw = "0", minuteRaw = "0", secondRaw = "0"] =
+      dateTimeMatch;
+    const parsed = new Date(
+      Number(yearRaw),
+      Number(monthRaw) - 1,
+      Number(dayRaw),
+      Number(hourRaw),
+      Number(minuteRaw),
+      Number(secondRaw)
+    );
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(rawValue);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatMonthKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function normalizeMonthKey(monthKey?: string | null): string | null {
+  const normalized = String(monthKey || "").trim();
+  return /^\d{4}-\d{2}$/.test(normalized) ? normalized : null;
+}
+
+function getMonthKeysWithAdjacent(monthKey: string): string[] {
+  const normalized = normalizeMonthKey(monthKey);
+  if (!normalized) {
+    return [];
+  }
+
+  const [yearRaw, monthRaw] = normalized.split("-");
+  const baseDate = new Date(Number(yearRaw), Number(monthRaw) - 1, 1);
+  const previousDate = new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1);
+  const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1);
+
+  return [
+    formatMonthKey(previousDate),
+    normalized,
+    formatMonthKey(nextDate),
+  ];
+}
+
+function uniqMonthKeys(monthKeys: string[]): string[] {
+  return [...new Set(monthKeys.map((monthKey) => normalizeMonthKey(monthKey)).filter(Boolean) as string[])];
+}
+
+function getRequestArchiveMonthKey(request: Partial<PaymentRequest>): string | null {
+  const requestDate =
+    parseRequestDateString(request.paymentDate) ||
+    parseRequestDateString(request.date);
+
+  return requestDate ? formatMonthKey(requestDate) : null;
+}
+
+function mergeRequestMaps(
+  ...maps: Array<Record<string, PaymentRequest> | null | undefined>
+): Record<string, PaymentRequest> {
+  return maps.reduce<Record<string, PaymentRequest>>((accumulator, currentMap) => {
+    if (currentMap) {
+      Object.assign(accumulator, currentMap);
+    }
+    return accumulator;
+  }, {});
+}
+
+async function getArchivedRequestMonthKey(requestId: string): Promise<string | null> {
+  const snapshot = await admin
+    .database()
+    .ref(`${REQUEST_MONTH_INDEX_PATH}/${requestId}`)
+    .once("value");
+
+  return normalizeMonthKey(snapshot.val());
+}
+
+async function updateArchivedPaymentRequest(
+  requestId: string,
+  update: Object
+): Promise<void> {
+  const monthKey = await getArchivedRequestMonthKey(requestId);
+  if (!monthKey) {
+    return;
+  }
+
+  await admin
+    .database()
+    .ref(`${REQUESTS_BY_MONTH_PATH}/${monthKey}/${requestId}`)
+    .update(update);
+}
+
+export async function archivePaymentRequestByMonth(
+  request: PaymentRequest
+): Promise<string | null> {
+  const monthKey = getRequestArchiveMonthKey(request);
+
+  if (!request?.id || !monthKey) {
+    console.warn(
+      `[archivePaymentRequestByMonth] Não foi possível arquivar request ${request?.id || "(sem id)"} por mês.`
+    );
+    return null;
+  }
+
+  await Promise.all([
+    admin
+      .database()
+      .ref(`${REQUESTS_BY_MONTH_PATH}/${monthKey}/${request.id}`)
+      .set(request),
+    admin
+      .database()
+      .ref(`${REQUEST_MONTH_INDEX_PATH}/${request.id}`)
+      .set(monthKey),
+  ]);
+
+  return monthKey;
+}
+
 export async function registerNewForm(registeredForm: registeredForm) {
   await admin
     .database()
@@ -99,11 +242,11 @@ export var updatePaymentRequest = async function (
 ) {
   console.log("updatePaymentRequest");
   return new Promise(function (resolve, reject) {
-    admin
-      .database()
-      .ref(`requests/${requestId}`)
-      .update(update)
-      .then(function (snapshot) {
+    Promise.all([
+      admin.database().ref(`${REQUESTS_ROOT_PATH}/${requestId}`).update(update),
+      updateArchivedPaymentRequest(requestId, update),
+    ])
+      .then(function ([snapshot]) {
         return resolve(snapshot);
       })
       .catch(function (err) {
@@ -116,8 +259,7 @@ export async function updatePaymentRequestGroupMessage(
   request: PaymentRequest,
   groupMessage: number
 ) {
-  // Armazena o ID da mensagem no Firebase
-  await admin.database().ref(`requests/${request.id}`).update({
+  await updatePaymentRequest(request.id, {
     group_message_id: groupMessage,
   });
 
@@ -130,8 +272,7 @@ export async function updatePaymentRequestCoordinatorMessages(
   requestId: string,
   coordinatorMessages: Record<number, number>
 ) {
-  // Armazena os IDs das mensagens enviadas aos coordenadores
-  await admin.database().ref(`requests/${requestId}`).update({
+  await updatePaymentRequest(requestId, {
     coordinator_messages: coordinatorMessages,
   });
 
@@ -142,7 +283,7 @@ export async function updatePaymentRequestWorkgroupMessages(
   requestId: string,
   workgroupMessages: Record<string, number>
 ) {
-  await admin.database().ref(`requests/${requestId}`).update({
+  await updatePaymentRequest(requestId, {
     workgroup_messages: workgroupMessages,
   });
 
@@ -192,20 +333,96 @@ export async function getRequestData(requestId: string): Promise<any> {
   try {
     const snapshot = await admin
       .database()
-      .ref(`/requests/${requestId}`)
+      .ref(`/${REQUESTS_ROOT_PATH}/${requestId}`)
       .once("value");
-    return snapshot.val() || null;
+    if (snapshot.exists()) {
+      return snapshot.val();
+    }
+
+    const archivedMonthKey = await getArchivedRequestMonthKey(requestId);
+    if (!archivedMonthKey) {
+      return null;
+    }
+
+    const archivedSnapshot = await admin
+      .database()
+      .ref(`/${REQUESTS_BY_MONTH_PATH}/${archivedMonthKey}/${requestId}`)
+      .once("value");
+
+    return archivedSnapshot.val() || null;
   } catch (err) {
     console.error(`Erro ao buscar dados da solicitação`);
     throw err;
   }
 }
 
-export async function getAllRequests(): Promise<PaymentRequest[]> {
+export async function getAllRequests(
+  options: GetAllRequestsOptions = {}
+): Promise<Record<string, PaymentRequest>> {
   console.log(`Get All Payment Requests`);
   try {
-    const snapshot = await admin.database().ref("requests").once("value");
-    return snapshot.val() || [];
+    const requestedMonthKeys = uniqMonthKeys(options.monthKeys || []);
+    let monthKeysToRead: string[] = [];
+
+    if (requestedMonthKeys.length > 0) {
+      monthKeysToRead = uniqMonthKeys(
+        options.includeAdjacentMonths
+          ? requestedMonthKeys.flatMap((monthKey) => getMonthKeysWithAdjacent(monthKey))
+          : requestedMonthKeys
+      );
+
+      const snapshots = await Promise.all(
+        monthKeysToRead.map((monthKey) =>
+          admin
+            .database()
+            .ref(`${REQUESTS_BY_MONTH_PATH}/${monthKey}`)
+            .once("value")
+        )
+      );
+
+      const monthlyRequests = mergeRequestMaps(
+        ...snapshots.map((snapshot) => snapshot.val() || {})
+      );
+
+      if (Object.keys(monthlyRequests).length > 0) {
+        console.log(
+          `[getAllRequests] ${Object.keys(monthlyRequests).length} requests carregados via arquivo mensal (${monthKeysToRead.join(", ")})`
+        );
+        return monthlyRequests;
+      }
+
+      console.log(
+        `[getAllRequests] Nenhum request encontrado em ${monthKeysToRead.join(", ")}. Usando fallback legacy.`
+      );
+    }
+
+    const snapshot = await admin.database().ref(REQUESTS_ROOT_PATH).once("value");
+    const legacyRequests = (snapshot.val() || {}) as Record<string, PaymentRequest>;
+
+    if (monthKeysToRead.length > 0) {
+      const filteredLegacyRequests = Object.fromEntries(
+        Object.entries(legacyRequests).filter(([, request]) => {
+          const requestMonthKey = getRequestArchiveMonthKey(request);
+          return requestMonthKey ? monthKeysToRead.includes(requestMonthKey) : false;
+        })
+      ) as Record<string, PaymentRequest>;
+
+      if (Object.keys(filteredLegacyRequests).length > 0) {
+        console.log(
+          `[getAllRequests] ${Object.keys(filteredLegacyRequests).length} requests filtrados do legacy para ${monthKeysToRead.join(", ")}`
+        );
+
+        await Promise.all(
+          Object.values(filteredLegacyRequests).map((request) =>
+            archivePaymentRequestByMonth(request)
+          )
+        );
+
+        return filteredLegacyRequests;
+      }
+    }
+
+    return legacyRequests;
   } catch (err) {
     console.error("Erro ao buscar todas as solicitações:", err);
     throw err;

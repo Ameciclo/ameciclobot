@@ -5,6 +5,7 @@ import {
   updatePaymentRequestCoordinatorMessages,
   updatePaymentRequestWorkgroupMessages,
   getWorkgroupId,
+  archivePaymentRequestByMonth,
 } from "../services/firebase";
 import { excerptFromRequest } from "../utils/utils";
 
@@ -50,6 +51,17 @@ export async function sendPaymentRequestHandler(
   coordinators: AmecicloUser[]
 ) {
   console.log("SOLICITAÇÃO DE PAGAMENTO CRIADA: ", request.transactionType);
+
+  try {
+    const archivedMonth = await archivePaymentRequestByMonth(request);
+    if (archivedMonth) {
+      console.log(
+        `Payment-request arquivada em ${archivedMonth}: ${request.id}`
+      );
+    }
+  } catch (error) {
+    console.error("Erro ao arquivar request por mês:", error);
+  }
 
   // Monta o texto que será enviado
   const messageToGroup = excerptFromRequest(
