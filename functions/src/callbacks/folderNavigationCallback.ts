@@ -1,42 +1,42 @@
 import { Context, Telegraf } from "telegraf";
 import { 
   FolderNode, 
-  getFolderTree, 
+  getOrCacheFolderLevel, 
+  getWorkgroupConfig,
   forceUpdateFolderTree
 } from "../services/folderService";
 import { getTempData, setTempData } from "../services/firebase";
 import { moveDocumentToFolder, uploadInvoice } from "../services/google";
 
-/**
- * Cria teclado de navegação hierárquica de pastas
- */
+interface BreadcrumbEntry {
+  id: string;
+  name: string;
+}
+
 export function createFolderNavigationKeyboard(
   node: FolderNode,
   tempId: string,
-  currentPath: string = ""
+  showBack: boolean = false
 ): any[][] {
   const buttons = [];
   
-  // Botão "Selecionar esta pasta"
   buttons.push([{
     text: `📁 Salvar em "${node.name}"`,
     callback_data: `sel_fld:${tempId}`
   }]);
   
-  // Botão voltar (se não for raiz)
-  if (currentPath) {
+  if (showBack) {
     buttons.push([{
       text: "⬅️ Voltar",
       callback_data: `nav_back:${tempId}`
     }]);
   }
   
-  // Subpastas (2 por linha) - usando índices
-  const children = Object.values(node.children || {});
+  const children = Object.values(node.children || {})
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   for (let i = 0; i < children.length; i += 2) {
     const row = [];
     
-    // Só adiciona botão se a pasta tem filhos ou é navegável
     const child1 = children[i];
     if (child1) {
       row.push({
@@ -60,7 +60,6 @@ export function createFolderNavigationKeyboard(
     }
   }
   
-  // Botão atualizar e ver pasta
   buttons.push([
     { text: "🔄 Atualizar Pastas", callback_data: `upd_fld:${tempId}` },
     { text: "📁 Ver Pasta", url: `https://drive.google.com/drive/folders/${node.id}` }
@@ -69,12 +68,8 @@ export function createFolderNavigationKeyboard(
   return buttons;
 }
 
-/**
- * Registra callbacks de navegação de pastas
- */
 export function registerFolderNavigationCallbacks(bot: Telegraf) {
   
-  // Navegação para subpasta por índice
   bot.action(/^nav_to:(.+):(\d+)$/, async (ctx) => {
     try {
       const tempId = ctx.match[1];
@@ -89,57 +84,58 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       }
       
       const workgroupId = tempData.workgroupId || String(ctx.chat?.id);
-      const rootNode = await getFolderTree(workgroupId);
+      const currentFolderId = tempData.currentFolderId;
       
-      if (!rootNode) {
-        await ctx.editMessageText("❌ Estrutura de pastas não encontrada.");
+      if (!currentFolderId) {
+        await ctx.editMessageText("❌ Pasta atual não encontrada.");
+        return;
+      }
+
+      const currentBreadcrumb: BreadcrumbEntry[] = tempData.breadcrumb || [];
+      const currentFolderName = currentBreadcrumb.length > 0
+        ? currentBreadcrumb[currentBreadcrumb.length - 1].name
+        : getWorkgroupConfig(workgroupId)?.label || "Raiz";
+      
+      const currentLevel = await getOrCacheFolderLevel(workgroupId, currentFolderId, currentFolderName);
+      if (!currentLevel) {
+        await ctx.editMessageText("❌ Erro ao carregar pastas.");
         return;
       }
       
-      // Navega para o nó atual baseado no path armazenado
-      const currentPath = tempData.currentPath || [];
-      let currentNode = rootNode;
-      for (const pathPart of currentPath) {
-        currentNode = currentNode.children?.[pathPart];
-        if (!currentNode) {
-          await ctx.editMessageText("❌ Pasta não encontrada.");
-          return;
-        }
-      }
-      
-      // Obtém a pasta filha pelo índice
-      const children = Object.values(currentNode.children || {});
+      const children = Object.values(currentLevel.children || {})
+        .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
       if (childIndex >= children.length) {
         await ctx.editMessageText("❌ Pasta não encontrada.");
         return;
       }
       
       const selectedChild = children[childIndex];
-      const newPath = [...currentPath, Object.keys(currentNode.children || {})[childIndex]];
       
-      // Atualiza o path no tempData
+      await ctx.editMessageText("🔄 Carregando...");
+      
+      const childLevel = await getOrCacheFolderLevel(workgroupId, selectedChild.id, selectedChild.name);
+      if (!childLevel) {
+        await ctx.editMessageText("❌ Erro ao carregar subpastas.");
+        return;
+      }
+      
+      const newBreadcrumb = [...currentBreadcrumb, { id: selectedChild.id, name: selectedChild.name }];
+      
       await setTempData(tempId, {
         ...tempData,
-        currentPath: newPath,
+        breadcrumb: newBreadcrumb,
         currentFolderId: selectedChild.id
       }, 300);
       
-      const keyboard = createFolderNavigationKeyboard(selectedChild, tempId, newPath.join('/'));
+      const keyboard = createFolderNavigationKeyboard(childLevel, tempId, true);
       
-      // Constrói breadcrumb com nomes das pastas
-      const breadcrumbNames = [];
-      let tempNode = rootNode;
-      for (const pathPart of newPath) {
-        tempNode = tempNode.children?.[pathPart];
-        if (tempNode) {
-          breadcrumbNames.push(tempNode.name);
-        }
-      }
-      const breadcrumb = breadcrumbNames.length > 0 ? ` → ${breadcrumbNames.join(' → ')}` : '';
+      const rootName = getWorkgroupConfig(workgroupId)?.label || "Raiz";
+      const breadcrumbStr = newBreadcrumb.map(b => b.name).join(' → ');
+      const breadcrumb = breadcrumbStr ? ` → ${breadcrumbStr}` : '';
       const createCommand = `/criar_pasta ${selectedChild.id} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootName}${breadcrumb}\nEscolha uma pasta:`,
         { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
       );
       
@@ -149,7 +145,6 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
     }
   });
 
-  // Voltar para pasta pai
   bot.action(/^nav_back:(.+)$/, async (ctx) => {
     try {
       const tempId = ctx.match[1];
@@ -163,45 +158,55 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       }
       
       const workgroupId = tempData.workgroupId || String(ctx.chat?.id);
-      const rootNode = await getFolderTree(workgroupId);
+      const currentBreadcrumb: BreadcrumbEntry[] = tempData.breadcrumb || [];
       
-      if (!rootNode) {
-        await ctx.editMessageText("❌ Estrutura de pastas não encontrada.");
+      if (currentBreadcrumb.length === 0) {
+        await ctx.editMessageText("❌ Já está na pasta raiz.");
         return;
       }
       
-      const currentPath = tempData.currentPath || [];
-      const parentPath = currentPath.slice(0, -1);
+      const parentBreadcrumb = currentBreadcrumb.slice(0, -1);
       
-      // Navega para o nó pai
-      let parentNode = rootNode;
-      for (const pathPart of parentPath) {
-        parentNode = parentNode.children?.[pathPart];
+      let parentFolderId: string;
+      let parentFolderName: string;
+      
+      if (parentBreadcrumb.length === 0) {
+        const groupConfig = getWorkgroupConfig(workgroupId);
+        if (!groupConfig) {
+          await ctx.editMessageText("❌ Grupo não configurado.");
+          return;
+        }
+        parentFolderId = groupConfig.folderId;
+        parentFolderName = groupConfig.label;
+      } else {
+        const parent = parentBreadcrumb[parentBreadcrumb.length - 1];
+        parentFolderId = parent.id;
+        parentFolderName = parent.name;
       }
       
-      // Atualiza o path no tempData
+      await ctx.editMessageText("🔄 Carregando...");
+      
+      const parentLevel = await getOrCacheFolderLevel(workgroupId, parentFolderId, parentFolderName);
+      if (!parentLevel) {
+        await ctx.editMessageText("❌ Erro ao carregar pasta anterior.");
+        return;
+      }
+      
       await setTempData(tempId, {
         ...tempData,
-        currentPath: parentPath,
-        currentFolderId: parentNode.id
+        breadcrumb: parentBreadcrumb,
+        currentFolderId: parentFolderId
       }, 300);
       
-      const keyboard = createFolderNavigationKeyboard(parentNode, tempId, parentPath.join('/'));
+      const keyboard = createFolderNavigationKeyboard(parentLevel, tempId, parentBreadcrumb.length > 0);
       
-      // Constrói breadcrumb com nomes das pastas
-      const breadcrumbNames = [];
-      let tempNode = rootNode;
-      for (const pathPart of parentPath) {
-        tempNode = tempNode.children?.[pathPart];
-        if (tempNode) {
-          breadcrumbNames.push(tempNode.name);
-        }
-      }
-      const breadcrumb = breadcrumbNames.length > 0 ? ` → ${breadcrumbNames.join(' → ')}` : '';
-      const createCommand = `/criar_pasta ${parentNode.id} [nome da pasta]`;
+      const rootName = getWorkgroupConfig(workgroupId)?.label || "Raiz";
+      const breadcrumbStr = parentBreadcrumb.map(b => b.name).join(' → ');
+      const breadcrumb = breadcrumbStr ? ` → ${breadcrumbStr}` : '';
+      const createCommand = `/criar_pasta ${parentFolderId} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootNode.name}${breadcrumb}\nEscolha uma pasta:`,
+        `Para criar pasta: <code>${createCommand}</code>\n\n📁 Navegando em: ${rootName}${breadcrumb}\nEscolha uma pasta:`,
         { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
       );
       
@@ -211,7 +216,6 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
     }
   });
 
-  // Seleção final da pasta
   bot.action(/^sel_fld:(.+)$/, async (ctx) => {
     try {
       const tempId = ctx.match[1];
@@ -239,7 +243,6 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
     }
   });
 
-  // Atualizar estrutura de pastas
   bot.action(/^upd_fld:(.+)$/, async (ctx) => {
     try {
       const tempId = ctx.match[1];
@@ -254,21 +257,25 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
       }
       
       const workgroupId = tempData.workgroupId || String(ctx.chat?.id);
+      const groupConfig = getWorkgroupConfig(workgroupId);
       
-      // Força atualização completa limpando cache
-      console.log(`[upd_fld] Forçando atualização completa para workgroup ${workgroupId}`);
+      if (!groupConfig) {
+        await ctx.editMessageText("❌ Grupo não configurado.");
+        return;
+      }
+      
+      console.log(`[upd_fld] Forçando atualização para workgroup ${workgroupId}`);
       await forceUpdateFolderTree(workgroupId);
       
-      const rootNode = await getFolderTree(workgroupId);
+      const rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label, true);
       if (!rootNode) {
         await ctx.editMessageText("❌ Erro ao carregar pastas atualizadas.");
         return;
       }
       
-      // Reset para pasta raiz
       await setTempData(tempId, {
         ...tempData,
-        currentPath: [],
+        breadcrumb: [],
         currentFolderId: rootNode.id
       }, 300);
       
@@ -288,12 +295,8 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
   });
 }
 
-/**
- * Processa arquivamento de arquivo
- */
 async function handleArchiveFile(ctx: Context, tempData: any, folderId: string): Promise<void> {
   try {
-    // Obtém o arquivo do Telegram
     const file = await ctx.telegram.getFile(tempData.fileId);
     if (!file.file_path) {
       await ctx.editMessageText("❌ Erro ao obter arquivo.");
@@ -304,7 +307,6 @@ async function handleArchiveFile(ctx: Context, tempData: any, folderId: string):
     const response = await fetch(fileUrl);
     const fileBuffer = await response.arrayBuffer();
 
-    // Faz upload para Google Drive
     const uploadResponse = await uploadInvoice(
       fileBuffer,
       tempData.fileName,
@@ -328,15 +330,16 @@ async function handleArchiveFile(ctx: Context, tempData: any, folderId: string):
       }
     );
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao arquivar:", error);
-    await ctx.editMessageText("❌ Erro no arquivamento. Tente novamente.");
+    if (error?.response?.description?.includes("file is too big")) {
+      await ctx.editMessageText("❌ O arquivo excede o limite de 20MB do Telegram para download via bot.");
+    } else {
+      await ctx.editMessageText("❌ Erro no arquivamento. Tente novamente.");
+    }
   }
 }
 
-/**
- * Processa movimentação de documento criado
- */
 async function handleMoveDocument(ctx: Context, tempData: any, folderId: string) {
   try {
     await moveDocumentToFolder(tempData.documentId, folderId);
@@ -361,9 +364,6 @@ async function handleMoveDocument(ctx: Context, tempData: any, folderId: string)
   }
 }
 
-/**
- * Gera URL do documento baseado no tipo
- */
 function getDocumentUrl(documentType: string, documentId: string): string {
   switch (documentType.toLowerCase()) {
     case 'documento':

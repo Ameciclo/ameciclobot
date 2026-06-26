@@ -235,10 +235,11 @@ function buildCoordinatorButtons(
  * Constrói o texto que exibe quem já assinou a solicitação.
  */
 function buildSignedByText(
-  signatures: Record<number, TelegramUserInfo>
+  signatures: Record<number, TelegramUserInfo & { signedAt?: number }>
 ): string {
-  return Object.values(signatures)
-    .map((sig) => `✅ ${escapeMarkdownV2(sig.first_name)}`)
+  return Object.entries(signatures)
+    .sort(([, a], [, b]) => (a.signedAt || 0) - (b.signedAt || 0))
+    .map(([, sig]) => `✅ ${escapeMarkdownV2(sig.first_name)}`)
     .join("\n");
 }
 
@@ -407,7 +408,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
       }
 
       // Adiciona a assinatura usando o ID do usuário como chave
-      signatures[userId] = ctx.from as TelegramUserInfo;
+      signatures[userId] = { ...ctx.from, signedAt: Date.now() } as TelegramUserInfo & { signedAt: number };
 
       // Apaga a mensagem privada do coordenador que acabou de assinar
       if (

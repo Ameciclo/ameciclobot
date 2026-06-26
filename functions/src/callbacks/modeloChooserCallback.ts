@@ -6,7 +6,7 @@ import {
 } from "../services/google";
 import { getTempData, setTempData } from "../services/firebase";
 import { createFolderNavigationKeyboard } from "./folderNavigationCallback";
-import { getFolderTree, updateFolderTree } from "../services/folderService";
+import { getOrCacheFolderLevel, getWorkgroupConfig } from "../services/folderService";
 import { getPreviewTitle } from "../utils/utils";
 
 export function registerModeloUseCallback(bot: Telegraf) {
@@ -38,6 +38,11 @@ export function registerModeloUseCallback(bot: Telegraf) {
         throw new Error("Não foi possível obter o ID do documento criado.");
       }
 
+      const groupConfig = getWorkgroupConfig(workgroupId);
+      if (!groupConfig) {
+        return ctx.editMessageText("❌ Grupo não configurado.");
+      }
+
       // Atualiza dados temporários com informações do documento criado
       await setTempData(tempId, {
         ...data,
@@ -45,17 +50,16 @@ export function registerModeloUseCallback(bot: Telegraf) {
         documentId,
         parentFolderId,
         workgroupId,
-        currentPath: [],
-        currentFolderId: parentFolderId,
+        breadcrumb: [],
+        currentFolderId: groupConfig.folderId,
         documentType: "Documento",
         documentTitle: fullTitle
       }, 300);
 
-      let rootNode = await getFolderTree(workgroupId);
+      let rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label);
       if (!rootNode) {
         await ctx.editMessageText("🔄 Carregando estrutura de pastas...");
-        await updateFolderTree(workgroupId);
-        rootNode = await getFolderTree(workgroupId);
+        rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label, true);
 
         if (!rootNode) {
           return ctx.editMessageText("❌ Erro ao carregar estrutura de pastas.");
@@ -63,11 +67,11 @@ export function registerModeloUseCallback(bot: Telegraf) {
       }
 
       const keyboard = createFolderNavigationKeyboard(rootNode, tempId);
-      const createCommand = `/criar_pasta ${parentFolderId} [nome da pasta]`;
+      const createCommand = `/criar_pasta ${groupConfig.folderId} [nome da pasta]`;
       
       await ctx.editMessageText(
-        `Para criar pasta: \`${createCommand}\`\n\nDocumento "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
-        { reply_markup: { inline_keyboard: keyboard }, parse_mode: "Markdown" }
+        `Para criar pasta: <code>${createCommand}</code>\n\nDocumento "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
+        { reply_markup: { inline_keyboard: keyboard }, parse_mode: "HTML" }
       );
       await ctx.answerCbQuery();
     } catch (error) {

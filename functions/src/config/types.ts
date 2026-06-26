@@ -125,7 +125,7 @@ export interface PaymentRequest {
   quantity?: number;
   value: string;
   status?: string;
-  signatures?: { [key: number]: TelegramUserInfo };
+  signatures?: { [key: number]: TelegramUserInfo & { signedAt?: number } };
   confirmed_by: TelegramUserInfo[] | undefined | [];
   coordinator_messages?: { [key: number]: number }; // ID do coordenador -> ID da mensagem
   group_message_id?: number;

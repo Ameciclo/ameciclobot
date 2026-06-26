@@ -15,13 +15,11 @@ import { presentesCommand } from "./commands/presentes";
 
 import { ajudanteFinanceiroCommand } from "./commands/ajudante_financeiro";
 import { denunciaCommand } from "./commands/denuncia";
-import { arquivarCommand } from "./commands/arquivar";
 import { limparCachePastasCommand } from "./commands/limpar_cache_pastas";
 import { consumoCommand } from "./commands/consumo";
 
 export const commandsList = [
   ajudanteFinanceiroCommand,
-  arquivarCommand,
   clippingCommand,
   demandaCommand,
   denunciaCommand,

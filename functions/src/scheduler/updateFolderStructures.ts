@@ -1,13 +1,13 @@
 import { Telegraf } from "telegraf";
 import workgroups from "../credentials/workgroupsfolders.json";
-import { updateFolderTree } from "../services/folderService";
+import { forceUpdateFolderTree } from "../services/folderService";
 
 export async function updateFolderStructures(bot: Telegraf): Promise<void> {
   console.log('[Scheduler] Atualizando estruturas de pastas...');
   
   for (const group of workgroups) {
     try {
-      await updateFolderTree(group.value);
+      await forceUpdateFolderTree(group.value);
       console.log(`[Scheduler] Atualizado: ${group.label}`);
     } catch (error) {
       console.error(`[Scheduler] Erro em ${group.label}:`, error);

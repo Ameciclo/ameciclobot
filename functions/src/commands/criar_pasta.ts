@@ -1,6 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { createFolder, checkFolderExists } from "../services/google";
-import { updateFolderTree, getWorkgroupConfig } from "../services/folderService";
+import { clearFolderCache, getWorkgroupConfig } from "../services/folderService";
 
 // Cache para controlar execuções simultâneas
 export const executionCache = new Map<string, Promise<any>>();
@@ -101,17 +101,17 @@ function registerCriarPastaCommand(bot: Telegraf): void {
 
         console.log(`[criar_pasta] Pasta "${sanitizedName}" criada com sucesso - ID: ${newFolder.id}`);
 
-        // Atualiza cache no Firebase com timeout (não bloqueia se falhar)
+        // Limpa cache no Firebase para forçar reload na proxima navegacao
         const workgroupId = String(chatId);
         try {
-          const updatePromise = updateFolderTree(workgroupId);
+          const clearPromise = clearFolderCache(workgroupId);
           const timeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout na atualização")), 30000)
+            setTimeout(() => reject(new Error("Timeout na limpeza de cache")), 10000)
           );
           
-          await Promise.race([updatePromise, timeoutPromise]);
-        } catch (updateError) {
-          console.warn("[criar_pasta] Falha na atualização da árvore (não crítico):", updateError);
+          await Promise.race([clearPromise, timeoutPromise]);
+        } catch (clearError) {
+          console.warn("[criar_pasta] Falha na limpeza de cache (não crítico):", clearError);
         }
         
         await ctx.reply(
