@@ -36,6 +36,16 @@ function extractDataFromMessage(ctx: any) {
   return { id, fileId };
 }
 
+function buildTelegramMessageLink(chatId: string | number, messageId: number): string | null {
+  const normalizedChatId = String(chatId);
+
+  if (!normalizedChatId.startsWith("-100")) {
+    return null;
+  }
+
+  return `https://t.me/c/${normalizedChatId.slice(4)}/${messageId}`;
+}
+
 export async function registerReceiptTypeCallback(
   bot: Telegraf
 ): Promise<void> {
@@ -134,7 +144,16 @@ export async function registerReceiptTypeCallback(
         receipt_type: receiptType,
       });
 
-      const keyboard = Markup.inlineKeyboard([
+      let paymentMessageUrl: string | null = null;
+      if (requestData.group_message_id) {
+        const financeGroupId = await getWorkgroupId("Financeiro");
+        paymentMessageUrl = buildTelegramMessageLink(
+          financeGroupId,
+          requestData.group_message_id
+        );
+      }
+
+      const keyboardRows = [
         [Markup.button.url("📄 Ver Comprovante", requestData.receipt_url)],
         [
           Markup.button.url(
@@ -148,7 +167,15 @@ export async function registerReceiptTypeCallback(
             `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
           ),
         ],
-      ]);
+      ];
+
+      if (paymentMessageUrl) {
+        keyboardRows.push([
+          Markup.button.url("💰 Ver pagamento", paymentMessageUrl),
+        ]);
+      }
+
+      const keyboard = Markup.inlineKeyboard(keyboardRows);
 
       const fileName = `${formatDate(new Date())} - ${
         requestData.project.name
@@ -157,7 +184,7 @@ export async function registerReceiptTypeCallback(
       } - ${sanitizeFileName(requestData.description)}`;
 
       await ctx.editMessageText(
-        `✅ Comprovante arquivado com sucesso!\n\n📝 Nome do arquivo: ${fileName}\n\n📄 Tipo: ${receiptType}`,
+        `✅ Comprovante arquivado com sucesso!\n\n🆔 ID do comprovante: ${requestId}\n\n📝 Nome do arquivo: ${fileName}\n\n📄 Tipo: ${receiptType}`,
         keyboard
       );
 
@@ -197,6 +224,33 @@ export async function registerReceiptTypeCallback(
           } else {
             console.error("Erro ao atualizar mensagem do grupo:", error);
           }
+        }
+      }
+
+      if (requestData.workgroup_messages) {
+        try {
+          for (const [chatId, messageId] of Object.entries(
+            requestData.workgroup_messages
+          )) {
+            const workgroupKeyboard = Markup.inlineKeyboard([
+              [Markup.button.url("📄 Ver Comprovante", requestData.receipt_url)],
+              [
+                Markup.button.url(
+                  "📊 Ver planilha",
+                  `https://docs.google.com/spreadsheets/d/${requestData.project.spreadsheet_id}`
+                ),
+              ],
+            ]);
+
+            await ctx.telegram.editMessageReplyMarkup(
+              chatId,
+              Number(messageId),
+              undefined,
+              workgroupKeyboard.reply_markup
+            );
+          }
+        } catch (error: any) {
+          console.error("Erro ao atualizar mensagem do grupo de trabalho:", error);
         }
       }
 

@@ -12,38 +12,21 @@ import {
   PaymentRequest,
   TelegramUserInfo,
 } from "../config/types";
+import { excerptFromRequest, escapeMarkdownV2 } from "../utils/utils";
 
 /**
- * Gera texto simples do pagamento sem MarkdownV2
+ * Gera o texto do pagamento com escape compatível com MarkdownV2.
  */
 function buildPaymentText(
   request: PaymentRequest,
   title: string,
   signatures?: Record<number, TelegramUserInfo>
 ): string {
-  const paymentMethod = request.supplier.payment_methods[0];
-  const cleanValue = paymentMethod.value.toString().replace(/"/g, '');
-  
-  let paymentText = `Pagar com ${paymentMethod.type} ➡️ ${cleanValue}`;
-  if (paymentMethod.type.toLowerCase() === 'pix') {
-    paymentText = `Pagar com ${paymentMethod.type} ➡️ \`${cleanValue}\``;
-  }
-  
-  let text = `${title}\n\n` +
-    `👉 Solicitado por: ${request.from.first_name}\n` +
-    `🆔 ID da Solicitação: \`${request.id}\`\n\n` +
-    `🗂 Projeto: ${request.project.name}\n` +
-    `📂 Item Orçamentário: ${request.budgetItem}\n` +
-    `🗒 Descrição: ${request.description}\n\n` +
-    `📈 Conta saída: ${request.project.account}\n\n` +
-    `📉 FORNECEDOR\n` +
-    `Empresa: ${request.supplier.nickname} (${request.supplier.name})\n` +
-    `${paymentText}\n\n` +
-    `💵 Valor: ${request.value}`;
+  let text = excerptFromRequest(request, title);
     
   if (signatures) {
     const signedByText = buildSignedByText(signatures);
-    text += `\n\n---\nAssinaturas:\n${signedByText}`;
+    text += `\n\n${escapeMarkdownV2("---")}\n${escapeMarkdownV2("Assinaturas:")}\n${signedByText}`;
   }
   
   return text;
@@ -199,7 +182,7 @@ async function updateGoogleSheetAndRequest(
           messageText,
           {
             ...keyboard,
-            parse_mode: "Markdown"
+            parse_mode: "MarkdownV2"
           }
         );
       } catch (error: any) {
@@ -252,10 +235,11 @@ function buildCoordinatorButtons(
  * Constrói o texto que exibe quem já assinou a solicitação.
  */
 function buildSignedByText(
-  signatures: Record<number, TelegramUserInfo>
+  signatures: Record<number, TelegramUserInfo & { signedAt?: number }>
 ): string {
-  return Object.values(signatures)
-    .map((sig) => `✅ ${sig.first_name}`)
+  return Object.entries(signatures)
+    .sort(([, a], [, b]) => (a.signedAt || 0) - (b.signedAt || 0))
+    .map(([, sig]) => `✅ ${escapeMarkdownV2(sig.first_name)}`)
     .join("\n");
 }
 
@@ -359,7 +343,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             messageText,
             {
               ...keyboard,
-              parse_mode: "Markdown"
+              parse_mode: "MarkdownV2"
             }
           );
         } catch (error: any) {
@@ -417,14 +401,14 @@ export async function confirmPayment(ctx: Context): Promise<void> {
         );
         await ctx.editMessageText(messageText, {
           ...loadingKeyboard,
-          parse_mode: "Markdown"
+          parse_mode: "MarkdownV2"
         });
       } catch (error: any) {
         console.error("Erro ao mostrar loading:", error);
       }
 
       // Adiciona a assinatura usando o ID do usuário como chave
-      signatures[userId] = ctx.from as TelegramUserInfo;
+      signatures[userId] = { ...ctx.from, signedAt: Date.now() } as TelegramUserInfo & { signedAt: number };
 
       // Apaga a mensagem privada do coordenador que acabou de assinar
       if (
@@ -463,14 +447,14 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             const processingText = buildPaymentText(
               requestData,
               `💰💰💰 ${requestData.transactionType.toUpperCase()} 💰💰💰`
-            ) + "\n\n⏳ Processando pagamento...";
+            ) + `\n\n${escapeMarkdownV2("⏳ Processando pagamento...")}`;
 
             await ctx.telegram.editMessageText(
               financeGroupId,
               requestData.group_message_id,
               undefined,
               processingText,
-              { parse_mode: "Markdown" }
+              { parse_mode: "MarkdownV2" }
             );
           } catch (error: any) {
             console.error("Erro ao desabilitar botões:", error);
@@ -521,7 +505,7 @@ export async function confirmPayment(ctx: Context): Promise<void> {
             messageText,
             {
               ...keyboard,
-              parse_mode: "Markdown"
+              parse_mode: "MarkdownV2"
             }
           );
         } catch (error: any) {

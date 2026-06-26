@@ -14,7 +14,7 @@ async function buildUserInfoMessage(ctx: Context): Promise<string> {
   
   if (ctx.chat?.type !== 'private') {
     message += `💬 **Grupo:** ${escapeMarkdownV2((ctx.chat as any)?.title || 'N/A')}\n`;
-    message += `🆔 **Chat ID:** ${chatId}\n\n`;
+    message += `🆔 **Chat ID:** ${escapeMarkdownV2(String(chatId))}\n\n`;
   }
   
   if (userId) {

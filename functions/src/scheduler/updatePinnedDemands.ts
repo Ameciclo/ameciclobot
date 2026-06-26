@@ -88,7 +88,7 @@ export const updatePinnedDemands = async (bot: Telegraf) => {
 
     // Para cada workgroup, atualiza a mensagem fixada
     for (const [workgroupName, demandas] of Object.entries(demandsByWorkgroup)) {
-      const workgroupConfig = workgroups.find(wg => wg.label.toLowerCase() === workgroupName.toLowerCase());
+      const workgroupConfig = workgroups.find((wg: any) => wg.label.toLowerCase() === workgroupName.toLowerCase());
       
       if (!workgroupConfig) {
         console.log(`[update-pinned-demands] Workgroup ${workgroupName} não encontrado na configuração`);

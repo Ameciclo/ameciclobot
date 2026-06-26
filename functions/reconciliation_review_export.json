@@ -1,0 +1,1287 @@
+[
+  {
+    "index": 0,
+    "date": "02/03/2026",
+    "amount": 30,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 02/03 05:08 00035122510482 KLAUBER DE",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 1,
+    "date": "02/03/2026",
+    "amount": 100,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 02/03 15:27 92218024420 FRED ULISSES M",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 2,
+    "date": "02/03/2026",
+    "amount": 51,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 02/03 17:11 22108498000143 BARBARA BAR",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 3,
+    "date": "02/03/2026",
+    "amount": 216.5,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 02/03 17:11 22108498000143 BARBARA BAR",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 4,
+    "date": "02/03/2026",
+    "amount": 1125,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 01/03 05:31 57.483.243 LIVIA MARIA SA",
+    "auto": {
+      "comment": "Serviços de Auxiliar de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26.  (1 unidade × R$ 1125,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OgbnoeVEvMKbMryIgkT",
+      "confidence": 0.7550000000000001,
+      "status": "ok",
+      "evidence": "Desempate por score: 0.76"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 5,
+    "date": "02/03/2026",
+    "amount": 562.5,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 01/03 05:31 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "Serviços de Planejamento de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26. (1 unidade × R$ 562,50)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OiEGb3ht2STPSkLBRR-",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=562.5, data=02/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 6,
+    "date": "02/03/2026",
+    "amount": 1125,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 01/03 05:31 Mayra Medeiros de Azevedo",
+    "auto": {
+      "comment": "❓ Serviços de Auxiliar de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26.  (1 unidade × R$ 1125,00) | Serviços de Assessoria de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26. (1 unidade × R$ 1125,00)",
+      "project": "",
+      "confidence": 0.7250000000000001,
+      "status": "ambiguous",
+      "evidence": "Score insuficiente: 0.73 < 0.75"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 7,
+    "date": "02/03/2026",
+    "amount": 2250,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 01/03 05:31 BARBARA BARBOSA ARQUITETU",
+    "auto": {
+      "comment": "Serviços de Administrativo/Financeiro para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26. (1 unidade × R$ 2250,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OiEHn34S4_QZFLhkCpE",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=2250, data=02/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 8,
+    "date": "02/03/2026",
+    "amount": 739,
+    "type": "D",
+    "narrative": "109 Pagamento de Boleto RPTORRES CONTABILIDADE E GESTAO PARA O",
+    "auto": {
+      "comment": "Pagamento da mensalidade do escritório de contabilidade (TORRES) referente 01/03/26 (1 unidade × R$ 739,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OinfMpkilDPS8-RGB0r",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=739, data=02/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 9,
+    "date": "02/03/2026",
+    "amount": 5404,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 10,
+    "date": "03/03/2026",
+    "amount": 25,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 03/03 07:24 00001272556484 Priscila de",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 11,
+    "date": "03/03/2026",
+    "amount": 300,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 03/03 16:01 MARIANA OLIVEIRA DA SILVE",
+    "auto": {
+      "comment": "❓ MARIANA OLIVEIRA DA SILVE",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 300"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 12,
+    "date": "03/03/2026",
+    "amount": 1000,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 03/03 16:43 Associacao Metropolitana",
+    "auto": {
+      "comment": "❓ ASSOCIACAO METROPOLITANA",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 1000"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 13,
+    "date": "03/03/2026",
+    "amount": 1275,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 14,
+    "date": "04/03/2026",
+    "amount": 20,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 04/03 10:47 40404081878 Aline Moraes d",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 15,
+    "date": "04/03/2026",
+    "amount": 24,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 04/03 17:24 05083694441 Vique Feij� Ca",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 16,
+    "date": "04/03/2026",
+    "amount": 44,
+    "type": "D",
+    "narrative": "351 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "❓ 351 BB RENDE F CIL RENDE FACIL",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 44"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 17,
+    "date": "05/03/2026",
+    "amount": 7,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 05/03 05:13 00003942220407 NILSON DE O",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 18,
+    "date": "05/03/2026",
+    "amount": 25,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 05/03 05:39 00006962547439 Igor Matos",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 19,
+    "date": "05/03/2026",
+    "amount": 50,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 05/03 05:43 00091735173487 MAITE KULES",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 20,
+    "date": "05/03/2026",
+    "amount": 25,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 05/03 06:09 00008744034482 CAMILA FERN",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 21,
+    "date": "05/03/2026",
+    "amount": 100,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 05/03 07:55 00002275432469 Antonio Cez",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 22,
+    "date": "05/03/2026",
+    "amount": 1000,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 05/03 19:14 Associacao Metropolitana",
+    "auto": {
+      "comment": "❓ ASSOCIACAO METROPOLITANA",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 1000"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 23,
+    "date": "05/03/2026",
+    "amount": 44,
+    "type": "C",
+    "narrative": "798 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 24,
+    "date": "05/03/2026",
+    "amount": 749,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 25,
+    "date": "09/03/2026",
+    "amount": 60,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 09/03 06:06 00009687949473 VINICIUS EM",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 26,
+    "date": "09/03/2026",
+    "amount": 400,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 09/03 11:18 00008496649423 FERNANDO ED",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 27,
+    "date": "09/03/2026",
+    "amount": 170,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 07/03 07:55 LARISSA KARLA MONTANHAS D",
+    "auto": {
+      "comment": "Faxina do dia 07/03/2026 (1 unidade × R$ 170,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-On6rfLQT3Jc2TYROSru",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=170, data=09/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 28,
+    "date": "09/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 09/03 14:47 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "Serviços de Pesquisador para contagem da Avenida Abdias de Carvalho com Avenida General San Martin, ocorrida no dia 25/02/2026. (1 unidade × R$ 400,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-OnHm7mz9FAgsuQg6FYw",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=400, data=09/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 29,
+    "date": "09/03/2026",
+    "amount": 54.53,
+    "type": "D",
+    "narrative": "363 Pagamento de Telefone TIM SA",
+    "auto": {
+      "comment": "Pagamento da conta do telefone (TIM SA)  referente 09/03/2026 (1 unidade × R$ 54,53)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OqCjNT7u5g0JZO9LCri",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=54.53, data=09/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 30,
+    "date": "09/03/2026",
+    "amount": 164.53,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 31,
+    "date": "10/03/2026",
+    "amount": 100,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 10/03 04:48 00007603519454 Filipe Wand",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 32,
+    "date": "10/03/2026",
+    "amount": 25,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 10/03 05:35 00008904939445 GAIA LOUREN",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 33,
+    "date": "10/03/2026",
+    "amount": 69.9,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 10/03 05:42 EXANET TELECOMUNICACOES L",
+    "auto": {
+      "comment": "Serviço de Internet do mês de Março de 2026. (1 unidade × R$ 69,90)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-Ogbei8mSMyEAGQ4AaGW",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=69.9, data=10/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 34,
+    "date": "10/03/2026",
+    "amount": 124.9,
+    "type": "D",
+    "narrative": "435 Tarifa Pacote de Servi�os Cobran�a referente 10/03/2026",
+    "auto": {
+      "comment": "Taxa Bancária",
+      "project": "",
+      "confidence": 0.95,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 35,
+    "date": "10/03/2026",
+    "amount": 69.8,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 36,
+    "date": "11/03/2026",
+    "amount": 171.86,
+    "type": "D",
+    "narrative": "362 Pagto Energia El�trica NEOENERGIA PERNAMBUCO",
+    "auto": {
+      "comment": "Pagamento da conta do Energia Elétrica (NEOENERGIA)  referente 11/03/2026 (Débito Automático em Conta Corrente)  (1 unidade × R$ 171,86)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OqCjNP29TqMfA4GcjRE",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=171.86, data=11/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 37,
+    "date": "11/03/2026",
+    "amount": 171.86,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 38,
+    "date": "12/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 12/03 12:56 BARBARA BARBOSA ARQUITETU",
+    "auto": {
+      "comment": "pesquisadora para a contagem de ciclistas da av. dr malaquias x r. do futuro / av. rui barbosa / av. cons. rosa e silva no dia 11/03/2026 (1 unidade × R$ 400,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-OnXHhCsT17Fcg1gqg-L",
+      "confidence": 0.8666666666666667,
+      "status": "ok",
+      "evidence": "Desempate por score: 0.87"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 39,
+    "date": "12/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 12/03 12:56 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "pesquisador para a contagem de ciclistas da av. dr. malaquias x r. do futuro / av. rui barbosa / av. cons. rosa e silva no dia 11/03/2026 (1 unidade × R$ 400,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-OnXHhFfWYyOYKXoLCz2",
+      "confidence": 1,
+      "status": "ok",
+      "evidence": "Desempate por score: 1.00"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 40,
+    "date": "12/03/2026",
+    "amount": 600,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 12/03 12:56 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "coordenacao do dia para a contagem de ciclistas da av. dr malaquias x r. do futuro / av. rui barbosa / av. cons. rosa e silva no dia 11/03/2026  (1 unidade × R$ 600,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-OnXH6DiCrh2vDR1jAb0",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=600, data=12/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 41,
+    "date": "12/03/2026",
+    "amount": 3.96,
+    "type": "D",
+    "narrative": "258 Tarifa Pix Enviado Tar. agrupadas - ocorrencia 12/03/2026",
+    "auto": {
+      "comment": "Taxa Bancária",
+      "project": "",
+      "confidence": 0.95,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 42,
+    "date": "12/03/2026",
+    "amount": 1403.96,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 43,
+    "date": "13/03/2026",
+    "amount": 1000,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 13/03 13:53 Associacao Metropolitana",
+    "auto": {
+      "comment": "❓ ASSOCIACAO METROPOLITANA",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 1000"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 44,
+    "date": "13/03/2026",
+    "amount": 1050,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 13/03 13:53 DANIEL ARRAES DE ALENCAR",
+    "auto": {
+      "comment": "Parte 2/2 da Oficina de Planejamento Estratégico e Relatoria. (1 unidade × R$ 1050,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-Onbx90FnnZ1syk1t30V",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=1050, data=13/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 45,
+    "date": "13/03/2026",
+    "amount": 9.9,
+    "type": "D",
+    "narrative": "258 Tarifa Pix Enviado Tar. agrupadas - ocorrencia 13/03/2026",
+    "auto": {
+      "comment": "Taxa Bancária",
+      "project": "",
+      "confidence": 0.95,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 46,
+    "date": "13/03/2026",
+    "amount": 2059.9,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 47,
+    "date": "16/03/2026",
+    "amount": 15,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 16/03 05:33 00007596471439 VINICIUS AZ",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 48,
+    "date": "16/03/2026",
+    "amount": 60,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 14/03 15:14 00005161706430 DANIEL ARRA",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 49,
+    "date": "16/03/2026",
+    "amount": 36,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 14/03 15:16 00005161706430 DANIEL ARRA",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 50,
+    "date": "16/03/2026",
+    "amount": 6,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 15/03 19:56 13224988495 GUSTAVO DE ARA",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 51,
+    "date": "16/03/2026",
+    "amount": 6,
+    "type": "C",
+    "narrative": "821 Pix-Recebido QR Code 15/03 20:06 00005036438400 BERNARDO TE",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 52,
+    "date": "16/03/2026",
+    "amount": 24,
+    "type": "C",
+    "narrative": "821 Pix-Recebido QR Code 15/03 20:23 00084508817068 CHA DAFOL L",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 53,
+    "date": "16/03/2026",
+    "amount": 12,
+    "type": "C",
+    "narrative": "821 Pix-Recebido QR Code 15/03 20:29 00045596464813 LORENZO GOM",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 54,
+    "date": "16/03/2026",
+    "amount": 36,
+    "type": "C",
+    "narrative": "821 Pix-Recebido QR Code 15/03 20:30 00058017909500 DAMIAO SANT",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 55,
+    "date": "16/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 14/03 15:09 DANIEL ARRAES DE ALENCAR",
+    "auto": {
+      "comment": "Produção da sexta fire especial Agente Secreto (96-2) (1 unidade × R$ 400,00)",
+      "project": "Recursos Independentes 2026 (1o Semestre)",
+      "requestId": "-OnhX8bzZ8j3-il6v8d3",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=400, data=16/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 56,
+    "date": "16/03/2026",
+    "amount": 205,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 57,
+    "date": "18/03/2026",
+    "amount": 300,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 18/03 10:09 MARIANA OLIVEIRA DA SILVE",
+    "auto": {
+      "comment": "Relatoria de contagem de ciclistas da Av. Dr. Malaquias com Rua do Futuro, com Av. Cons. Rosa e Silva e com Av. Rui Barbosa, ocorrida no dia 11/03/2026 (1 unidade × R$ 300,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-OnyiYb7UVSBzeW7eUHQ",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=300, data=18/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 58,
+    "date": "18/03/2026",
+    "amount": 300,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 59,
+    "date": "20/03/2026",
+    "amount": 6,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 20/03 20:01 07703695459 Mayra Medeiros",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 60,
+    "date": "20/03/2026",
+    "amount": 6,
+    "type": "D",
+    "narrative": "351 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "❓ 351 BB RENDE F CIL RENDE FACIL",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 6"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 61,
+    "date": "23/03/2026",
+    "amount": 170,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 21/03 11:08 LARISSA KARLA MONTANHAS D",
+    "auto": {
+      "comment": "Faxina do dia 21/03/2026  (1 unidade × R$ 170,00)",
+      "project": "Monociclo - Fortalecimento Institucional 2025-2026",
+      "requestId": "-OoFcq2TWzxJLoOYVMug",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=170, data=23/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 62,
+    "date": "23/03/2026",
+    "amount": 1.68,
+    "type": "D",
+    "narrative": "258 Tarifa Pix Enviado Tar. agrupadas - ocorrencia 23/03/2026",
+    "auto": {
+      "comment": "Taxa Bancária",
+      "project": "",
+      "confidence": 0.95,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 63,
+    "date": "23/03/2026",
+    "amount": 6,
+    "type": "C",
+    "narrative": "798 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 64,
+    "date": "23/03/2026",
+    "amount": 165.68,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 65,
+    "date": "25/03/2026",
+    "amount": 10,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 25/03 13:52 09755994459 ALINE MARIA DE",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 66,
+    "date": "25/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 25/03 18:14 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "Pesquisadora do dia para a contagem de ciclistas da Av. Dr. José Rufino X R. José Natário no dia 25/03/2026 (1 unidade × R$ 400,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-Oo_wLQD1yvynNwfNO-H",
+      "confidence": 1,
+      "status": "ok",
+      "evidence": "Desempate por score: 1.00"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 67,
+    "date": "25/03/2026",
+    "amount": 600,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 25/03 18:14 ANNELIESE PAES LEME",
+    "auto": {
+      "comment": "Coordenacão do dia para a contagem de ciclistas da Av. Dr. José Rufino X R. José Natário no dia 25/03/2026 (1 unidade × R$ 600,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-Oo_wLO1zk_7fELxJJVw",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=600, data=25/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 68,
+    "date": "25/03/2026",
+    "amount": 400,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 25/03 18:14 Mayra Medeiros de Azevedo",
+    "auto": {
+      "comment": "Pesquisadora do dia para a contagem de ciclistas da Av. Dr. José Rufino X R. José Natário no dia 25/03/2026 (1 unidade × R$ 400,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-Oo_wLQmc5Mj8wd5T2vM",
+      "confidence": 0.888888888888889,
+      "status": "ok",
+      "evidence": "Desempate por score: 0.89"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 69,
+    "date": "25/03/2026",
+    "amount": 13.86,
+    "type": "D",
+    "narrative": "258 Tarifa Pix Enviado Tar. agrupadas - ocorrencia 25/03/2026",
+    "auto": {
+      "comment": "Taxa Bancária",
+      "project": "",
+      "confidence": 0.95,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 70,
+    "date": "25/03/2026",
+    "amount": 1403.86,
+    "type": "C",
+    "narrative": "855 BB RF CP Empresa �gil BB RF CP Empresa Agil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 71,
+    "date": "26/03/2026",
+    "amount": 29,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 26/03 13:19 00013627474759 ANNELIESE P",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 72,
+    "date": "26/03/2026",
+    "amount": 29,
+    "type": "D",
+    "narrative": "351 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "❓ 351 BB RENDE F CIL RENDE FACIL",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 29"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 73,
+    "date": "30/03/2026",
+    "amount": 30,
+    "type": "C",
+    "narrative": "900 Pix Automatico Recebido 30/03 05:09 00035122510482 KLAUBER DE",
+    "auto": {
+      "comment": "PIX DEVOLVIDO EXPLICAR",
+      "project": "Transferências erradas, devoluções bancárias e outras",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "PIX devolvido detectado"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 74,
+    "date": "30/03/2026",
+    "amount": 50000,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 30/03 10:28 05506560000136 NUCLEO DE I",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 75,
+    "date": "30/03/2026",
+    "amount": 156,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 30/03 20:15 07387729417 Barbara de Vas",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 76,
+    "date": "30/03/2026",
+    "amount": 126,
+    "type": "C",
+    "narrative": "821 Pix - Recebido 30/03 21:04 00005161706430 DANIEL ARRA",
+    "auto": {
+      "comment": "REVISAR PROJETO",
+      "project": "Recursos Independentes 2025 (2o Semestre)",
+      "confidence": 0.7,
+      "status": "ok",
+      "evidence": "Entrada pequena não identificada"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 77,
+    "date": "30/03/2026",
+    "amount": 50312,
+    "type": "D",
+    "narrative": "351 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "❓ 351 BB RENDE F CIL RENDE FACIL",
+      "project": "",
+      "confidence": 0,
+      "status": "not_found",
+      "evidence": "Nenhum match encontrado para valor 50312"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 78,
+    "date": "31/03/2026",
+    "amount": 300,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 31/03 17:07 MARIANA OLIVEIRA DA SILVE",
+    "auto": {
+      "comment": "Relatoria da contagem ocorrida no cruzamento da Av. Dr. José Rufino com rua José Natário, ocorrida no último dia 25/03/2026. (1 unidade × R$ 300,00)",
+      "project": "Fundo dos Grupos de Trabalho",
+      "requestId": "-Op3T5e6MaXW7Nm1wCBR",
+      "confidence": 0.9,
+      "status": "ok",
+      "evidence": "Match direto: valor=300, data=31/03/2026"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  },
+  {
+    "index": 79,
+    "date": "31/03/2026",
+    "amount": 300,
+    "type": "C",
+    "narrative": "798 BB Rende F�cil Rende Facil",
+    "auto": {
+      "comment": "",
+      "project": "",
+      "confidence": 1,
+      "status": "ok"
+    },
+    "manualDecision": null,
+    "chosenRequest": null
+  }
+]

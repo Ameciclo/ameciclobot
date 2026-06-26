@@ -10,18 +10,28 @@ import {
 } from "../services/google";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
 import getAccounts from "../credentials/accounts.json";
-import { sendProjectsToDB, getRequestData, updatePaymentRequest, getAllRequests } from "../services/firebase";
+import {
+  sendProjectsToDB,
+  getRequestData,
+  updatePaymentRequest,
+  getAllRequests,
+  setTempData,
+  getTempData,
+} from "../services/firebase";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { PaymentRequest } from "../config/types";
 import { formatDate, getMonthNamePortuguese } from "../utils/utils";
+import { decodeTextFile } from "../utils/decodeTextFile";
 import axiosInstance from "../config/httpService";
-import iconv from "iconv-lite";
 // @ts-ignore
 import pdfParse from "pdf-parse";
 import { reconcileExtract } from "../services/reconciliation";
 import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
 import { detectBankCSV } from "../services/reconciliation/bank_detector";
 import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
+import { parseCoraCreditCSV } from "../services/reconciliation/parsers/cora_credit_csv_parser";
+
+const PDF_MANUAL_TTL_SECONDS = 30 * 60;
 
 // Função para extrair dados da mensagem
 function extractDataFromMessage(ctx: any) {
@@ -204,7 +214,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       }
       
       if (isCSV) {
-        const result = await processExtratoCsv(fileLink.href);
+        const result = await processExtratoCsv(fileLink.href, file.file_path || "");
         
         const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "csv");
         const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
@@ -359,19 +369,20 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
       
       const buffer = Buffer.from(fileBuffer);
       const data = await pdfParse(buffer);
-      const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+      const { conta, mesAno, accountType } = extractInfoFromPDF(data.text);
+      const accountNumber = resolvePdfAccountNumber(conta, accountType, data.text);
       
       // Se conseguiu extrair tudo, arquiva automaticamente
-      if (conta && mesAno) {
+      if (accountNumber && mesAno) {
         await ctx.editMessageText("🔄 Dados detectados! Arquivando automaticamente...");
         
-        const folderId = getFolderIdForAccount(conta, isFund);
+        const folderId = getFolderIdForAccount(accountNumber, accountType);
         if (!folderId) {
-          await ctx.editMessageText(`❌ Pasta não configurada para conta ${conta}.`);
+          await ctx.editMessageText(`❌ Pasta não configurada para conta ${accountNumber}.`);
           return;
         }
         
-        const fileName = formatFileName(mesAno, isFund, conta);
+        const fileName = formatFileName(mesAno, accountType, accountNumber);
         const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
         
         if (!uploadResponse) {
@@ -379,48 +390,25 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
           return;
         }
         
-        const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+        const tipoConta = getAccountTypeLabel(accountType);
         const keyboard = Markup.inlineKeyboard([
           [Markup.button.url("📄 Ver Extrato", uploadResponse)],
           [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
         ]);
         
         await ctx.editMessageText(
-          `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${conta}`,
+          `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${accountNumber}`,
           keyboard
         );
         return;
       }
       
-      // Se não conseguiu extrair, mostra opções de mês/tipo
-      const now = new Date();
-      const months = [];
+      const keyboard = await createPdfManualKeyboard(fileId, conta);
       
-      for (let i = 0; i < 3; i++) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthName = date.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
-        const year = date.getFullYear();
-        const monthYear = `${monthName}/${year}`;
-        months.push({ monthYear, month: date.getMonth() + 1, year });
-      }
-      
-      const keyboard = Markup.inlineKeyboard([
-        ...months.map(m => [
-          Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
-          Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
-        ]),
-        [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
-      ]);
-      
-      await ctx.editMessageText(
-        `⚠️ *Não foi possível detectar automaticamente*\n\n` +
-        `Conta detectada: ${conta || 'Não identificada'}\n` +
-        `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
-        `Escolha o mês e tipo de conta:\n\n` +
-        `• *FI* = Fundo de Investimento\n` +
-        `• *CC* = Conta Corrente`,
-        { ...keyboard, parse_mode: "Markdown" }
-      );
+      await ctx.editMessageText(buildPdfManualMessage(conta, mesAno), {
+        reply_markup: keyboard.reply_markup,
+        parse_mode: "Markdown",
+      });
     } catch (error) {
       console.error("[processar_pdf_inteligente] Erro:", error);
       await ctx.editMessageText("❌ Erro ao processar PDF.");
@@ -428,46 +416,47 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
   });
 
   // Callback para arquivar PDF manualmente
-  bot.action(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/, async (ctx): Promise<void> => {
+  bot.action(/^pdf_manual:([A-Za-z0-9]+):(\d{2}):(\d{4}):(fi|cc|cd)$/, async (ctx): Promise<void> => {
     await ctx.answerCbQuery();
-    
-    const match = ctx.callbackQuery && 'data' in ctx.callbackQuery ? 
-      ctx.callbackQuery.data.match(/^pdf_manual_([A-Za-z0-9_-]+)_(\d+)_(\d+)_(fi|cc)$/) : null;
-    
-    if (!match) {
-      await ctx.editMessageText("❌ Dados inválidos.");
+
+    const [, tempId, month, year, accountType] = ctx.match;
+    const tempData = await getTempData(`pdf_manual_${tempId}`);
+    if (!tempData?.fileId) {
+      await ctx.editMessageText("❌ Sessão expirada. Envie o PDF novamente.");
       return;
     }
-    
-    const [, fileId, month, year, type] = match;
-    const isFund = type === 'fi';
-    
+
     try {
       await ctx.editMessageText("🔄 Arquivando PDF...");
-      
-      const fileLink = await ctx.telegram.getFileLink(fileId);
+
+      const fileLink = await ctx.telegram.getFileLink(tempData.fileId);
       const response = await fetch(fileLink.href);
       const fileBuffer = await response.arrayBuffer();
-      
-      // Gera nome do arquivo baseado na seleção
-      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-      const monthName = monthNames[parseInt(month) - 1];
-      const mesAno = `${monthName}/${year}`;
-      
-      // Tenta detectar conta do PDF, senão usa padrão
+
+      const mesAno = `${month}/${year}`;
       const buffer = Buffer.from(fileBuffer);
       const data = await pdfParse(buffer);
       const { conta } = extractInfoFromPDF(data.text);
-      const accountNumber = conta || 'CONTA_NAO_IDENTIFICADA';
-      
-      const folderId = getFolderIdForAccount(accountNumber, isFund);
+      const accountNumber = resolvePdfAccountNumber(
+        conta || tempData.conta || null,
+        accountType as "fi" | "cc" | "cd",
+        data.text
+      );
+
+      if (!accountNumber) {
+        await ctx.editMessageText(
+          "❌ Não consegui identificar a conta deste PDF. Se quiser, eu posso adaptar o fluxo para escolher a conta manualmente também."
+        );
+        return;
+      }
+
+      const folderId = getFolderIdForAccount(accountNumber, accountType as "fi" | "cc" | "cd");
       if (!folderId) {
-        await ctx.editMessageText(`❌ Pasta não configurada para ${isFund ? 'Fundo de Investimento' : 'Conta Corrente'}.`);
+        await ctx.editMessageText(`❌ Pasta não configurada para ${getAccountTypeLabel(accountType as "fi" | "cc" | "cd")}.`);
         return;
       }
       
-      const fileName = formatFileName(mesAno, isFund, accountNumber);
+      const fileName = formatFileName(mesAno, accountType as "fi" | "cc" | "cd", accountNumber);
       const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
       
       if (!uploadResponse) {
@@ -475,7 +464,7 @@ export function registerAjudanteFinanceiroCallback(bot: Telegraf) {
         return;
       }
       
-      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const tipoConta = getAccountTypeLabel(accountType as "fi" | "cc" | "cd");
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.url("📄 Ver Extrato", uploadResponse)],
         [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
@@ -564,6 +553,198 @@ function getCurrentDate(): string {
   const year = now.getFullYear();
   
   return `${day} de ${month} de ${year}`;
+}
+
+function normalizeLooseText(text: string): string {
+  return String(text || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isBbRendeFacilNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return (
+    normalizedNarrative.includes("BB RENDE FACIL") ||
+    /BB RENDE F\s*CIL/.test(normalizedNarrative) ||
+    /BB RENDE F\w*CIL/.test(normalizedNarrative)
+  );
+}
+
+function formatBankAccountNumber(rawAccount: string): string {
+  const digits = String(rawAccount || "").replace(/[^\d]/g, "");
+
+  if (digits.length < 2) {
+    return String(rawAccount || "").trim();
+  }
+
+  const accountDigits = digits.slice(0, -1);
+  const verifier = digits.slice(-1);
+  const formattedDigits = accountDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  return `${formattedDigits}-${verifier}`;
+}
+
+function monthNameToNumber(rawMonth: string): string | null {
+  const month = normalizeLooseText(rawMonth);
+  const months: Record<string, string> = {
+    JANEIRO: "01",
+    FEVEREIRO: "02",
+    MARCO: "03",
+    ABRIL: "04",
+    MAIO: "05",
+    JUNHO: "06",
+    JULHO: "07",
+    AGOSTO: "08",
+    SETEMBRO: "09",
+    OUTUBRO: "10",
+    NOVEMBRO: "11",
+    DEZEMBRO: "12",
+  };
+
+  return months[month] || null;
+}
+
+function normalizeMonthYear(rawMonthYear: string): string | null {
+  const trimmed = String(rawMonthYear || "").trim();
+  const numericMatch = trimmed.match(/^(\d{2})\/(\d{4})$/);
+  if (numericMatch) {
+    return `${numericMatch[1]}/${numericMatch[2]}`;
+  }
+
+  const monthNameMatch = trimmed.match(/^([A-Za-zÀ-ÿ]+)\/(\d{4})$/);
+  if (!monthNameMatch) {
+    return null;
+  }
+
+  const month = monthNameToNumber(monthNameMatch[1]);
+  if (!month) {
+    return null;
+  }
+
+  return `${month}/${monthNameMatch[2]}`;
+}
+
+function getPdfAccountConfigCandidates(accountType: "fi" | "cc" | "cd") {
+  const configType = getAccountConfigType(accountType);
+  return getAccounts.filter(
+    (account: any) => account.type === configType && account.input_file_type === "pdf"
+  );
+}
+
+function findPdfAccountConfig(conta: string, accountType: "fi" | "cc" | "cd") {
+  const normalizedConta = String(conta || "").replace(/[^\d]/g, "");
+  return getPdfAccountConfigCandidates(accountType).find(
+    (account: any) => account.number.replace(/[^\d]/g, "") === normalizedConta
+  );
+}
+
+function resolvePdfAccountNumber(
+  conta: string | null,
+  accountType: "fi" | "cc" | "cd",
+  rawText?: string
+): string | null {
+  if (conta) {
+    const matchedAccount = findPdfAccountConfig(conta, accountType);
+    if (matchedAccount) {
+      return matchedAccount.number;
+    }
+
+    return formatBankAccountNumber(conta);
+  }
+
+  const candidates = getPdfAccountConfigCandidates(accountType);
+
+  if (accountType === "cd" && rawText) {
+    const lastFourMatch = rawText.match(/(?:FINAL DO CARTAO|••••)\s*(\d{4})/i);
+    if (lastFourMatch?.[1]) {
+      const lastFourDigits = lastFourMatch[1];
+      const matchedBySheet = candidates.find((account: any) =>
+        String(account.sheet || "").includes(lastFourDigits)
+      );
+      if (matchedBySheet) {
+        return matchedBySheet.number;
+      }
+    }
+  }
+
+  return candidates.length === 1 ? candidates[0].number : null;
+}
+
+function getRecentPdfMonthOptions() {
+  const now = new Date();
+  const options: Array<{ label: string; month: string; year: string }> = [];
+
+  for (let index = 0; index < 3; index++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
+    const label = date
+      .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+      .toUpperCase()
+      .replace(" DE ", "/");
+
+    options.push({
+      label,
+      month: String(date.getMonth() + 1).padStart(2, "0"),
+      year: String(date.getFullYear()),
+    });
+  }
+
+  return options;
+}
+
+function buildPdfManualMessage(conta: string | null, mesAno: string | null): string {
+  return (
+    `⚠️ *Não foi possível detectar automaticamente*\n\n` +
+    `Conta detectada: ${conta || "Não identificada"}\n` +
+    `Mês/Ano detectado: ${mesAno || "Não identificado"}\n\n` +
+    `Escolha o mês e tipo de conta:\n\n` +
+    `• *FI* = Fundo de Investimento\n` +
+    `• *CC* = Conta Corrente\n` +
+    `• *CD* = Conta Crédito`
+  );
+}
+
+async function createPdfManualKeyboard(
+  fileId: string,
+  conta: string | null
+) {
+  const tempId = Date.now().toString(36);
+  await setTempData(
+    `pdf_manual_${tempId}`,
+    { fileId, conta },
+    PDF_MANUAL_TTL_SECONDS
+  );
+
+  const monthOptions = getRecentPdfMonthOptions();
+  return Markup.inlineKeyboard([
+    ...monthOptions.map((option) => [
+      Markup.button.callback(
+        `${option.label} - FI`,
+        `pdf_manual:${tempId}:${option.month}:${option.year}:fi`
+      ),
+      Markup.button.callback(
+        `${option.label} - CC`,
+        `pdf_manual:${tempId}:${option.month}:${option.year}:cc`
+      ),
+      Markup.button.callback(
+        `${option.label} - CD`,
+        `pdf_manual:${tempId}:${option.month}:${option.year}:cd`
+      ),
+    ]),
+    [Markup.button.callback("❌ Cancelar", "ajudante_cancel")],
+  ]);
+}
+
+function isInternalTransferNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return [
+    "AMECICLO",
+    "ASSOCIACAO METROPOLITANA",
+    "ASSOCIACAO M C G R AME",
+    "ASSOC METROPOLITANA",
+  ].some((token) => normalizedNarrative.includes(token));
 }
 
 async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Array> {
@@ -658,65 +839,191 @@ async function generateReciboPage(requestData: PaymentRequest): Promise<Uint8Arr
   return await pdfDoc.save();
 }
 
-function extractInfoFromPDF(text: string): { conta: string | null; mesAno: string | null; isFund: boolean } {
-  const norm = text.normalize("NFD").replace(/\p{Diacritic}/gu, "").replace(/\s+/g, " ");
-  
-  let conta = null;
-  const contaMatch = norm.match(/Conta\s+([0-9.-]{5,})(?=[^\d-]|$)/i);
-  if (contaMatch) conta = contaMatch[1];
-  
-  let mesAno = null;
-  const mesAnoMatch = norm.match(/m[eê]s\/?ano\s+refer[eê]ncia\s*[:\-]?\s*([A-ZÇÃ]+\/\d{4}|\d{2}\/\d{4})/i);
-  if (mesAnoMatch) mesAno = mesAnoMatch[1];
-  
-  const isFund = /extratos?\s*-\s*investimentos?\s+fundos?/i.test(norm);
-  
-  return { conta, mesAno, isFund };
-}
+function extractInfoFromPDF(text: string): {
+  conta: string | null;
+  mesAno: string | null;
+  accountType: "fi" | "cc" | "cd";
+} {
+  const normalizedWithLines = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const normalized = normalizedWithLines.replace(/\s+/g, " ");
 
-function formatFileName(mesAno: string, isFund: boolean, conta: string): string {
-  const [mesNome, ano] = mesAno.split("/");
-  const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
-  return `Extrato - ${ano}.${mesNome} - ${tipoConta} ${conta}.pdf`;
-}
+  const isFund =
+    /investimentos?\s*-\s*fundos?/i.test(normalized) ||
+    /meus fundos de investimento/i.test(normalized);
+  const isCredit =
+    /(fatura|cartao de credito|resumo da fatura|limite total|final do cartao|••••)/i.test(
+      normalized
+    );
+  const accountType: "fi" | "cc" | "cd" = isFund ? "fi" : isCredit ? "cd" : "cc";
 
-function getFolderIdForAccount(conta: string, isFund: boolean): string | null {
-  const tipoExtrato = isFund ? "Fundo de Investimento - Conta" : "Conta Corrente";
-  const matchedAccount = getAccounts.find((acc: any) => 
-    acc.number === conta && acc.type === tipoExtrato && acc.input_file_type === "pdf"
+  const accountPatterns = [
+    /Agencia:\s*\d+\s*-\s*Conta:\s*([0-9.-]{5,})/i,
+    /Conta corrente\s*([0-9.-]{5,})/i,
+    /Conta:\s*([0-9.-]{5,})/i,
+    /Conta\s*([0-9.-]{5,})(?=\s+[A-Z])/i,
+    /Conta\s*([0-9.-]{5,})(?=[^\d-]|$)/i,
+  ];
+
+  let conta: string | null = null;
+  for (const pattern of accountPatterns) {
+    const match = normalized.match(pattern);
+    if (match?.[1]) {
+      conta = match[1];
+      break;
+    }
+  }
+
+  let mesAno: string | null = null;
+
+  const explicitReferenceMatch = normalized.match(
+    /m[eê]s\/?ano\s+refer[eê]ncia\s*[:\-]?\s*([A-ZÇÃ]+\/\d{4}|\d{2}\/\d{4})/i
   );
-  return matchedAccount?.folder_id || null;
+  if (explicitReferenceMatch?.[1]) {
+    mesAno = normalizeMonthYear(explicitReferenceMatch[1]);
+  }
+
+  if (!mesAno) {
+    const rangeMatch = normalized.match(
+      /(\d{2})\/(\d{2})\/(\d{4})\s+a\s+(\d{2})\/(\d{2})\/(\d{4})/
+    );
+    if (rangeMatch) {
+      mesAno = `${rangeMatch[5]}/${rangeMatch[6]}`;
+    }
+  }
+
+  if (!mesAno) {
+    const generatedMatch = normalized.match(/Extrato gerado no dia\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+    if (generatedMatch) {
+      mesAno = `${generatedMatch[2]}/${generatedMatch[3]}`;
+    }
+  }
+
+  if (!mesAno) {
+    const genericTimestampMatch = normalized.match(/(\d{2})\/(\d{2})\/(\d{4})\s+\d{2}:\d{2}:\d{2}/);
+    if (genericTimestampMatch) {
+      mesAno = `${genericTimestampMatch[2]}/${genericTimestampMatch[3]}`;
+    }
+  }
+
+  if (!mesAno) {
+    const creditHeaderMatch = normalized.match(/fatura de\s+([A-Za-zÀ-ÿ]+)(?:\s+de\s+(\d{4}))?/i);
+    if (creditHeaderMatch?.[1]) {
+      const month = monthNameToNumber(creditHeaderMatch[1]);
+      const year = creditHeaderMatch[2] || normalized.match(/\b(\d{4})\b/)?.[1] || "";
+      if (month && year) {
+        mesAno = `${month}/${year}`;
+      }
+    }
+  }
+
+  return {
+    conta: resolvePdfAccountNumber(conta, accountType, normalizedWithLines),
+    mesAno,
+    accountType,
+  };
 }
 
-async function processExtratoCsv(fileUrl: string) {
+function formatFileName(mesAno: string, accountType: "fi" | "cc" | "cd", conta: string): string {
+  const normalizedMonthYear = normalizeMonthYear(mesAno);
+  if (!normalizedMonthYear) {
+    throw new Error(`Mês/ano inválido para nomear PDF: ${mesAno}`);
+  }
+
+  const [month, year] = normalizedMonthYear.split("/");
+  const tipoConta = getAccountTypeLabel(accountType);
+  const formattedAccount = resolvePdfAccountNumber(conta, accountType) || formatBankAccountNumber(conta);
+  return `Extrato - ${year}.${month} - ${tipoConta} ${formattedAccount}.pdf`;
+}
+
+function getAccountTypeLabel(accountType: "fi" | "cc" | "cd"): string {
+  if (accountType === "fi") return "Fundo de Investimento";
+  if (accountType === "cd") return "Conta Crédito";
+  return "Conta Corrente";
+}
+
+function getAccountConfigType(accountType: "fi" | "cc" | "cd"): string {
+  if (accountType === "fi") return "Fundo de Investimento - Conta";
+  if (accountType === "cd") return "Conta Crédito";
+  return "Conta Corrente";
+}
+
+function getFolderIdForAccount(conta: string, accountType: "fi" | "cc" | "cd"): string | null {
+  return findPdfAccountConfig(conta, accountType)?.folder_id || null;
+}
+
+function parseSpreadsheetDecimal(value: string): number {
+  const normalizedValue = String(value || "")
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`Valor inválido no extrato: ${value}`);
+  }
+
+  return parsedValue;
+}
+
+const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
+  "EXTRATO CC 76": "684262481",
+  "EXTRATO FI 76": "478565062",
+  "EXTRATO CC 90": "410167064",
+  "EXTRATO CC 106": "1954691645",
+  "EXTRATO CC 131": "1183431137",
+  "EXTRATO CD 2393": "183100216",
+  "EXTRATO CC 2666": "1928472763",
+};
+
+function getAccountingSheetUrl(sheet?: string): string | null {
+  if (!sheet) {
+    return null;
+  }
+
+  const gid = ACCOUNTING_SHEET_GIDS[sheet];
+  if (!gid) {
+    return null;
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${projectsSpreadsheet.id}/edit?gid=${gid}#gid=${gid}`;
+}
+
+async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const fileBuffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(fileBuffer, "latin1");
+  const fileContent = decodeTextFile(fileBuffer);
   
   // Detecta automaticamente o tipo de banco
   const detection = detectBankCSV(fileContent);
   console.log(`[processExtratoCsv] Banco detectado: ${detection.bank} (confiança: ${detection.confidence})`);
-  
-  const confirmedRequests = await getAllRequests();
-  const requestsArray = Object.values(confirmedRequests).filter((request: any) => request.status === "confirmed") as PaymentRequest[];
-  
+
   let result;
   
   if (detection.bank === 'cora') {
+    const isCreditStatement = detection.statementType === "credit";
+    const parser = isCreditStatement ? parseCoraCreditCSV : parseCoraCSV;
+    const sourceId = isCreditStatement ? "cora_cd" : "cora_cc";
+    const accountType = isCreditStatement ? "Conta Crédito" : "Conta Corrente";
+
     // Processa CSV do Cora
-    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseCoraCSV(fileContent, "cora_cc");
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parser(fileContent, sourceId);
+    const requestsArray = await getConfirmedPaymentRequests(monthStr, yearStr);
     const { results } = reconcileExtract(entries, requestsArray);
     
     const statements = entries.map((entry, i) => {
       const reconcileResult = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-      const formattedValue = `R$ ${entry.amount.toFixed(2)}`; // Mantém ponto decimal
+      const formattedValue = entry.amount;
       let type = entry.type === "C" ? "Entrada" : "Saída";
       
-      // Classificações específicas do Cora
-      if (entry.narrative.includes("ASSOCIACAO M C G R - AME")) {
+      // Classificações específicas do Cora corrente
+      if (!isCreditStatement && isInternalTransferNarrative(entry.narrative)) {
         type = entry.type === "D" ? "Investido" : "Desinvestido";
-      } else if (entry.narrative.includes("Cora SCFI")) {
+      } else if (!isCreditStatement && normalizeLooseText(entry.narrative).includes("CORA SCFI")) {
         // Classifica faturas de cartão automaticamente
         return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
       }
@@ -725,37 +1032,52 @@ async function processExtratoCsv(fileUrl: string) {
     });
     
     const matchedAccount = getAccounts.find((acc: any) => 
-      acc.number === rawAccount && acc.type === "Conta Corrente" && acc.input_file_type === "csv"
+      acc.bank === "Cora" &&
+      acc.number === rawAccount &&
+      acc.type === accountType &&
+      acc.input_file_type === "csv"
     ) || {
       number: rawAccount, 
-      sheet: "EXTRATO CC Cora", // Aba específica do Cora
-      fulltext: `Conta Corrente (Cora) ${rawAccount}`
+      sheet: isCreditStatement ? "EXTRATO CC 2666" : "EXTRATO CD 2393",
+      fulltext: `${accountType} (Cora) ${rawAccount}`
     };
     
     result = { account: matchedAccount.number, statements, fileContent, month: monthStr, year: yearStr, matchedAccount };
   } else {
     // Processa CSV do BB (código original)
-    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
+    const requestsArray = await getConfirmedPaymentRequests(monthStr, yearStr);
     const { results } = reconcileExtract(entries, requestsArray);
     
     const statements = entries.map((entry, i) => {
       const reconcileResult = results[i];
       const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-      const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+      const formattedValue = entry.amount;
       let type = entry.type === "C" ? "Entrada" : "Saída";
       
-      if (reconcileResult.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+      if (
+        reconcileResult.project === "Movimentação Bancária" &&
+        isBbRendeFacilNarrative(entry.narrative)
+      ) {
         type = entry.type === "D" ? "Investido" : "Desinvestido";
       } else if (reconcileResult.comment === "PIX DEVOLVIDO EXPLICAR") {
         type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
-      } else if (reconcileResult.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+      } else if (
+        reconcileResult.project === "Movimentação Bancária" &&
+        isInternalTransferNarrative(entry.narrative)
+      ) {
         type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
       }
       
       return [formattedDate, formattedValue, type, entry.narrative, reconcileResult.comment, reconcileResult.project];
     });
     
-    const matchedAccount = getAccounts.find((acc: any) => acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "")) || {
+    const matchedAccount = getAccounts.find((acc: any) =>
+      acc.bank === "Banco do Brasil" &&
+      acc.number.replace(/[^\d]/g, "") === rawAccount.replace(/[^\d]/g, "") &&
+      acc.type === "Conta Corrente" &&
+      acc.input_file_type === "csv"
+    ) || {
       number: rawAccount, sheet: "desconhecido"
     };
     
@@ -765,10 +1087,28 @@ async function processExtratoCsv(fileUrl: string) {
   return result;
 }
 
+async function getConfirmedPaymentRequests(
+  month?: string,
+  year?: string
+): Promise<PaymentRequest[]> {
+  const monthKey =
+    year && month ? `${year}-${String(month).padStart(2, "0")}` : undefined;
+
+  const allRequests = await getAllRequests(
+    monthKey
+      ? { monthKeys: [monthKey], includeAdjacentMonths: true }
+      : undefined
+  );
+
+  return Object.values(allRequests).filter(
+    (request: any) => request.status === "confirmed"
+  ) as PaymentRequest[];
+}
+
 async function processExtratoTxt(fileUrl: string) {
   const response = await axiosInstance.get(fileUrl, { responseType: "arraybuffer" });
   const buffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(buffer, "latin1");
+  const fileContent = decodeTextFile(buffer);
   const lines = fileContent.split(/\r?\n/);
   
   let accountRaw = "";
@@ -790,12 +1130,12 @@ async function processExtratoTxt(fileUrl: string) {
   };
   const refMonth = meses[refMonthName.toUpperCase()] || "00";
   
-  const summary: string[] = [];
+  const summary: number[] = [];
   const resumoIndex = lines.findIndex(line => line.toUpperCase().includes("RESUMO DO MÊS"));
   if (resumoIndex !== -1) {
     for (let i = resumoIndex + 1; i < lines.length && summary.length < 6; i++) {
       const match = lines[i].match(/([\d\.,]+)$/);
-      if (match) summary.push(match[1]);
+      if (match) summary.push(parseSpreadsheetDecimal(match[1]));
     }
   }
   
@@ -812,7 +1152,7 @@ function generateExtratoFilename(account: any, month: string, year: string, exte
 }
 
 // Funções exportadas para uso direto
-export async function processExtratoCallback(ctx: any, fileId: string) {
+export async function processExtratoCallback(ctx: any, fileId: string, sourceFileName?: string) {
   console.log("[processar_extrato] Processamento direto");
   
   try {
@@ -829,7 +1169,7 @@ export async function processExtratoCallback(ctx: any, fileId: string) {
     }
     
     if (isCSV) {
-      const result = await processExtratoCsv(fileLink.href);
+      const result = await processExtratoCsv(fileLink.href, sourceFileName || file.file_path || "");
       
       const filename = generateExtratoFilename(result.matchedAccount, result.month, result.year, "csv");
       const uploadedFileLink = await uploadCSVToDrive(result.fileContent, filename, projectsSpreadsheet.statementsFolder);
@@ -845,9 +1185,15 @@ export async function processExtratoCallback(ctx: any, fileId: string) {
       
       const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
       const totalCount = result.statements.length;
+      const accountingSheetUrl = getAccountingSheetUrl(result.matchedAccount.sheet);
       
       await ctx.reply(
-        `✅ Extrato CC processado!\n\nConta: ${result.matchedAccount.number}\n✅ ${identifiedCount}/${totalCount} identificados`
+        `✅ Extrato CC processado!\n\nConta: ${result.matchedAccount.number}\n✅ ${identifiedCount}/${totalCount} identificados`,
+        accountingSheetUrl
+          ? Markup.inlineKeyboard([
+              [Markup.button.url("📊 Acompanhamento de gastos", accountingSheetUrl)],
+            ])
+          : undefined
       );
     } else {
       const result = await processExtratoTxt(fileLink.href);
@@ -885,65 +1231,43 @@ export async function processPdfInteligenteCallback(ctx: any, fileId: string) {
     
     const buffer = Buffer.from(fileBuffer);
     const data = await pdfParse(buffer);
-    const { conta, mesAno, isFund } = extractInfoFromPDF(data.text);
+    const { conta, mesAno, accountType } = extractInfoFromPDF(data.text);
+    const accountNumber = resolvePdfAccountNumber(conta, accountType, data.text);
     
     // Se conseguiu extrair tudo, arquiva automaticamente
-    if (conta && mesAno) {
+    if (accountNumber && mesAno) {
       await ctx.reply("🔄 Dados detectados! Arquivando automaticamente...");
       
-      const folderId = getFolderIdForAccount(conta, isFund);
+      const folderId = getFolderIdForAccount(accountNumber, accountType);
       if (!folderId) {
-        return ctx.reply(`❌ Pasta não configurada para conta ${conta}.`);
+        return ctx.reply(`❌ Pasta não configurada para conta ${accountNumber}.`);
       }
       
-      const fileName = formatFileName(mesAno, isFund, conta);
+      const fileName = formatFileName(mesAno, accountType, accountNumber);
       const uploadResponse = await uploadInvoice(fileBuffer as Buffer, fileName, folderId);
       
       if (!uploadResponse) {
         return ctx.reply("❌ Erro no upload.");
       }
       
-      const tipoConta = isFund ? "Fundo de Investimento" : "Conta Corrente";
+      const tipoConta = getAccountTypeLabel(accountType);
       const keyboard = Markup.inlineKeyboard([
         [Markup.button.url("📄 Ver Extrato", uploadResponse)],
         [Markup.button.url("📁 Pasta", `https://drive.google.com/drive/folders/${folderId}`)],
       ]);
       
       return ctx.reply(
-        `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${conta}`,
+        `✅ Extrato arquivado automaticamente!\n\n📝 ${fileName}\n📊 ${tipoConta}\n🏦 ${accountNumber}`,
         keyboard
       );
     }
     
-    // Se não conseguiu extrair, mostra opções de mês/tipo
-    const now = new Date();
-    const months = [];
+    const keyboard = await createPdfManualKeyboard(fileId, conta);
     
-    for (let i = 0; i < 3; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = date.toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase();
-      const year = date.getFullYear();
-      const monthYear = `${monthName}/${year}`;
-      months.push({ monthYear, month: date.getMonth() + 1, year });
-    }
-    
-    const keyboard = Markup.inlineKeyboard([
-      ...months.map(m => [
-        Markup.button.callback(`${m.monthYear} - FI`, `pdf_manual_${fileId}_${m.month}_${m.year}_fi`),
-        Markup.button.callback(`${m.monthYear} - CC`, `pdf_manual_${fileId}_${m.month}_${m.year}_cc`)
-      ]),
-      [Markup.button.callback("❌ Cancelar", "ajudante_cancel")]
-    ]);
-    
-    await ctx.reply(
-      `⚠️ *Não foi possível detectar automaticamente*\n\n` +
-      `Conta detectada: ${conta || 'Não identificada'}\n` +
-      `Mês/Ano detectado: ${mesAno || 'Não identificado'}\n\n` +
-      `Escolha o mês e tipo de conta:\n\n` +
-      `• *FI* = Fundo de Investimento\n` +
-      `• *CC* = Conta Corrente`,
-      { ...keyboard, parse_mode: "Markdown" }
-    );
+    await ctx.reply(buildPdfManualMessage(conta, mesAno), {
+      reply_markup: keyboard.reply_markup,
+      parse_mode: "Markdown",
+    });
   } catch (error) {
     console.error("[processar_pdf_inteligente] Erro:", error);
     await ctx.reply("❌ Erro ao processar PDF.");

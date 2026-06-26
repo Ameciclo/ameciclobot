@@ -1,8 +1,8 @@
 import { Context, Telegraf } from "telegraf";
 import { setTempData } from "../services/firebase";
-import { getFolderTree, updateFolderTree, getWorkgroupConfig } from "../services/folderService";
+import { getOrCacheFolderLevel, forceUpdateFolderTree, getWorkgroupConfig } from "../services/folderService";
 import { createFolderNavigationKeyboard } from "../callbacks/folderNavigationCallback";
-import { createDocument, createPresentation, createForm, createSheet } from "../services/google";
+import { createDocument, createPresentation, createForm, createSheet, uploadInvoice } from "../services/google";
 
 // Função para sanitizar nome do arquivo
 function sanitizeFileName(text: string, maxLength = 50): string {
@@ -18,7 +18,7 @@ function sanitizeFileName(text: string, maxLength = 50): string {
 
 // Função para gerar nome do arquivo no modo arquivar
 function generateArchiveFileName(document: any, ctx: Context, customName?: string): string {
-  const groupConfig = getWorkgroupConfig(ctx.chat?.id || 0);
+  const groupConfig = getWorkgroupConfig(String(ctx.chat?.id || 0));
   const groupName = groupConfig?.label || "Arquivo";
   
   const originalName = document.file_name || "arquivo";
@@ -80,17 +80,68 @@ async function handleArquivarMode(ctx: Context) {
   const text = ctx.text || "";
   const customName = text.replace(/\/novo_arquivo(?:@\w+)?\s*/, "").trim();
   
+  // Verifica se o primeiro token eh um folder ID para arquivamento direto
+  const folderIdRegex = /^[a-zA-Z0-9_-]{25,}$/;
+  const parts = customName ? customName.split(/\s+/) : [];
+  const maybeFolderId = parts[0];
+  
+  if (maybeFolderId && folderIdRegex.test(maybeFolderId)) {
+    const directFolderId = maybeFolderId;
+    const directCustomName = parts.slice(1).join(' ').trim() || undefined;
+    const fileName = generateArchiveFileName(document, ctx, directCustomName);
+    
+    const statusMsg = await ctx.reply("🔄 Arquivando diretamente...");
+    
+    try {
+      const file = await ctx.telegram.getFile(document.file_id);
+      if (!file.file_path) {
+        await ctx.telegram.editMessageText(chatId, statusMsg.message_id, undefined, "❌ Erro ao obter arquivo.");
+        return;
+      }
+      
+      const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+      const response = await fetch(fileUrl);
+      const fileBuffer = await response.arrayBuffer();
+      
+      const uploadResponse = await uploadInvoice(fileBuffer, fileName, directFolderId);
+      
+      if (!uploadResponse) {
+        await ctx.telegram.editMessageText(chatId, statusMsg.message_id, undefined, "❌ Erro no upload. Tente novamente.");
+        return;
+      }
+      
+      await ctx.telegram.editMessageText(chatId, statusMsg.message_id, undefined,
+        `✅ Arquivo arquivado com sucesso!\n\n📝 ${fileName}`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📄 Ver Arquivo", url: uploadResponse }],
+              [{ text: "📁 Abrir Pasta", url: `https://drive.google.com/drive/folders/${directFolderId}` }]
+            ]
+          }
+        }
+      );
+    } catch (error: any) {
+      console.error("Erro ao arquivar diretamente:", error);
+      if (error?.response?.description?.includes("file is too big")) {
+        await ctx.telegram.editMessageText(chatId, statusMsg.message_id, undefined, "❌ O arquivo excede o limite de 20MB do Telegram para download via bot.");
+      } else {
+        await ctx.telegram.editMessageText(chatId, statusMsg.message_id, undefined, "❌ Erro no arquivamento. Tente novamente.");
+      }
+    }
+    
+    return;
+  }
+  
   const fileName = generateArchiveFileName(document, ctx, customName);
   
-  // Carrega ou atualiza estrutura de pastas
   const workgroupId = String(chatId);
-  let rootNode = await getFolderTree(workgroupId);
+  
+  let rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label);
   
   if (!rootNode) {
     await ctx.reply("🔄 Primeira vez! Carregando estrutura de pastas...");
-    await updateFolderTree(workgroupId);
-    rootNode = await getFolderTree(workgroupId);
-    
+    rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label, true);
     if (!rootNode) {
       return ctx.reply("❌ Erro ao carregar estrutura de pastas.");
     }
@@ -102,7 +153,7 @@ async function handleArquivarMode(ctx: Context) {
     fileId: document.file_id,
     fileName: fileName,
     workgroupId: workgroupId,
-    currentPath: [],
+    breadcrumb: [],
     currentFolderId: groupConfig.folderId
   }, 300);
 
@@ -111,8 +162,8 @@ async function handleArquivarMode(ctx: Context) {
   const createCommand = `/criar_pasta ${groupConfig.folderId} [nome da pasta]`;
   
   return ctx.reply(
-    `Para criar pasta: \`${createCommand}\`\n\n📁 Arquivar: ${fileName}\nEscolha a pasta:`,
-    { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
+    `Para criar pasta: <code>${createCommand}</code>\n\n📁 Arquivar: ${fileName}\nEscolha a pasta:`,
+    { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
   );
 }
 
@@ -171,14 +222,13 @@ export async function handleFileCreation(ctx: Context, fileType: string, title: 
       return ctx.reply(`Não foi possível obter o ID do ${documentType.toLowerCase()} criado.`);
     }
 
-    // Carrega estrutura de pastas
+    // Carrega estrutura de pastas (raiz)
     const workgroupId = String(chat.id);
-    let rootNode = await getFolderTree(workgroupId);
+    let rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label);
     
     if (!rootNode) {
       await ctx.editMessageText("🔄 Carregando estrutura de pastas...");
-      await updateFolderTree(workgroupId);
-      rootNode = await getFolderTree(workgroupId);
+      rootNode = await getOrCacheFolderLevel(workgroupId, groupConfig.folderId, groupConfig.label, true);
       
       if (!rootNode) {
         return ctx.editMessageText("❌ Erro ao carregar estrutura de pastas.");
@@ -192,7 +242,7 @@ export async function handleFileCreation(ctx: Context, fileType: string, title: 
       documentType,
       documentTitle: fullTitle,
       workgroupId: workgroupId,
-      currentPath: [],
+      breadcrumb: [],
       currentFolderId: groupConfig.folderId
     }, 300);
 
@@ -201,8 +251,8 @@ export async function handleFileCreation(ctx: Context, fileType: string, title: 
     const createCommand = `/criar_pasta ${groupConfig.folderId} [nome da pasta]`;
     
     return ctx.editMessageText(
-      `Para criar pasta: \`${createCommand}\`\n\n${documentType} "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
-      { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'Markdown' }
+      `Para criar pasta: <code>${createCommand}</code>\n\n${documentType} "${fullTitle}" criado com sucesso!\nEscolha onde salvá-lo:`,
+      { reply_markup: { inline_keyboard: keyboard }, parse_mode: 'HTML' }
     );
   } catch (error) {
     console.error(`Erro ao criar ${fileType}:`, error);
@@ -273,7 +323,7 @@ function registerNovoArquivoCommand(bot: Telegraf) {
         return;
       }
       
-      await updateFolderTree(String(chatId));
+      await forceUpdateFolderTree(String(chatId));
       
       await ctx.editMessageText(
         `✅ Estrutura de pastas atualizada para ${groupConfig.label}!\n\nAgora use: \`/novo_arquivo [título]\` para criar um arquivo.`

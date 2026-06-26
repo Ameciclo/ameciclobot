@@ -1,0 +1,24 @@
+[
+  {
+    "entryIndex": 6,
+    "date": "02/03/2026",
+    "amount": 1125,
+    "type": "D",
+    "narrative": "144 Pix - Agendamento 01/03 05:31 Mayra Medeiros de Azevedo",
+    "autoStatus": "ambiguous",
+    "autoComment": "❓ Serviços de Auxiliar de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26.  (1 unidade × R$ 1125,00) | Serviços de Assessoria de Comunicação para a Associação Metropolitana de Ciclistas do Recife referente ao projeto Monociclo no mês de Fevereiro/26. (1 unidade × R$ 1125,00)",
+    "autoProject": "",
+    "finalDecision": null
+  },
+  {
+    "entryIndex": 11,
+    "date": "03/03/2026",
+    "amount": 300,
+    "type": "D",
+    "narrative": "144 Pix - Enviado 03/03 16:01 MARIANA OLIVEIRA DA SILVE",
+    "autoStatus": "not_found",
+    "autoComment": "❓ MARIANA OLIVEIRA DA SILVE",
+    "autoProject": "",
+    "finalDecision": null
+  }
+]

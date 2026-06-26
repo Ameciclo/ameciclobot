@@ -5,19 +5,55 @@ export interface BankDetectionResult {
   confidence: number;
   delimiter: string;
   account?: string;
+  statementType?: 'current' | 'credit';
+}
+
+function normalizeHeader(line: string): string {
+  return String(line || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/�/g, "")
+    .replace(/"/g, "")
+    .toLowerCase();
 }
 
 export function detectBankCSV(fileContent: string): BankDetectionResult {
   // Tenta detectar pelo cabeçalho primeiro
   const firstLine = fileContent.split('\n')[0];
+  const normalizedFirstLine = normalizeHeader(firstLine);
   
-  // Cora: cabeçalho específico com vírgulas
-  if (firstLine.includes('Data,Transação,Tipo Transação,Identificação,Valor')) {
+  // Cora crédito: cabeçalho da fatura/cartão
+  if (normalizedFirstLine.includes('data,nome no cartao,final do cartao,categoria,descricao')) {
     return {
       bank: 'cora',
       confidence: 1.0,
       delimiter: ',',
-      account: '5.697.526-5' // Conta Cora padrão
+      account: '5.697.526-5',
+      statementType: 'credit'
+    };
+  }
+
+  // Cora: cabeçalho específico com vírgulas
+  if (normalizedFirstLine.includes('data,transacao,tipo transacao,identificacao,valor')) {
+    return {
+      bank: 'cora',
+      confidence: 1.0,
+      delimiter: ',',
+      account: '5.697.526-5', // Conta Cora padrão
+      statementType: 'current'
+    };
+  }
+
+  // BB: novo layout CSV com vírgulas e aspas
+  if (
+    normalizedFirstLine.includes('data,lancamento,detalhes') &&
+    normalizedFirstLine.includes('valor,tipo lancamento')
+  ) {
+    return {
+      bank: 'bb',
+      confidence: 1.0,
+      delimiter: ',',
+      statementType: 'current'
     };
   }
   
@@ -57,7 +93,8 @@ export function detectBankCSV(fileContent: string): BankDetectionResult {
             bank: 'cora',
             confidence: 0.8,
             delimiter: ',',
-            account: '5.697.526-5'
+            account: '5.697.526-5',
+            statementType: 'current'
           };
         }
       }

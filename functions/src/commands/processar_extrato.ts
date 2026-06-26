@@ -1,6 +1,9 @@
 // src/commands/processarExtrato.ts
 import { reconcileExtract } from "../services/reconciliation";
 import { parseBBCSV } from "../services/reconciliation/parsers/bb_csv_parser";
+import { parseCoraCSV } from "../services/reconciliation/parsers/cora_csv_parser";
+import { parseCoraCreditCSV } from "../services/reconciliation/parsers/cora_credit_csv_parser";
+import { detectBankCSV } from "../services/reconciliation/bank_detector";
 import axiosInstance from "../config/httpService";
 import getAccounts from "../credentials/accounts.json";
 import projectsSpreadsheet from "../credentials/projectsSpreadsheet.json";
@@ -10,18 +13,89 @@ import {
   uploadCSVToDrive,
 } from "../services/google";
 import { getMonthNamePortuguese } from "../utils/utils";
+import { decodeTextFile } from "../utils/decodeTextFile";
 import workgroups from "../credentials/workgroupsfolders.json";
-import iconv from "iconv-lite";
 import { getAllRequests } from "../services/firebase";
 import { PaymentRequest } from "../config/types";
 
-import { Context, Telegraf } from "telegraf";
-async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
+import { Context, Markup, Telegraf } from "telegraf";
+
+function parseSpreadsheetDecimal(value: string): number {
+  const normalizedValue = String(value || "")
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const parsedValue = Number.parseFloat(normalizedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`Valor inválido no extrato: ${value}`);
+  }
+
+  return parsedValue;
+}
+
+function normalizeLooseText(text: string): string {
+  return String(text || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isInternalTransferNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return [
+    "AMECICLO",
+    "ASSOCIACAO METROPOLITANA",
+    "ASSOCIACAO M C G R AME",
+    "ASSOC METROPOLITANA",
+  ].some((token) => normalizedNarrative.includes(token));
+}
+
+function isBbRendeFacilNarrative(narrative: string): boolean {
+  const normalizedNarrative = normalizeLooseText(narrative);
+  return (
+    normalizedNarrative.includes("BB RENDE FACIL") ||
+    /BB RENDE F\s*CIL/.test(normalizedNarrative) ||
+    /BB RENDE F\w*CIL/.test(normalizedNarrative)
+  );
+}
+
+const ACCOUNTING_SHEET_GIDS: Record<string, string> = {
+  "EXTRATO CC 76": "684262481",
+  "EXTRATO FI 76": "478565062",
+  "EXTRATO CC 90": "410167064",
+  "EXTRATO CC 106": "1954691645",
+  "EXTRATO CC 131": "1183431137",
+  "EXTRATO CD 2393": "183100216",
+  "EXTRATO CC 2666": "1928472763",
+};
+
+function getAccountingSheetUrl(sheet?: string): string | null {
+  if (!sheet) {
+    return null;
+  }
+
+  const gid = ACCOUNTING_SHEET_GIDS[sheet];
+  if (!gid) {
+    return null;
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${projectsSpreadsheet.id}/edit?gid=${gid}#gid=${gid}`;
+}
+
+async function convertCSVtoStatementsData(
+  fileContent: string,
+  confirmedRequests: PaymentRequest[],
+  sourceFileName?: string
+): Promise<any[]> {
   const data: any[] = [];
-  const confirmedRequests = await getConfirmedPaymentRequests();
-  
+
   // Parse CSV using new deterministic parser
-  const { entries } = parseBBCSV(fileContent, "bb_cc_76849_9");
+  const { entries } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
   
   // Execute deterministic reconciliation
   const { results, summary } = reconcileExtract(entries, confirmedRequests);
@@ -34,15 +108,21 @@ async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
     const result = results[i];
     
     const formattedDate = `${entry.postDate.getDate().toString().padStart(2, '0')}/${(entry.postDate.getMonth() + 1).toString().padStart(2, '0')}/${entry.postDate.getFullYear()}`;
-    const formattedValue = `R$ ${entry.amount.toFixed(2).replace(".", ",")}`;
+    const formattedValue = entry.amount;
     let type = entry.type === "C" ? "Entrada" : "Saída";
     
     // Adjust type based on classification
-    if (result.project === "Movimentação Bancária" && entry.narrative.includes("BB Rende Fácil")) {
+    if (
+      result.project === "Movimentação Bancária" &&
+      isBbRendeFacilNarrative(entry.narrative)
+    ) {
       type = entry.type === "D" ? "Investido" : "Desinvestido";
     } else if (result.comment === "PIX DEVOLVIDO EXPLICAR") {
       type = entry.type === "C" ? "Entrada ERRO!" : "Saída ERRO!";
-    } else if (result.comment === "ATENÇÃO, DETALHAR" && entry.narrative.toUpperCase().includes("AMECICL")) {
+    } else if (
+      result.project === "Movimentação Bancária" &&
+      isInternalTransferNarrative(entry.narrative)
+    ) {
       type = entry.type === "C" ? "Entrada Remanejamento" : "Saída Remanejamento";
     }
     
@@ -59,24 +139,90 @@ async function convertCSVtoStatementsData(fileContent: string): Promise<any[]> {
   return data;
 }
 
-async function processExtratoCsv(fileUrl: string) {
+async function processExtratoCsv(fileUrl: string, sourceFileName?: string) {
   const response = await axiosInstance.get(fileUrl, {
     responseType: "arraybuffer",
   });
   const fileBuffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(fileBuffer, "latin1");
+  const fileContent = decodeTextFile(fileBuffer);
+
+  const detection = detectBankCSV(fileContent);
+
+  if (detection.bank === "cora") {
+    const isCreditStatement = detection.statementType === "credit";
+    const parser = isCreditStatement ? parseCoraCreditCSV : parseCoraCSV;
+    const sourceId = isCreditStatement ? "cora_cd" : "cora_cc";
+    const accountType = isCreditStatement ? "Conta Crédito" : "Conta Corrente";
+    const { entries, month: monthStr, year: yearStr, account: rawAccount } = parser(fileContent, sourceId);
+    const confirmedRequests = await getConfirmedPaymentRequests(monthStr, yearStr);
+    const { results, summary } = reconcileExtract(entries, confirmedRequests);
+
+    console.log(`[RECONCILIATION] Resumo: ✅ ${summary.ok} ok | 🔗 ${summary.split} split | ⚠️ ${summary.ambiguous} ambíguo | ❓ ${summary.not_found} não encontrados`);
+
+    const statementsData = entries.map((entry, i) => {
+      const result = results[i];
+      const formattedDate = `${entry.postDate.getDate().toString().padStart(2, "0")}/${(entry.postDate.getMonth() + 1).toString().padStart(2, "0")}/${entry.postDate.getFullYear()}`;
+      const formattedValue = entry.amount;
+      let type = entry.type === "C" ? "Entrada" : "Saída";
+
+      if (!isCreditStatement && isInternalTransferNarrative(entry.narrative)) {
+        type = entry.type === "D" ? "Investido" : "Desinvestido";
+      } else if (!isCreditStatement && normalizeLooseText(entry.narrative).includes("CORA SCFI")) {
+        return [formattedDate, formattedValue, type, entry.narrative, "Fatura cartão de crédito", "Movimentação Bancária"];
+      }
+
+      return [
+        formattedDate,
+        formattedValue,
+        type,
+        entry.narrative,
+        result.comment,
+        result.project
+      ];
+    });
+
+    const matchedAccount = getAccounts.find((acc: any) =>
+      acc.bank === "Cora" &&
+      acc.number === rawAccount &&
+      acc.type === accountType &&
+      acc.input_file_type === "csv"
+    ) || {
+      bank: "desconhecido",
+      bank_number: "desconhecido",
+      number: rawAccount,
+      type: accountType,
+      fulltext: `${accountType} (Cora) ${rawAccount}`,
+      sheet: isCreditStatement ? "EXTRATO CC 2666" : "EXTRATO CD 2393",
+      input_file_type: "csv",
+      folder_id: "desconhecido",
+    };
+
+    return {
+      account: matchedAccount.number,
+      statements: statementsData,
+      fileContent,
+      month: monthStr,
+      year: yearStr,
+      matchedAccount,
+    };
+  }
 
   // Use new deterministic parser
-  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc_76849_9");
-  const statementsData = await convertCSVtoStatementsData(fileContent);
+  const { month: monthStr, year: yearStr, account: rawAccount } = parseBBCSV(fileContent, "bb_cc", sourceFileName);
+  const confirmedRequests = await getConfirmedPaymentRequests(monthStr, yearStr);
+  const statementsData = await convertCSVtoStatementsData(
+    fileContent,
+    confirmedRequests,
+    sourceFileName
+  );
 
   const accounts = getAccounts.filter(
-    (acc: any) => acc.type === "Conta Corrente"
+    (acc: any) => acc.bank === "Banco do Brasil" && acc.type === "Conta Corrente"
   );
   let matchedAccount = accounts.find((acc: any) => {
     const cleanAccNumber = acc.number.replace(/[^\d]/g, "");
     const cleanResultAccount = rawAccount.replace(/[^\d]/g, "");
-    return cleanResultAccount === cleanAccNumber;
+    return cleanResultAccount === cleanAccNumber && acc.input_file_type === "csv";
   });
   if (!matchedAccount) {
     matchedAccount = {
@@ -107,7 +253,7 @@ async function processExtratoTxt(fileUrl: string) {
     responseType: "arraybuffer",
   });
   const buffer = Buffer.from(response.data);
-  const fileContent = iconv.decode(buffer, "latin1");
+  const fileContent = decodeTextFile(buffer);
 
   const lines = fileContent.split(/\r?\n/);
 
@@ -167,13 +313,13 @@ async function processExtratoTxt(fileUrl: string) {
     throw new Error("Seção 'Resumo do mês' não encontrada.");
   }
 
-  const summary: string[] = [];
+  const summary: number[] = [];
   let i = resumoIndex + 1;
   while (summary.length < 6 && i < lines.length) {
     const line = lines[i].trim();
     const match = line.match(/([\d\.,]+)$/);
     if (match && match[1].trim() !== "") {
-      summary.push(match[1].trim());
+      summary.push(parseSpreadsheetDecimal(match[1].trim()));
     }
     i++;
   }
@@ -260,7 +406,7 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
 
       if (isCSV) {
         // Processa extrato de conta corrente
-        const result = await processExtratoCsv(fileLink.href);
+        const result = await processExtratoCsv(fileLink.href, document.file_name || "");
         console.log("[processar_extrato] Extrato CC processado");
 
         const filename = generateExtratoFilename(
@@ -296,11 +442,17 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
         const identifiedCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4] !== "" && !stmt[4].startsWith("❓")).length;
         const ambiguousCount = result.statements.filter((stmt: any) => stmt[4] && stmt[4].startsWith("❓")).length;
         const totalCount = result.statements.length;
+        const accountingSheetUrl = getAccountingSheetUrl(result.matchedAccount.sheet);
         
         await ctx.reply(
           `Extrato de conta corrente processado com sucesso para a conta ${result.matchedAccount.number}. ` +
           `Dados adicionados na aba ${result.matchedAccount.sheet}.\n\n` +
-          `📊 Reconciliação: ✅ ${identifiedCount} identificados | ❓ ${ambiguousCount} pendentes | Total: ${totalCount} lançamentos`
+          `📊 Reconciliação: ✅ ${identifiedCount} identificados | ❓ ${ambiguousCount} pendentes | Total: ${totalCount} lançamentos`,
+          accountingSheetUrl
+            ? Markup.inlineKeyboard([
+                [Markup.button.url("📊 Acompanhamento de gastos", accountingSheetUrl)],
+              ])
+            : undefined
         );
       } else {
         // Processa extrato de fundo de investimento
@@ -345,9 +497,18 @@ function registerProcessarExtratoCommand(bot: Telegraf) {
 }
 
 // Função para buscar requests confirmados
-async function getConfirmedPaymentRequests(): Promise<PaymentRequest[]> {
+async function getConfirmedPaymentRequests(
+  month?: string,
+  year?: string
+): Promise<PaymentRequest[]> {
   try {
-    const allRequests = await getAllRequests();
+    const monthKey =
+      year && month ? `${year}-${String(month).padStart(2, "0")}` : undefined;
+    const allRequests = await getAllRequests(
+      monthKey
+        ? { monthKeys: [monthKey], includeAdjacentMonths: true }
+        : undefined
+    );
     console.log("[DEBUG] Total requests encontrados:", Object.keys(allRequests || {}).length);
     
     const requestsArray = Object.values(allRequests).filter(

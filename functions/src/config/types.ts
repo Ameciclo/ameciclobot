@@ -40,6 +40,19 @@ export interface TelegramUserInfo {
   email?: string;
 }
 
+export interface ExtraParticipant {
+  input: string;
+  name: string;
+  identifierType: "username" | "email" | "cpf" | "name";
+  matchedUserId?: number;
+  matchType?: "username" | "email" | "cpf";
+  username?: string;
+  email?: string;
+  cpf?: string;
+  addedBy: TelegramUserInfo;
+  addedAt: string;
+}
+
 export interface CalendarEventData {
   id: string;
   calendarId: string;
@@ -52,8 +65,10 @@ export interface CalendarEventData {
   workgroup: number;
   htmlLink: string;
   calendarEventId?: string;
+  groupMessageId?: number;
   participants?: { [key: number]: TelegramUserInfo };
   notGoing?: { [key: number]: TelegramUserInfo };
+  extraParticipants?: { [key: string]: ExtraParticipant };
 }
 
 // /config/types.ts (ou um arquivo similar)
@@ -110,8 +125,9 @@ export interface PaymentRequest {
   quantity?: number;
   value: string;
   status?: string;
-  signatures?: { [key: number]: TelegramUserInfo };
+  signatures?: { [key: number]: TelegramUserInfo & { signedAt?: number } };
   confirmed_by: TelegramUserInfo[] | undefined | [];
   coordinator_messages?: { [key: number]: number }; // ID do coordenador -> ID da mensagem
   group_message_id?: number;
+  workgroup_messages?: { [key: string]: number }; // ID do grupo -> ID da mensagem
 }
