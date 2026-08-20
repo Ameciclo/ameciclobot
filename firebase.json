@@ -7,6 +7,7 @@
       ],
       "source": "functions",
       "codebase": "default",
+      "memory": "512MiB",
       "ignore": [
         "node_modules",
         ".git",

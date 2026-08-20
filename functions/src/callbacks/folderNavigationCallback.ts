@@ -7,6 +7,7 @@ import {
 } from "../services/folderService";
 import { getTempData, setTempData } from "../services/firebase";
 import { moveDocumentToFolder, uploadInvoice } from "../services/google";
+import { isStopFlagSet } from "../commands/pare_tudo";
 
 interface BreadcrumbEntry {
   id: string;
@@ -297,6 +298,11 @@ export function registerFolderNavigationCallbacks(bot: Telegraf) {
 
 async function handleArchiveFile(ctx: Context, tempData: any, folderId: string): Promise<void> {
   try {
+    if (await isStopFlagSet()) {
+      await ctx.editMessageText("Operacao cancelada pelo /pare_tudo.");
+      return;
+    }
+
     const file = await ctx.telegram.getFile(tempData.fileId);
     if (!file.file_path) {
       await ctx.editMessageText("❌ Erro ao obter arquivo.");

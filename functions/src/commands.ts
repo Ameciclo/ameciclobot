@@ -17,6 +17,7 @@ import { ajudanteFinanceiroCommand } from "./commands/ajudante_financeiro";
 import { denunciaCommand } from "./commands/denuncia";
 import { limparCachePastasCommand } from "./commands/limpar_cache_pastas";
 import { consumoCommand } from "./commands/consumo";
+import { pareTudoCommand } from "./commands/pare_tudo";
 
 export const commandsList = [
   ajudanteFinanceiroCommand,
@@ -41,4 +42,5 @@ export const hiddenCommandsList = [
   limparCachePastasCommand,
   consumoCommand,
   presentesCommand,
+  pareTudoCommand,
 ];

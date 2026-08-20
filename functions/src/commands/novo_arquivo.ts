@@ -3,6 +3,7 @@ import { setTempData } from "../services/firebase";
 import { getOrCacheFolderLevel, forceUpdateFolderTree, getWorkgroupConfig } from "../services/folderService";
 import { createFolderNavigationKeyboard } from "../callbacks/folderNavigationCallback";
 import { createDocument, createPresentation, createForm, createSheet, uploadInvoice } from "../services/google";
+import { isStopFlagSet } from "./pare_tudo";
 
 // Função para sanitizar nome do arquivo
 function sanitizeFileName(text: string, maxLength = 50): string {
@@ -58,6 +59,10 @@ async function handleArquivarMode(ctx: Context) {
 
   if (!document) {
     return ctx.reply("Nenhum arquivo encontrado na mensagem respondida.");
+  }
+
+  if (await isStopFlagSet()) {
+    return ctx.reply("Operacao cancelada pelo /pare_tudo.");
   }
 
   // Verifica tamanho do arquivo (50MB)
